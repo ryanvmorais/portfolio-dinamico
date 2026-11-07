@@ -63,11 +63,21 @@ target-version = "py312"
 extend-exclude = ["migrations", ".venv"]
 
 [tool.ruff.lint]
-# E/W = pycodestyle, F = pyflakes (≈ flake8), I = isort, UP = pyupgrade
-select = ["E", "W", "F", "I", "UP"]
+# E/W = pycodestyle, F = pyflakes (≈ flake8), I = isort, UP = pyupgrade, D = pydocstyle
+# (D213 pelo nome: a convenção Google o desliga)
+select = ["E", "W", "F", "I", "UP", "D", "D213"]
 # E501 (comprimento de linha) fica a cargo do black; docstrings/help_text e URLs
 # longas não são quebradas pelo formatador e não devem falhar o lint.
-ignore = ["E501"]
+ignore = [
+    "E501",
+    "D1",  # docstring ausente (D100 a D107) fica fora do portão por enquanto; tire daqui conforme cada módulo for documentado
+    "D212",  # o estilo do projeto abre a docstring com `"""` sozinho e o resumo na linha seguinte (D213)
+    "D205",  # o resumo pode ser um parágrafo que quebra linha, seguido de linha em branco
+]
+
+[tool.ruff.lint.pydocstyle]
+# Seções no estilo Google (`Args:`, `Returns:`, `Raises:`), como nas docstrings.
+convention = "google"
 
 # --- Testes ---
 [tool.pytest.ini_options]

@@ -15,7 +15,6 @@ import sys
 
 def main():
     """Executa as tarefas administrativas do Django."""
-
     # Define qual arquivo de configurações o Django deve usar para os comandos.
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "portfolio.settings")
 
