@@ -38,7 +38,8 @@ _NOME = re.compile(r"\bRyan\b")
 _SKILL_PESSOAL = re.compile(
     r"(?<![\w./-])/(idioma|spec|estilo-arquivos|fechar-sessao|atualizar-docs"
     r"|atualizar-dependencias|revisar-dependabot|nova-interface|stack|novo-projeto"
-    r"|auditoria-interface|auditar-impessoalidade)\b"
+    r"|preparar-release|atualizar-ferramentas|qualidade-python|limpar-branches"
+    r"|enxugar-memoria|auditoria-[a-z]+)\b"
 )
 
 
