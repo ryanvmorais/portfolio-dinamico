@@ -42,6 +42,9 @@ jobs:
       DEBUG: "True"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Nenhum passo seguinte precisa do token do GitHub; ele não fica no disco.
+          persist-credentials: false
 
       - name: Instala o uv
         uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
@@ -71,6 +74,9 @@ jobs:
       SECRET_KEY: ci-placeholder-nao-usar-em-producao-3MVL5eNw-XBWZDpk
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Nenhum passo seguinte precisa do token do GitHub; ele não fica no disco.
+          persist-credentials: false
 
       - name: Instala o uv
         uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
