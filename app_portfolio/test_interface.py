@@ -568,7 +568,7 @@ def test_rodape_nao_usa_h4(client) -> None:
 @pytest.mark.django_db
 class TestFiltrosECampos:
     def test_filtros_declaram_aria_pressed(self, client) -> None:
-        """ "Todos" nasce pressionado; os demais, não."""
+        """O filtro "Todos" nasce pressionado; os demais, não."""
         _perfil()
         CategoriaProjeto.objects.create(nome="Web", slug="web")
         html = _home(client)
@@ -843,7 +843,6 @@ def _webp_minimo() -> bytes:
         bytes: Conteúdo de um arquivo ``.webp`` válido (o ``save()`` do model
             não reconverte WebP).
     """
-
     buffer = io.BytesIO()
     Image.new("RGB", (1, 1), "red").save(buffer, format="WEBP")
     return buffer.getvalue()

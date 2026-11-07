@@ -191,7 +191,8 @@ centralizada no `pyproject.toml`, e reimplementa dezenas de plugins do
 `flake8` nativamente.
 
 **Estudar:** `uv run ruff check .` / `--fix`, os grupos de regra
-(`E`/`W` pycodestyle, `F` pyflakes, `I` isort, `UP` pyupgrade) configurados
+(`E`/`W` pycodestyle, `F` pyflakes, `I` isort, `UP` pyupgrade, `D` pydocstyle,
+que confere a forma das docstrings; docstring ausente ainda não barra) configurados
 em `[tool.ruff.lint]`.
 
 **Docs:** [docs.astral.sh/ruff](https://docs.astral.sh/ruff/)
