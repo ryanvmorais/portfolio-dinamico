@@ -6,12 +6,12 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![Django](https://img.shields.io/badge/Django-6.1-092E20?logo=django&logoColor=white)
-![deps](https://img.shields.io/badge/deps-uv-DE5FE9)
-[![CI](https://github.com/ryanvmorais/portfolio-dinamico/actions/workflows/ci.yml/badge.svg)](https://github.com/ryanvmorais/portfolio-dinamico/actions/workflows/ci.yml)
-![Lint](https://img.shields.io/badge/lint-ruff-261230)
-![Format](https://img.shields.io/badge/style-black-000000)
-![Types](https://img.shields.io/badge/types-mypy%20strict-2A6DB2)
-![License](https://img.shields.io/badge/license-MIT-green)
+![deps](https://img.shields.io/badge/deps-uv-DE5FE9?logo=uv&logoColor=white)
+[![CI](https://img.shields.io/github/actions/workflow/status/ryanvmorais/portfolio-dinamico/ci.yml?label=CI&logo=githubactions&logoColor=white)](https://github.com/ryanvmorais/portfolio-dinamico/actions/workflows/ci.yml)
+![lint](https://img.shields.io/badge/lint-ruff-261230?logo=ruff&logoColor=white)
+![style](https://img.shields.io/badge/style-black-000000?logo=black&logoColor=white)
+![types](https://img.shields.io/badge/types-mypy%20strict-2A6DB2)
+![license](https://img.shields.io/badge/license-MIT-green?logo=opensourceinitiative&logoColor=white)
 
 🔗 **[See the live demo](https://djangofullstackportfolio.pythonanywhere.com/)** (the site itself is in Portuguese)
 
