@@ -1,12 +1,12 @@
 ---
 feature: Correções da auditoria de interface
 status: concluído
-data: 18/10/2026
-relacionado:
+date: 2026-10-18
+related:
   - 001-vitrine-portfolio
   - 002-formulario-contato
   - 003-configuracao-seguranca
-origem: nova feature (auditoria de interface em navegador real)
+origin: nova feature (auditoria de interface em navegador real)
 ---
 
 # Design — Correções da auditoria de interface

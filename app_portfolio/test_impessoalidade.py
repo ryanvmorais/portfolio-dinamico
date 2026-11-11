@@ -1,6 +1,5 @@
 """
-🧪 PROJETO: TESTES DE IMPESSOALIDADE
-🎯 Objetivo: Garantir que o que é versionado fale com quem clonou o repositório.
+Testes de impessoalidade: o que é versionado fala com quem clonou o repositório.
 
 Tudo o que mora no repositório é escrito para quem o lê, e não para o mantenedor: o nome
 dele não aparece em prosa, comentário ou nome de arquivo, e o ``CLAUDE.md`` descreve o

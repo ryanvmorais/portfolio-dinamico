@@ -1,12 +1,9 @@
 """
-🧪 PROJETO: TESTES AUTOMATIZADOS (TESTS.PY)
-🎯 Objetivo: Educacional - Validar a integridade, segurança e performance do sistema.
+Testes da home, do formulário de contato e da conversão de imagem.
 
-ESTRUTURA DO CÓDIGO:
-1. FIXTURES: Configurações de ambiente para os testes (Limpeza, SSL, E-mail e Mídia).
-2. TESTES DE CORE: Verificação de status code, criação de modelos e performance.
-3. TESTES DE SEGURANÇA: Validação de XSS, Honeypot, Rate Limit e envio de e-mail.
-4. TESTES DE UTILITÁRIOS: Conversão de imagem para WebP no save() dos models.
+Cobrem o status e o número de consultas da página, a segurança do envio
+(XSS, honeypot, limite por IP, falha de e-mail) e a conversão para WebP no
+``save()`` dos models.
 
 Estratégia de isolamento: nenhuma chamada de rede real é feita durante a
 suíte, e nenhum teste depende do conteúdo do `.env` local. `settings.EMAIL_BACKEND`
@@ -33,7 +30,9 @@ from PIL import Image
 
 from app_portfolio.models import MensagemContato, Perfil, Projeto
 
-# --- 1. CONFIGURAÇÕES DE AMBIENTE (FIXTURES) ---
+# ---------------------------------------------------------------------------
+# Fixtures de ambiente
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(autouse=True)
@@ -100,7 +99,9 @@ def _uploaded_png(nome: str = "teste.png") -> SimpleUploadedFile:
     return SimpleUploadedFile(nome, buffer.read(), content_type="image/png")
 
 
-# --- 2. TESTES DE CORE E PERFORMANCE ---
+# ---------------------------------------------------------------------------
+# Página e desempenho
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db  # Permite que o teste acesse o banco de dados
@@ -118,8 +119,10 @@ class TestPortfolioCore:
 
     def test_home_query_count(self, client, django_assert_max_num_queries) -> None:
         """
-        TESTE SÊNIOR: Garante que a página inicial não ultrapasse 10 consultas ao banco.
-        Isso previne lentidão causada pelo excesso de requisições (N+1).
+        Garante que a página inicial não ultrapasse 10 consultas ao banco.
+
+        Um select_related/prefetch_related a menos na view faria o número
+        crescer com a quantidade de projetos (N+1).
         """
         with django_assert_max_num_queries(10):
             client.get(reverse("home"))
@@ -131,7 +134,9 @@ class TestPortfolioCore:
         assert settings.STORAGES["default"]["BACKEND"].endswith("FileSystemStorage")
 
 
-# --- 3. TESTES DE SEGURANÇA ---
+# ---------------------------------------------------------------------------
+# Segurança do formulário de contato
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db
@@ -278,7 +283,9 @@ class TestSegurancaContato:
         assert response.json()["status"] == "error"
 
 
-# --- 4. TESTES DE UTILITÁRIOS (TRATAMENTO DE IMAGEM) ---
+# ---------------------------------------------------------------------------
+# Conversão de imagem para WebP
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.django_db

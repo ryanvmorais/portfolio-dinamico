@@ -31,9 +31,9 @@ specs/
   ---
   feature: <título legível>
   status: rascunho | aprovado | em andamento | concluído
-  data: DD/MM/AAAA
-  relacionado: [outras specs]      # opcional
-  origem: <nova feature | engenharia reversa do código existente (...)>
+  date: AAAA-MM-DD
+  related: [outras specs]      # opcional
+  origin: <nova feature | engenharia reversa do código existente (...)>
   ---
   ```
 - **Critérios de aceite** em **Given/When/Then** (BDD) — testáveis.

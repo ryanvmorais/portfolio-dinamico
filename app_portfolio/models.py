@@ -1,12 +1,10 @@
 """
-🗄️ PROJETO: MODELAGEM DE DADOS (MODELS.PY)
-🎯 Objetivo: Educacional - Definir a estrutura do banco de dados e relacionamentos.
+Models do portfólio: o conteúdo da página e as mensagens de contato.
 
-ESTRUTURA DO CÓDIGO:
-1. ELEMENTOS AUXILIARES: Tecnologias e Categorias (Tags e Filtros).
-2. NÚCLEO DO PORTFÓLIO: Projetos e Habilidades (O conteúdo principal).
-3. IDENTIDADE: Perfil do Desenvolvedor e Estatísticas.
-4. INTERAÇÃO: Mensagens recebidas pelo formulário.
+Tecnologias e categorias classificam os projetos; perfil, estatísticas e
+habilidades formam a apresentação; ``MensagemContato`` guarda o que chega
+pelo formulário. As imagens enviadas são convertidas para WebP ao salvar
+(``utils.converter_para_webp``).
 """
 
 from typing import Any
@@ -16,7 +14,9 @@ from django.db import models
 
 from .utils import converter_para_webp
 
-# --- 1. ELEMENTOS AUXILIARES (TAGS E CATEGORIAS) ---
+# ---------------------------------------------------------------------------
+# Tecnologias e categorias de projeto
+# ---------------------------------------------------------------------------
 
 
 class Tecnologia(models.Model):
@@ -60,7 +60,9 @@ class CategoriaProjeto(models.Model):
         return self.nome
 
 
-# --- 2. NÚCLEO DO PORTFÓLIO (CONTEÚDO) ---
+# ---------------------------------------------------------------------------
+# Projetos
+# ---------------------------------------------------------------------------
 
 
 class Projeto(models.Model):
@@ -122,7 +124,9 @@ class Projeto(models.Model):
         super().save(*args, **kwargs)
 
 
-# --- 3. IDENTIDADE E APRESENTAÇÃO ---
+# ---------------------------------------------------------------------------
+# Perfil e estatísticas
+# ---------------------------------------------------------------------------
 
 
 class Perfil(models.Model):
@@ -206,7 +210,9 @@ class Estatistica(models.Model):
         return self.legenda
 
 
-# --- 4. HABILIDADES E CATEGORIAS ---
+# ---------------------------------------------------------------------------
+# Habilidades
+# ---------------------------------------------------------------------------
 
 
 class CategoriaHabilidade(models.Model):
@@ -240,7 +246,9 @@ class Habilidade(models.Model):
         return f"{self.nome} ({self.categoria.nome})"
 
 
-# --- 5. INTERAÇÃO E LOGS ---
+# ---------------------------------------------------------------------------
+# Mensagens de contato
+# ---------------------------------------------------------------------------
 
 
 class MensagemContato(models.Model):

@@ -1,16 +1,16 @@
-# Pipeline de CI (GitHub Actions). Espelha o portao de qualidade local
+# Pipeline de CI (GitHub Actions). Espelha o portão de qualidade local
 # (ruff -> black -> mypy -> pytest) para que um check verde no PR signifique o
 # mesmo que um clone limpo passando. Dois jobs independentes:
 #   qualidade  ruff -> black --check -> mypy -> pytest  (matriz: Python 3.12 e 3.14)
-#   seguranca  pip-audit (CVEs) + manage.py check --deploy (postura de producao)
+#   seguranca  pip-audit (CVEs) + manage.py check --deploy (postura de produção)
 #
-# O piso do projeto e o 3.12 (a versao do servidor no PythonAnywhere, que lista
-# Python so ate o 3.13); o 3.14 e a versao estavel mais nova. A matriz testa as
-# duas pontas, para o piso declarado no pyproject.toml nao ser so uma promessa.
+# O piso do projeto é o 3.12 (a versão do servidor no PythonAnywhere, que lista
+# Python só até o 3.13); o 3.14 é a versão estável mais nova. A matriz testa as
+# duas pontas, para o piso declarado no pyproject.toml não ser só uma promessa.
 #
-# CodeQL (code scanning) roda no workflow proprio codeql.yml, porque o repo e
-# publico e o code scanning e gratis. Dependabot (alerts + version updates) cobre
-# a varredura continua de dependencias.
+# CodeQL (code scanning) roda no workflow próprio codeql.yml, porque o repo é
+# público e o code scanning é grátis. Dependabot (alerts + version updates) cobre
+# a varredura contínua de dependências.
 name: CI
 
 on:
@@ -27,21 +27,24 @@ permissions:
   contents: read
 
 jobs:
-  # --- Portao de qualidade: a sequencia canonica do CLAUDE.md ---
+  # --- Portão de qualidade: a sequência canônica do CLAUDE.md ---
   qualidade:
     name: Qualidade (Python ${{ matrix.python-version }})
     runs-on: ubuntu-26.04
+    # A suíte roda em menos de 1 minuto; o teto só corta um run travado.
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.12", "3.14"]
     env:
       # portfolio.settings faz os.getenv("SECRET_KEY") + ValueError se ausente;
-      # valor descartavel, so para o settings importar em CI (nao e producao).
+      # valor descartável, só para o settings importar em CI (não é produção).
       SECRET_KEY: ci-placeholder-nao-usar-em-producao-3MVL5eNw-XBWZDpk
       DEBUG: "True"
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Baixar o código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Nenhum passo seguinte precisa do token do GitHub; ele não fica no disco.
           persist-credentials: false
@@ -67,13 +70,16 @@ jobs:
       - name: Pytest (suite completa)
         run: uv run pytest
 
-  # --- Seguranca: nao bloqueia o merge por si so; e um sinal visivel no PR ---
+  # --- Segurança: não bloqueia o merge por si só; é um sinal visível no PR ---
   seguranca:
     runs-on: ubuntu-26.04
+    # pip-audit e check --deploy levam segundos; o teto só corta um run travado.
+    timeout-minutes: 5
     env:
       SECRET_KEY: ci-placeholder-nao-usar-em-producao-3MVL5eNw-XBWZDpk
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Baixar o código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Nenhum passo seguinte precisa do token do GitHub; ele não fica no disco.
           persist-credentials: false

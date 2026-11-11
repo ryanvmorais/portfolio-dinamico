@@ -1,11 +1,11 @@
 ---
 feature: Formulário de contato (anti-spam, sanitização e notificação por e-mail)
 status: concluído
-data: 11/09/2026
-relacionado:
+date: 2026-09-11
+related:
   - 001-vitrine-portfolio
   - 003-configuracao-seguranca
-origem: engenharia reversa do código existente (app_portfolio)
+origin: engenharia reversa do código existente (app_portfolio)
 ---
 
 # Requisitos — Formulário de Contato

@@ -1,11 +1,8 @@
 """
-🌐 PROJETO: ROTEAMENTO GLOBAL (PORTFOLIO/URLS.PY)
-🎯 Objetivo: Educacional - Centralizar as rotas do sistema e gerenciar arquivos estáticos.
+Rotas globais do projeto.
 
-ESTRUTURA DO CÓDIGO:
-1. SEGURANÇA ADMINISTRATIVA: Ofuscação da URL do painel de controle.
-2. MODULARIZAÇÃO: Inclusão das rotas específicas da aplicação do portfólio.
-3. AMBIENTE DE DESENVOLVIMENTO: Configuração para exibição local de fotos e mídia.
+Monta o painel administrativo num caminho configurável, inclui as rotas do
+app do portfólio e, só em desenvolvimento, serve os arquivos de mídia.
 """
 
 from django.conf import settings
@@ -15,32 +12,28 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import include, path
 from django.views.generic.base import RedirectView
 
-# O urlpatterns global serve como a porta de entrada principal do servidor.
 urlpatterns = [
-    # 1. ADMINISTRAÇÃO DINÂMICA
-    # Em vez de usar 'admin/', usamos uma variável do settings para evitar
-    # que invasores encontrem facilmente a tela de login.
+    # O caminho do admin vem do settings (ADMIN_URL no .env) em vez de
+    # "admin/": a tela de login fica fora do caminho que robôs testam primeiro.
     path(settings.ADMIN_URL_PATH, admin.site.urls),
-    # 2. INCLUSÃO DE APLICATIVOS (MODULARIZAÇÃO)
-    # Aqui dizemos ao Django: "Se o usuário acessar a raiz (''),
-    # procure as instruções dentro do arquivo urls.py da pasta app_portfolio".
     path("", include("app_portfolio.urls")),
-    # 3. GESTÃO DE ARQUIVOS ESTÁTICOS
-    # Redireciona a busca automática do navegador para o local correto do favicon.
-    # O arquivo é o favicon.webp (a rota apontava para um favicon.png que não
-    # existe e respondia 404; spec 004, RF-20). staticfiles_storage.url() devolve
-    # o caminho absoluto (/static/...), não o relativo que STATIC_URL sozinho dava.
+    # O navegador pede /favicon.ico por conta própria. O arquivo é o
+    # favicon.webp (a rota apontava para um favicon.png que não existe e
+    # respondia 404; spec 004, RF-20). staticfiles_storage.url() devolve o
+    # caminho absoluto (/static/...), não o relativo que STATIC_URL sozinho dava.
     path(
         "favicon.ico",
         RedirectView.as_view(url=staticfiles_storage.url("icons/favicon.webp")),
     ),
 ]
 
-# --- 3. GESTÃO DE ARQUIVOS DE MÍDIA (MODO DESENVOLVIMENTO) ---
 
-# O Django, por segurança, não serve arquivos de imagem (Media) automaticamente.
-# Esta lógica abaixo só funciona se o DEBUG estiver como True no seu .env.
+# ---------------------------------------------------------------------------
+# Mídia em desenvolvimento
+# ---------------------------------------------------------------------------
+
+
+# Em produção quem serve /media/ é o servidor web; o Django só o faz com
+# DEBUG=True, para as fotos enviadas pelo admin aparecerem no runserver.
 if settings.DEBUG:
-    # static() cria uma rota temporária para que você consiga ver as fotos
-    # dos projetos e do seu perfil enquanto desenvolve localmente.
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

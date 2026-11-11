@@ -1,10 +1,10 @@
 ---
 feature: Configuração e postura de segurança (settings, CSP, admin, deploy)
 status: concluído
-data: 11/09/2026
-relacionado:
+date: 2026-09-11
+related:
   - 002-formulario-contato
-origem: engenharia reversa do código existente (portfolio/settings.py)
+origin: engenharia reversa do código existente (portfolio/settings.py)
 ---
 
 # Requisitos — Configuração e Segurança

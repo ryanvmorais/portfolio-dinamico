@@ -1,10 +1,10 @@
 ---
 feature: Configuração e postura de segurança (settings, CSP, admin, deploy)
 status: concluído
-data: 11/09/2026
-relacionado:
+date: 2026-09-11
+related:
   - 002-formulario-contato
-origem: engenharia reversa do código existente (portfolio/settings.py)
+origin: engenharia reversa do código existente (portfolio/settings.py)
 ---
 
 # Design — Configuração e Segurança
@@ -21,10 +21,10 @@ de settings.
 
 | Componente | Arquivo | Responsabilidade |
 |---|---|---|
-| Bloco 1 (env/segredos) | `portfolio/settings.py:19-47` | `SECRET_KEY`, `DEBUG`, `ADMIN_URL_PATH`, `ALLOWED_HOSTS` |
-| `MIDDLEWARE` | `portfolio/settings.py:60-70` | Ordem: Security → WhiteNoise → Session → Common → CSRF → Auth → Messages → XFrameOptions → CSP |
-| Bloco 4 (segurança avançada) | `portfolio/settings.py:124-147` | HSTS, cookies seguros, SSL redirect — só com `DEBUG=False` |
-| `django-csp` | `portfolio/settings.py:130-135` | Diretivas `CSP_*` |
+| Bloco 1 (env/segredos) | `portfolio/settings.py`, bloco 1 | `SECRET_KEY`, `DEBUG`, `ADMIN_URL_PATH`, `ALLOWED_HOSTS` |
+| `MIDDLEWARE` | `portfolio/settings.py`, bloco 2 | Ordem: Security → WhiteNoise → Session → Common → CSRF → Auth → Messages → XFrameOptions → CSP |
+| Bloco 4 (cabeçalhos e HTTPS) | `portfolio/settings.py`, bloco 4 | HSTS, cookies seguros, SSL redirect — só com `DEBUG=False` |
+| `django-csp` | `portfolio/settings.py`, bloco 4 (`CSP_*`) | Diretivas `CSP_*` |
 | `portfolio/urls.py` | raiz | Monta `admin.site.urls` em `settings.ADMIN_URL_PATH` |
 | `whitenoise` | `MIDDLEWARE` + `STORAGES["staticfiles"]` | Serve e comprime estáticos sem servidor dedicado |
 | `.env.example` | raiz | Documenta cada variável exigida, sem valores reais |

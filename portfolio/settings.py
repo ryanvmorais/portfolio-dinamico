@@ -1,13 +1,10 @@
 """
-⚙️ PROJETO: CONFIGURAÇÕES DO DJANGO (SETTINGS.PY)
-🎯 Objetivo: Educacional - Centralizar as configurações do sistema e segurança.
+Configurações do projeto Django.
 
-ESTRUTURA DO CÓDIGO:
-1. AMBIENTE E SEGURANÇA BÁSICA: Importação de variáveis e chaves secretas.
-2. MIDDLEWARES E APPS: Definição de recursos e camadas de processamento.
-3. ESTÁTICOS E MÍDIA: Gerenciamento de arquivos CSS, JS e Imagens.
-4. SEGURANÇA AVANÇADA (PRODUÇÃO): Configurações de SSL, CSP e Headers.
-5. SERVIÇOS EXTERNOS: Configuração de E-mail (SMTP) e Cache.
+Um arquivo só para desenvolvimento e produção: o que muda entre os dois vem
+do ``.env`` (``SECRET_KEY``, ``DEBUG``, ``ALLOWED_HOSTS``, ``ADMIN_URL`` e as
+credenciais de e-mail). Com ``DEBUG=False`` liga o HTTPS obrigatório, os
+cookies seguros e o HSTS.
 """
 
 import os
@@ -17,35 +14,38 @@ from pathlib import Path
 import certifi
 from dotenv import load_dotenv
 
-# --- 1. AMBIENTE E SEGURANÇA BÁSICA ---
+# ---------------------------------------------------------------------------
+# 1. Ambiente e segurança básica
+# ---------------------------------------------------------------------------
 
-# Localização do Projeto: Define o diretório raiz para referências de caminhos
+# Raiz do repositório: os caminhos abaixo (.env, templates, static) partem dela.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Carregamento de Variáveis: Busca o arquivo .env usando o caminho absoluto (Garante o deploy)
-# Nota: O uso do operador / (pathlib) é a forma moderna e robusta de gerenciar caminhos no Python 3.10+
+# Caminho absoluto do .env: o servidor WSGI não roda a partir da raiz do
+# projeto, então um caminho relativo não acharia o arquivo no deploy.
 env_path = BASE_DIR / ".env"
 load_dotenv(dotenv_path=env_path)
 
-# A SECRET_KEY é a "digital" do seu site. Nunca a exponha no GitHub!
+# Assina sessões, cookies e tokens CSRF; vem só do .env, nunca do código.
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-# Validação Crítica: Impede que o servidor suba sem a chave de segurança
-# Sênior tip: Exibir o caminho procurado facilita o debug em ambientes de VPS/PaaS
+# Sem chave, o servidor não sobe. A mensagem mostra o caminho procurado,
+# que é o que se precisa saber quando o .env não está onde se esperava.
 if not SECRET_KEY:
     raise ValueError(
         f"ERRO: A variável SECRET_KEY não foi encontrada no arquivo .env! Caminho verificado: {env_path}"
     )
 
-# DESENVOLVIMENTO: DEBUG = True (Erros detalhados) | PRODUÇÃO: DEBUG = False (Segurança total)
-# O padrão 'False' é uma medida de "segurança por padrão" (secure by default)
+# Padrão False (seguro por padrão): só um DEBUG=true explícito no .env liga as
+# páginas de erro detalhadas, que nunca podem aparecer em produção.
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
-# Em produção, o link do admin deve ser alterado no .env para dificultar ataques
-# Isso evita o brute-force em /admin/ que é o alvo padrão de bots
+# Caminho do painel administrativo. Em produção, troque no .env: /admin/ é o
+# primeiro caminho que robôs de força bruta testam.
 ADMIN_URL_PATH = os.getenv("ADMIN_URL", "admin/")
 
-# Define quais domínios podem acessar o site (Segurança de cabeçalho Host)
+# Domínios aceitos no cabeçalho Host (defesa contra Host header poisoning); em
+# desenvolvimento aceita qualquer um.
 # No .env use: ALLOWED_HOSTS=djangofullstackportfolio.pythonanywhere.com
 ALLOWED_HOSTS = ["*"] if DEBUG else os.getenv("ALLOWED_HOSTS", "").split(",")
 
@@ -59,17 +59,23 @@ INSTALLED_APPS = [
     "app_portfolio.apps.AppPortfolioConfig",
 ]
 
-# --- 2. MIDDLEWARES (Camadas de Processamento) ---
+
+# ---------------------------------------------------------------------------
+# 2. Apps, middlewares e templates
+# ---------------------------------------------------------------------------
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",  # Gerencia arquivos estáticos de forma eficiente
+    # Logo depois do SecurityMiddleware, como pede o WhiteNoise: serve os
+    # estáticos sem passar pelas camadas seguintes.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "csp.middleware.CSPMiddleware",  # Proteção contra Content Security Policy
+    "csp.middleware.CSPMiddleware",  # envia o cabeçalho Content-Security-Policy
 ]
 
 ROOT_URLCONF = "portfolio.urls"
@@ -91,7 +97,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "portfolio.wsgi.application"
 
-# Banco de dados padrão (SQLite para desenvolvimento rápido)
+# SQLite: um arquivo, sem servidor de banco; serve ao volume de um portfólio.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -104,19 +110,19 @@ TIME_ZONE = "America/Sao_Paulo"
 USE_I18N = True
 USE_TZ = True
 
-# --- 3. ESTÁTICOS E MÍDIA ---
+# ---------------------------------------------------------------------------
+# 3. Estáticos e mídia
+# ---------------------------------------------------------------------------
 
-# URL base para acessar os arquivos via navegador
 STATIC_URL = "static/"
 
-# Onde o Django busca arquivos estáticos durante o desenvolvimento
+# Fonte dos estáticos do projeto (fora dos apps).
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
-# Onde o Django vai "REUNIR" todos os arquivos para a produção
-# É desta pasta que o PythonAnywhere vai ler o CSS/JS
+# Destino do collectstatic; é desta pasta que o PythonAnywhere serve o CSS/JS.
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-# Configurações de Mídia (Uploads de imagens, etc.)
+# Uploads feitos pelo admin (fotos de projeto e de perfil, currículo).
 MEDIA_URL = "media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
@@ -128,13 +134,15 @@ STORAGES = {
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
 }
 
-# --- 4. SEGURANÇA AVANÇADA (SÊNIOR) ---
+# ---------------------------------------------------------------------------
+# 4. Cabeçalhos de segurança e HTTPS
+# ---------------------------------------------------------------------------
 
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = "DENY"  # Impede que seu site seja exibido dentro de iframes alheios
+X_FRAME_OPTIONS = "DENY"  # nenhuma página pode ser enquadrada (clickjacking)
 
-# CSP: Define de onde o seu site pode carregar scripts, estilos e imagens
+# CSP: de onde a página pode carregar scripts, estilos, imagens e fontes.
 CSP_DEFAULT_SRC = ("'self'",)
 # As fontes agora vêm de static/fonts/ (spec 004, RF-17): o Google Fonts saiu de
 # style-src e font-src.
@@ -143,19 +151,21 @@ CSP_SCRIPT_SRC = ("'self'",)
 CSP_IMG_SRC = ("'self'", "data:", "https:")
 CSP_FONT_SRC = ("'self'",)
 
-# LOGICA DE PRODUÇÃO: Ativa proteção rigorosa apenas se DEBUG for False
+# Só em produção: o runserver não fala HTTPS, então com estas opções o site
+# local não abriria.
 if not DEBUG:
-    # Estas linhas forçam o uso de HTTPS. Se ativadas localmente, o site não abre!
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
-    # HSTS: Avisa ao navegador para usar SEMPRE HTTPS por 1 ano
+    # HSTS: o navegador passa a usar só HTTPS por 1 ano (31536000 s).
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-# --- 5. SERVIÇOS EXTERNOS (E-MAIL E CACHE) ---
+# ---------------------------------------------------------------------------
+# 5. E-mail e cache
+# ---------------------------------------------------------------------------
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
@@ -165,7 +175,8 @@ EMAIL_HOST_USER = os.getenv("EMAIL_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASS")
 DEFAULT_FROM_EMAIL = f"Projeto Portfólio <{EMAIL_HOST_USER}>"
 
-# Certificado SSL necessário para que o Python 3.10+ consiga falar com o Gmail
+# Cadeia de CAs do certifi: em alguns servidores o Python não acha os
+# certificados do sistema e o TLS com o Gmail falharia.
 EMAIL_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 # Cache em arquivo: usado pelo rate limit do formulário de contato.
