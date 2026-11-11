@@ -258,6 +258,11 @@ e e-mail: `docs/referencia/configuracoes.md`: **leia antes de mexer em
   entrada), assinaturas totalmente anotadas (`X | None`, `-> None` explícito) e
   comentários que explicam o *porquê*, não o *o quê*. Os commits seguem
   Conventional Commits.
+- **Comentários nos templates**: comentário do Django, `{# #}` numa linha e
+  `{% comment %}…{% endcomment %}` em várias (marcador de seção inclusive). `<!-- -->`
+  vai para o HTML de cada visitante e o Django executa as tags dentro dele; `{# #}`
+  quebrado em linhas aparece como texto. O `app_portfolio/test_comentarios_templates.py`
+  guarda a regra.
 
 ## Qualidade e Automação (`pyproject.toml`)
 
