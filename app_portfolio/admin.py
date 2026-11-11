@@ -1,12 +1,9 @@
 """
-👑 PROJETO: INTERFACE ADMINISTRATIVA (ADMIN.PY)
-🎯 Objetivo: Educacional - Personalizar o painel de controle do Django.
+Painel administrativo do portfólio.
 
-ESTRUTURA DO CÓDIGO:
-1. CONFIGURAÇÕES DE INTERFACE (UI): Personalização de como os dados aparecem.
-2. RELACIONAMENTOS (INLINES): Gestão de modelos dependentes na mesma tela.
-3. SEGURANÇA E LEITURA: Campos somente leitura e filtros de busca.
-4. AUTOMAÇÃO: Preenchimento automático de campos (Slugs).
+Todo o conteúdo do site (perfil, projetos, tecnologias, habilidades,
+estatísticas) é editado aqui, sem deploy. As mensagens de contato entram
+somente leitura: o painel serve para lê-las, não para alterá-las.
 """
 
 from django.contrib import admin
@@ -22,7 +19,9 @@ from .models import (
     Tecnologia,
 )
 
-# --- 1. CONFIGURAÇÕES DE ELEMENTOS VISUAIS ---
+# ---------------------------------------------------------------------------
+# Conteúdo da vitrine
+# ---------------------------------------------------------------------------
 
 
 @admin.register(Tecnologia)
@@ -87,14 +86,18 @@ class PerfilAdmin(admin.ModelAdmin):
     )
 
 
-# --- 2. SEGURANÇA E MONITORAMENTO ---
+# ---------------------------------------------------------------------------
+# Mensagens de contato
+# ---------------------------------------------------------------------------
 
 
 @admin.register(MensagemContato)
 class MensagemContatoAdmin(admin.ModelAdmin):
     """
     Gerencia os contatos recebidos.
-    Nota: Campos sensíveis são marcados como 'readonly' para evitar alteração.
+
+    Todos os campos são somente leitura: a mensagem fica como o visitante a
+    enviou.
     """
 
     list_display = ("nome", "email", "assunto", "data_envio")
@@ -103,12 +106,13 @@ class MensagemContatoAdmin(admin.ModelAdmin):
     ordering = ("-data_envio",)  # Mostra as mensagens mais recentes primeiro
     list_filter = ("data_envio",)
 
-    # Segurança: Impede que alguém altere uma mensagem recebida pelo admin
     readonly_fields = ("nome", "email", "assunto", "mensagem", "data_envio")
     search_fields = ("nome", "email", "assunto", "mensagem")
 
 
-# --- 3. RELACIONAMENTOS E AUTOMATIZAÇÃO ---
+# ---------------------------------------------------------------------------
+# Habilidades, estatísticas e categorias
+# ---------------------------------------------------------------------------
 
 
 class HabilidadeInline(admin.TabularInline):
@@ -136,7 +140,7 @@ class EstatisticaAdmin(admin.ModelAdmin):
 
 @admin.register(CategoriaProjeto)
 class CategoriaProjetoAdmin(admin.ModelAdmin):
-    """Automação de SEO: Gera o Slug automaticamente baseado no Nome."""
+    """Gerencia as categorias de projeto; o slug é preenchido a partir do nome."""
 
     list_display = ("nome", "slug")
     prepopulated_fields = {"slug": ("nome",)}

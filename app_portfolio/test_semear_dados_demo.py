@@ -1,6 +1,5 @@
 """
-🧪 PROJETO: TESTES DO COMANDO semear_dados_demo E DO LIGHTHOUSE CI
-🎯 Objetivo: Garantir que a auditoria do Lighthouse enxergue uma Home de verdade.
+Testes do comando ``semear_dados_demo`` e da configuração do Lighthouse CI.
 
 Cobre:
 - o comando recusa rodar com ``DEBUG=False`` e é idempotente;
@@ -93,7 +92,9 @@ def _caminhos(perfil: str) -> list[str]:
     return [re.sub(r"^https?://[^/]+", "", url) for url in urls]
 
 
-# --- 1. O COMANDO ---
+# ---------------------------------------------------------------------------
+# O comando
+# ---------------------------------------------------------------------------
 
 
 def test_recusa_rodar_com_debug_desligado() -> None:
@@ -136,7 +137,9 @@ def test_rodar_duas_vezes_nao_duplica_nada() -> None:
     )
 
 
-# --- 2. A CONFIGURAÇÃO DO LIGHTHOUSE ---
+# ---------------------------------------------------------------------------
+# A configuração do Lighthouse
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.usefixtures("_demo")

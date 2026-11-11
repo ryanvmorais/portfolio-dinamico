@@ -1,20 +1,15 @@
 """
-🌐 PROJETO: INTERFACE DE SERVIDOR (WSGI.PY)
-🎯 Objetivo: Educacional - Estabelecer a comunicação padrão para o deploy em produção.
+Ponto de entrada WSGI do projeto.
 
-ESTRUTURA DO CÓDIGO:
-1. DIRECIONAMENTO: Aponta para as configurações centrais do projeto.
-2. INSTÂNCIA WSGI: Cria a ponte de comunicação síncrona com o servidor.
+O servidor de produção (Gunicorn, ou o WSGI do provedor) importa
+``application`` daqui para entregar as requisições ao Django.
 """
 
 import os
 
 from django.core.wsgi import get_wsgi_application
 
-# O Django precisa saber onde as configurações (settings.py) estão localizadas.
-# Este comando define o caminho padrão para o módulo de configurações do projeto.
+# setdefault: uma DJANGO_SETTINGS_MODULE já definida no ambiente prevalece.
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "portfolio.settings")
 
-# Esta variável 'application' é o ponto de entrada que o servidor (ex: Gunicorn)
-# usará para "chamar" o Django e processar as requisições dos visitantes.
 application = get_wsgi_application()

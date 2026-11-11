@@ -1,6 +1,5 @@
 """
-🌱 COMANDO: DADOS DE DEMONSTRAÇÃO (semear_dados_demo)
-🎯 Objetivo: Preencher o banco com dados fictícios para auditar a Home e desenvolver.
+Preenche o banco com dados fictícios, para desenvolver e auditar a Home.
 
 Um banco vazio devolve uma Home sem projetos, habilidades nem estatísticas, e as
 métricas do Lighthouse ficam enganosas. O Lighthouse CI

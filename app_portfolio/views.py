@@ -1,12 +1,9 @@
 """
-🧠 PROJETO: LÓGICA DE VISUALIZAÇÃO (VIEWS.PY)
-🎯 Objetivo: Educacional - Processar dados do banco e gerenciar interações do usuário.
+View da página única do portfólio.
 
-ESTRUTURA DO CÓDIGO:
-1. CONSULTAS OTIMIZADAS (GET): Busca eficiente de dados para a Home.
-2. CAMADA DE SEGURANÇA: Honeypot, Rate Limit e Sanitização de HTML.
-3. COMUNICAÇÃO EXTERNA: Processamento do formulário e envio de E-mail (SMTP).
-4. RESPOSTAS HÍBRIDAS: Suporte para navegação comum e requisições AJAX (JSON).
+A ``home`` monta a página com os dados do banco e recebe o formulário de
+contato. O envio passa por honeypot, limite por IP e sanitização antes de
+gravar e notificar por e-mail, e responde em HTML ou em JSON (AJAX).
 """
 
 import logging
@@ -65,7 +62,8 @@ def home(request: HttpRequest) -> HttpResponse:
     # --- 1. BUSCAR DADOS DO BANCO (GET) ---
     perfil = Perfil.objects.first()
 
-    # PERFORMANCE SÊNIOR: select_related e prefetch_related evitam o erro de "N+1 consultas" no banco
+    # select_related e prefetch_related trazem categoria e tecnologias junto:
+    # sem eles, o template faria uma consulta por projeto (N+1).
     projetos = (
         Projeto.objects.select_related("categoria_projeto")
         .prefetch_related("tecnologias")
@@ -81,14 +79,14 @@ def home(request: HttpRequest) -> HttpResponse:
         "habilidades"
     ).all()
 
-    # Inicializa o formulário vazio para exibição inicial
     form = MensagemContatoForm()
 
     # --- 2. LÓGICA DO FORMULÁRIO DE CONTATO (POST) ---
     if request.method == "POST":
 
         # A. SEGURANÇA: HONEYPOT CHECK
-        # Se o campo invisível estiver preenchido, é um robô. Redirecionamos silenciosamente.
+        # O campo é invisível para pessoas; preenchido, é robô. O redirect
+        # silencioso não dá ao robô sinal de que foi barrado.
         honeypot = request.POST.get("honeypot")
         if honeypot:
             return redirect("home")
@@ -170,7 +168,6 @@ def home(request: HttpRequest) -> HttpResponse:
             messages.error(request, MENSAGEM_DADOS_INVALIDOS)
 
     # --- 3. CONTEXTO PARA O TEMPLATE ---
-    # Dicionário que mapeia variáveis do Python para as tags {{ }} no HTML.
     context = {
         "perfil": perfil,
         "form": form,

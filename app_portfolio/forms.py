@@ -1,9 +1,8 @@
 """
-📝 PROJETO: FORMULÁRIOS DO SISTEMA (FORMS.PY)
-🎯 Objetivo: Educacional - Automatizar a criação e validação de formulários.
+Formulário de contato da home.
 
-ESTRUTURA DO CÓDIGO:
-1. MODEL FORM: Vinculação direta entre o formulário e o banco de dados.
+Um ``ModelForm`` sobre ``MensagemContato``: os campos e as validações vêm do
+model, então mudar o model atualiza o formulário sem duplicar regra.
 """
 
 from django import forms
@@ -11,17 +10,16 @@ from django import forms
 from .models import MensagemContato
 
 
-# O ModelForm é uma classe sênior que "lê" o seu modelo e
-# cria os campos automaticamente com as validações já prontas.
 class MensagemContatoForm(forms.ModelForm):
     """
     Formulário responsável por capturar mensagens na Home.
+
     Herda as regras de validação definidas no modelo MensagemContato.
     """
 
     class Meta:
-        # Vinculamos este formulário ao modelo de mensagens
         model = MensagemContato
 
-        # Definimos exatamente quais campos do banco aparecerão no site
+        # Lista explícita em vez de "__all__": um campo novo no model (como a
+        # data de envio) não vira campo editável pelo visitante sem querer.
         fields = ["nome", "email", "assunto", "mensagem"]

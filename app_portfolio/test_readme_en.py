@@ -1,6 +1,5 @@
 """
-🧪 PROJETO: TESTES DO README EM INGLÊS
-🎯 Objetivo: Garantir que o ``README.en.md`` acompanhe a estrutura do ``README.md``.
+Testes de que o ``README.en.md`` acompanha a estrutura do ``README.md``.
 
 O README em inglês é uma tradução, e tradução envelhece: uma seção nova no
 ``README.md`` que ninguém leva para o outro arquivo deixa o leitor estrangeiro com um
