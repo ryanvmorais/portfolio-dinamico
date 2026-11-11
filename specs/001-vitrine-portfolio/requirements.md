@@ -1,10 +1,10 @@
 ---
 feature: Vitrine do portfólio (perfil, projetos, habilidades, estatísticas)
 status: concluído
-data: 11/09/2026
-relacionado:
+date: 2026-09-11
+related:
   - 002-formulario-contato
-origem: engenharia reversa do código existente (app_portfolio)
+origin: engenharia reversa do código existente (app_portfolio)
 ---
 
 # Requisitos — Vitrine do Portfólio
