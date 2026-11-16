@@ -82,7 +82,7 @@ serve de template documentado com todos os placeholders.
 | `ALLOWED_HOSTS` | `*` (dev) | Lista de hosts permitidos em produção, separados por vírgula; vazio em produção rejeita todo host (falha fechada) |
 | `EMAIL_USER` | — | Conta Gmail que envia (e recebe) as notificações do formulário de contato; vazio com `DEBUG=True` imprime o e-mail no terminal (backend de console) |
 | `EMAIL_PASS` | — | **Senha de app** do Gmail (não a senha normal da conta) |
-| `MODO_DEMONSTRACAO` | `False` | `True` numa demo pública: o formulário valida, mas não grava nem envia, e avisa o visitante (spec 005); título, description e cartão viram os da demo do template, e sai o `security.txt` (spec 007) |
+| `MODO_DEMONSTRACAO` | `False` | `True` numa demo pública: o formulário valida, mas não grava nem envia, e avisa o visitante (spec 005); título, description e cartão viram os da demo do template, e entra o `/.well-known/security.txt` (spec 007) |
 | `URL_PUBLICA` | — | Endereço público, só esquema e domínio (ex.: `https://seu-dominio.com.br`): canonical, `og:url`, `sitemap.xml` e `Sitemap:` do `robots.txt`; vazio, nada disso. Valor inválido impede a subida (spec 007) |
 | `DIRETORIO_DADOS` | raiz do repositório | Pasta de `db.sqlite3`, `media/` e `django_cache/`; num contêiner, o caminho do volume persistente (ex.: `/data`). Relativo parte da raiz (spec 006) |
 
@@ -93,6 +93,7 @@ serve de template documentado com todos os placeholders.
 ```
 portfolio/           # Configuração do projeto Django (settings, urls raiz, wsgi/asgi)
 app_portfolio/        # A única aplicação
+  apps.py              # AppConfig da aplicação
   models.py           # Todos os modelos de dados
   views.py             # home (GET da vitrine + POST do formulário de contato) e servir_midia (/media/ com e sem DEBUG)
   forms.py             # MensagemContatoForm (ModelForm)
