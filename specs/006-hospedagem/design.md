@@ -1,6 +1,6 @@
 ---
 feature: Hospedagem da demo na Railway
-status: em andamento
+status: concluído
 date: 2026-11-16
 related:
   - 002-formulario-contato
@@ -329,3 +329,9 @@ Tudo em `app_portfolio/tests.py`, sem rede e sem tocar a pasta de dados real:
   collectstatic` usa as dependências do lock.
 - **Mídia no 404:** o `../`, a pasta e o arquivo que falta renderizam o `404.html`
   (conferido pelo teste, com `DEBUG=False`).
+- **No ar:** com a demo publicada, conferido de fora: redirect 301 de HTTP para
+  HTTPS, HSTS, `nosniff`, `X-Frame-Options`, cookie CSRF com `Secure`, `/admin/`
+  padrão em 404, a mídia em `image/webp` e `application/pdf`, `../` em 404, o
+  formulário respondendo no modo demonstração e o POST com `Origin` de outro site
+  em 403 (RF-02, RF-03, RF-06). O `migrate` antes do gunicorn e a porta da `PORT`
+  aparecem no log do primeiro deploy (RF-01).
