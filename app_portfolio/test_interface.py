@@ -11,8 +11,9 @@ estático: o CSS e o JavaScript são lidos como texto e conferidos por regra
 O navegador real (axe-core, Tab, medidas do hero) foi usado na auditoria e fica
 fora do pytest.
 
-Estratégia de isolamento: nenhuma chamada de rede. ``settings.EMAIL_BACKEND``
-vai para o backend em memória e ``EMAIL_HOST_USER`` ganha um valor de teste, para
+Estratégia de isolamento: nenhuma chamada de rede. O mailer ``default`` do
+``settings.MAILERS`` vai para o backend em memória e ``ENDERECO_CONTATO`` ganha um
+valor de teste, para
 nenhum POST do formulário tentar o SMTP real do Gmail com a credencial do
 ``.env`` de quem roda a suíte. ``MEDIA_ROOT`` aponta para uma pasta temporária
 (upload de currículo e de imagens), o cache é limpo a cada teste (rate limit por
@@ -78,8 +79,10 @@ AJAX = {"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"}
 @pytest.fixture(autouse=True)
 def ambiente_isolado(settings, tmp_path) -> None:
     """Isola e-mail, mídia, cache e redirecionamento HTTPS de cada teste."""
-    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
-    settings.EMAIL_HOST_USER = "contato-teste@example.com"
+    settings.MAILERS = {
+        "default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}
+    }
+    settings.ENDERECO_CONTATO = "contato-teste@example.com"
     settings.MEDIA_ROOT = str(tmp_path)
     settings.SECURE_SSL_REDIRECT = False
     # O modo demonstração vem do .env local; os testes do modo o ligam à parte.

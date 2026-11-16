@@ -6,18 +6,19 @@ Cobrem o status e o número de consultas da página, a segurança do envio
 ``save()`` dos models.
 
 Estratégia de isolamento: nenhuma chamada de rede real é feita durante a
-suíte, e nenhum teste depende do conteúdo do `.env` local. `settings.EMAIL_BACKEND`
-é trocado para o backend em memória do Django e `settings.EMAIL_HOST_USER` é
-fixado num valor de teste (`disable_real_email`, abaixo) — sem isso, os testes
-que passam pelo fluxo de POST do formulário de contato disparariam
-`send_mail()` contra o SMTP real do Gmail configurado em `settings.py` usando
-a credencial real do `.env` de quem estiver rodando a suíte, tornando os
-testes lentos, dependentes de rede, capazes de enviar e-mails de verdade, e
-dependentes de uma variável de ambiente que não existe em CI. A falha de
-envio (`test_contato_erro_envio_email`) mocka `views.send_mail` diretamente,
-no ponto de uso. O modo demonstração (spec 005) começa desligado em cada teste
-(`modo_demonstracao_desligado`), e a leitura das chaves do `settings.py` roda
-numa cópia avulsa do módulo, com o ambiente controlado (`_carregar_settings`).
+suíte, e nenhum teste depende do conteúdo do `.env` local. O mailer `default`
+do `settings.MAILERS` é trocado para o backend em memória do Django e
+`settings.ENDERECO_CONTATO` é fixado num valor de teste (`disable_real_email`,
+abaixo) — sem isso, os testes que passam pelo fluxo de POST do formulário de
+contato disparariam `send_mail()` contra o SMTP real do Gmail configurado em
+`settings.py` usando a credencial real do `.env` de quem estiver rodando a
+suíte, tornando os testes lentos, dependentes de rede, capazes de enviar
+e-mails de verdade, e dependentes de uma variável de ambiente que não existe
+em CI. A falha de envio (`test_contato_erro_envio_email`) mocka
+`views.send_mail` diretamente, no ponto de uso. O modo demonstração (spec
+005) começa desligado em cada teste (`modo_demonstracao_desligado`), e a
+leitura das chaves do `settings.py` roda numa cópia avulsa do módulo, com o
+ambiente controlado (`_carregar_settings`).
 """
 
 import importlib.util
@@ -74,19 +75,22 @@ def disable_real_email(settings):
     """
     Isola a suíte de qualquer credencial/estado de e-mail real.
 
-    Troca `EMAIL_BACKEND` para o backend em memória do Django — sem isso,
+    Troca o mailer `default` para o backend em memória do Django — sem isso,
     `views.home()` chamaria `send_mail()` contra o SMTP real do Gmail
     (host/porta fixos em `settings.py`) a cada POST de contato bem-sucedido.
+    O test runner já faz essa troca; a fixture a deixa explícita.
 
-    Também fixa `EMAIL_HOST_USER` num valor de teste: sem isso, a suíte
+    Também fixa `ENDERECO_CONTATO` num valor de teste: sem isso, a suíte
     herdaria o valor de `EMAIL_USER` do `.env` local (via `load_dotenv` em
     `settings.py`). Isso mascarava um bug — a suíte só passava na máquina de
     quem tinha um `.env` com credencial real preenchida, e falhava em CI (sem
-    `.env`, `EMAIL_HOST_USER=None`), onde `send_mail()` com remetente/
+    `.env`, `ENDERECO_CONTATO=None`), onde `send_mail()` com remetente/
     destinatário `None` não gera entrada em `mail.outbox`.
     """
-    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
-    settings.EMAIL_HOST_USER = "contato-teste@example.com"
+    settings.MAILERS = {
+        "default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"}
+    }
+    settings.ENDERECO_CONTATO = "contato-teste@example.com"
 
 
 @pytest.fixture(autouse=True)
@@ -252,23 +256,42 @@ class TestConfiguracaoModoDemonstracao:
     def test_console_em_desenvolvimento_sem_email_user(self, monkeypatch) -> None:
         """Com DEBUG e sem EMAIL_USER, o e-mail sai no terminal, com remetente fictício."""
         modulo = _carregar_settings(monkeypatch, DEBUG="True")
-        assert modulo.EMAIL_BACKEND == "django.core.mail.backends.console.EmailBackend"
-        assert modulo.EMAIL_HOST_USER == "contato@example.com"
+        assert modulo.MAILERS == {
+            "default": {"BACKEND": "django.core.mail.backends.console.EmailBackend"}
+        }
+        assert modulo.ENDERECO_CONTATO == "contato@example.com"
         assert "contato@example.com" in modulo.DEFAULT_FROM_EMAIL
 
     def test_smtp_em_desenvolvimento_com_email_user(self, monkeypatch) -> None:
         """Com EMAIL_USER preenchido, o desenvolvimento usa o SMTP de verdade."""
         modulo = _carregar_settings(
-            monkeypatch, DEBUG="True", EMAIL_USER="conta@example.com"
+            monkeypatch,
+            DEBUG="True",
+            EMAIL_USER="conta@example.com",
+            EMAIL_PASS="senha-de-app",
         )
-        assert modulo.EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
-        assert modulo.EMAIL_HOST_USER == "conta@example.com"
+        mailer = modulo.MAILERS["default"]
+        assert mailer["BACKEND"] == "django.core.mail.backends.smtp.EmailBackend"
+        assert mailer["OPTIONS"] == {
+            "host": "smtp.gmail.com",
+            "port": 587,
+            "use_tls": True,
+            "username": "conta@example.com",
+            "password": "senha-de-app",
+        }
+        assert modulo.ENDERECO_CONTATO == "conta@example.com"
 
     def test_smtp_em_producao_sem_email_user(self, monkeypatch) -> None:
         """Em produção, EMAIL_USER vazio segue no SMTP: o envio falha à vista."""
         modulo = _carregar_settings(monkeypatch, DEBUG="False")
-        assert modulo.EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
-        assert modulo.EMAIL_HOST_USER is None
+        mailer = modulo.MAILERS["default"]
+        assert mailer["BACKEND"] == "django.core.mail.backends.smtp.EmailBackend"
+        assert modulo.ENDERECO_CONTATO is None
+
+    def test_settings_sem_os_email_depreciados(self, monkeypatch) -> None:
+        """Nenhum EMAIL_* depreciado volta ao settings (o Django 6.1 usa MAILERS)."""
+        modulo = _carregar_settings(monkeypatch, DEBUG="False")
+        assert [nome for nome in vars(modulo) if nome.startswith("EMAIL_")] == []
 
 
 # ---------------------------------------------------------------------------

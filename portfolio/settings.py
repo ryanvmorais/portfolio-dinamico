@@ -9,10 +9,9 @@ cookies seguros, o HSTS e o log de erros na saída de erro do processo.
 """
 
 import os
-import ssl
 from pathlib import Path
+from typing import Any
 
-import certifi
 from csp.constants import SELF, UNSAFE_INLINE
 from dotenv import load_dotenv
 
@@ -225,27 +224,38 @@ if not DEBUG:
 # 5. E-mail e cache
 # ---------------------------------------------------------------------------
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv("EMAIL_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASS")
+# Conta Gmail que envia a notificação do formulário de contato e a recebe: a
+# view usa este endereço como remetente e como destino.
+ENDERECO_CONTATO = os.getenv("EMAIL_USER")
+
+# MAILERS substitui os EMAIL_* (depreciados no Django 6.1). Com MAILERS
+# definido, ler settings.EMAIL_* levanta AttributeError: o endereço da conta
+# mora no ENDERECO_CONTATO, não no EMAIL_HOST_USER. Any: as OPTIONS misturam
+# str, int, bool e None.
+MAILERS: dict[str, dict[str, Any]] = {
+    "default": {
+        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+        "OPTIONS": {
+            "host": "smtp.gmail.com",
+            "port": 587,
+            "use_tls": True,
+            "username": ENDERECO_CONTATO,
+            "password": os.getenv("EMAIL_PASS"),
+        },
+    },
+}
 
 # Em desenvolvimento sem conta Gmail, o e-mail do formulário sai impresso no
 # terminal do runserver, com um endereço do domínio reservado example.com (RFC
 # 2606) como remetente e destino. Só com DEBUG: em produção, EMAIL_USER vazio
 # segue falhando no envio, para um deploy sem e-mail não dizer "Mensagem
-# enviada!" sem enviar nada (spec 005, ADR-06).
-if DEBUG and not EMAIL_HOST_USER:
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-    EMAIL_HOST_USER = "contato@example.com"
+# enviada!" sem enviar nada (spec 005, ADR-06). O console não aceita as
+# OPTIONS do SMTP, então o mailer inteiro é trocado.
+if DEBUG and not ENDERECO_CONTATO:
+    MAILERS = {"default": {"BACKEND": "django.core.mail.backends.console.EmailBackend"}}
+    ENDERECO_CONTATO = "contato@example.com"
 
-DEFAULT_FROM_EMAIL = f"Projeto Portfólio <{EMAIL_HOST_USER}>"
-
-# Cadeia de CAs do certifi: em alguns servidores o Python não acha os
-# certificados do sistema e o TLS com o Gmail falharia.
-EMAIL_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+DEFAULT_FROM_EMAIL = f"Projeto Portfólio <{ENDERECO_CONTATO}>"
 
 # Cache em arquivo: usado pelo rate limit do formulário de contato.
 # LocMemCache é por processo -- com gunicorn rodando mais de 1 worker (ver
