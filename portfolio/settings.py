@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from csp.constants import SELF, UNSAFE_INLINE
+from csp.constants import NONE, SELF, UNSAFE_INLINE
 from dotenv import load_dotenv
 
 # ---------------------------------------------------------------------------
@@ -104,6 +104,9 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "csp.middleware.CSPMiddleware",  # envia o cabeçalho Content-Security-Policy
+    # Nega câmera, microfone, localização e afins (o Django não tem configuração
+    # para este cabeçalho).
+    "app_portfolio.middleware.PermissionsPolicyMiddleware",
 ]
 
 ROOT_URLCONF = "portfolio.urls"
@@ -186,6 +189,14 @@ CONTENT_SECURITY_POLICY = {
         # As fontes vêm de static/fonts/ (spec 004, RF-17): o Google Fonts saiu
         # de style-src e font-src.
         "font-src": [SELF],
+        # base-uri e form-action não herdam o default-src: sem elas, uma tag
+        # <base> ou um <form> injetado poderia apontar para fora do site.
+        "base-uri": [NONE],
+        "form-action": [SELF],
+        # Herdaria o 'self'; 'none' explícito, porque o site não embute plugin.
+        "object-src": [NONE],
+        # O mesmo que o X-Frame-Options DENY, no padrão atual dos navegadores.
+        "frame-ancestors": [NONE],
     }
 }
 

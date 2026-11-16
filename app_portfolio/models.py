@@ -9,7 +9,7 @@ pelo formulário. As imagens enviadas são convertidas para WebP ao salvar
 
 from typing import Any
 
-from django.core.validators import MaxLengthValidator
+from django.core.validators import FileExtensionValidator, MaxLengthValidator
 from django.db import models
 
 from .utils import converter_para_webp
@@ -156,7 +156,15 @@ class Perfil(models.Model):
     localizacao = models.CharField(max_length=100, blank=True, null=True)
     status_trabalho = models.CharField(max_length=100, blank=True, null=True)
     formacao = models.CharField(max_length=100, blank=True, null=True)
-    curriculo = models.FileField(upload_to="curriculo/", null=True, blank=True)
+    # Só PDF: a mídia é servida pelo próprio domínio, com o Content-Type tirado
+    # da extensão; um .html ou .svg enviado aqui seria aberto como página.
+    curriculo = models.FileField(
+        upload_to="curriculo/",
+        null=True,
+        blank=True,
+        validators=[FileExtensionValidator(["pdf"])],
+        help_text="Arquivo PDF.",
+    )
     link_linkedin = models.URLField(blank=True, null=True)
     link_github = models.URLField(blank=True, null=True)
 
