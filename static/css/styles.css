@@ -207,6 +207,14 @@ textarea {
     line-height: 1.2;
 }
 
+/* No celular o nome do hero (h1) cai para --fs-4xl: o h2 das seções desce um
+   degrau para não ficar do tamanho do h1 */
+@media (max-width: 640px) {
+    .section__title {
+        font-size: var(--fs-3xl);
+    }
+}
+
 /* ========================================
    Buttons
    ======================================== */
@@ -304,8 +312,10 @@ textarea {
     gap: var(--spacing-xl);
 }
 
+/* Mesmo tamanho do texto corrido: com --fs-sm os links ficavam do tamanho das
+   legendas, pequenos na barra de 64px */
 .nav__link {
-    font-size: var(--fs-sm);
+    font-size: var(--fs-base);
     font-weight: 500;
     color: var(--color-gray-300);
     transition: color var(--transition-fast);
@@ -936,8 +946,9 @@ textarea {
     opacity: 0.8;
 }
 
+/* Mesmo tamanho do outro h3 da página (.project-card__title) */
 .skills__category-title {
-    font-size: var(--fs-lg);
+    font-size: var(--fs-xl);
     font-weight: 600;
     color: var(--color-white);
 }
