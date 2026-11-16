@@ -92,6 +92,13 @@ alguém esquecer de configurar algo em produção.
   **Then** o painel administrativo é montado nesse caminho em vez do
   `admin/` padrão (`portfolio/urls.py`), dificultando brute-force automatizado
   contra o caminho previsível.
+- **Given** `ADMIN_URL` vazia, só com espaços ou só com barras
+  **Then** o painel fica em `admin/`, nunca na raiz do site (antes de
+  2026-11-16, a linha vazia montava o painel no lugar da página inicial).
+- **Given** `ADMIN_URL` sem a barra no fim ou com barra no início
+  (`painel-secreto`, `/painel-secreto/`)
+  **Then** o caminho vira `painel-secreto/`: as rotas do painel nunca saem
+  coladas no nome (`painel-secretologin/`).
 
 ### RF-07 — Dependências sem CVE aplicável
 

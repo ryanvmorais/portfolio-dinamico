@@ -14,7 +14,7 @@ O projeto é gerenciado pelo **uv** (substitui o antigo `pip` +
   black, mypy, django-stubs, pytest, pip-audit…). `uv sync` instala por
   padrão; `uv sync --no-dev` exclui.
 - **`[project.optional-dependencies] prod`** — extras de produção
-  (`gunicorn`, `psycopg2-binary`). Instale com `uv sync --extra prod`.
+  (`gunicorn`). Instale com `uv sync --extra prod`.
 - **`[tool.uv] package = false`** — é uma aplicação Django, não uma lib a ser
   empacotada.
 

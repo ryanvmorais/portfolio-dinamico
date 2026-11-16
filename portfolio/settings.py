@@ -108,8 +108,11 @@ def _ler_url_publica(valor: str) -> str:
 URL_PUBLICA = _ler_url_publica(os.getenv("URL_PUBLICA", ""))
 
 # Caminho do painel administrativo. Em produção, troque no .env: /admin/ é o
-# primeiro caminho que robôs de força bruta testam.
-ADMIN_URL_PATH = os.getenv("ADMIN_URL", "admin/")
+# primeiro caminho que robôs de força bruta testam. Barras sobrando são
+# ignoradas, e vazio ou só barras vale "admin/": vazio poria o painel na raiz,
+# no lugar da página inicial, e "painel" sem a barra final geraria rotas como
+# "painellogin/" (spec 003, RF-06).
+ADMIN_URL_PATH = (os.getenv("ADMIN_URL", "").strip().strip("/") or "admin") + "/"
 
 # Domínios aceitos no cabeçalho Host (defesa contra Host header poisoning); em
 # desenvolvimento aceita qualquer um.

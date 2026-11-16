@@ -324,7 +324,6 @@ provider, e `"..."` os estende); por que o `migrate` roda no start, e não no bu
 
 | Peça | Papel |
 |---|---|
-| `psycopg2-binary` (extra `prod`) | Driver PostgreSQL para quem trocar o `DATABASES` à mão; a demo usa SQLite também em produção |
 | `asgiref`, `sqlparse`, `tzdata` | Dependências transitivas do próprio Django, não importadas diretamente |
 | `webencodings` | Dependência transitiva do `bleach` |
 | Inter e JetBrains Mono (`static/fonts/`) | Fontes do texto e do código, hospedadas no projeto em arquivo variável (latin, `font-display: swap`) em vez do Google Fonts: sem requisição de terceiros (LGPD) e sem CSS externo bloqueando a primeira pintura (spec 004, ADR-05). Licença OFL ao lado dos arquivos |
@@ -336,7 +335,8 @@ provider, e `"..."` os estende); por que o `migrate` roda no start, e não no bu
 
 - **PostgreSQL** — SQLite é suficiente para um projeto de um único
   usuário/administrador, em desenvolvimento e na demo, com o arquivo num volume
-  (spec 006); o `psycopg2-binary` fica no extra `prod` para quem trocar o banco.
+  (spec 006); quem trocar o banco instala o driver (`psycopg`) junto da mudança
+  no `DATABASES`.
 - **Dockerfile e armazenamento de objetos (S3, R2)** — o `railpack.json` fixa o
   build sem imagem própria, e a mídia enviada pelo Admin fica no mesmo volume do
   banco (spec 006, ADR-01 e ADR-06).

@@ -57,3 +57,16 @@ origin: engenharia reversa do código existente (portfolio/settings.py)
 - [x] `docs/stack.md` documenta `django-csp`, `whitenoise`,
       `python-dotenv`, `certifi` e as ferramentas de qualidade
       (`ruff`/`black`/`mypy`/`pytest`/`pip-audit`).
+
+## Etapa 4 — Caminho do Admin normalizado (2026-11-16)
+
+- [x] `portfolio/settings.py`: `ADMIN_URL_PATH` sem as barras sobrando, com
+      uma barra no fim, e `admin/` quando a variável vem vazia. — RF-06, ADR-03
+- [x] `app_portfolio/tests.py`: `TestCaminhoDoAdmin` (ausente, vazia, só
+      barras, sem barra, com barra no início, com espaços) e a rota do painel
+      no caminho configurado; `_carregar_settings` passa a limpar o
+      `ADMIN_URL`. — RF-06
+- [x] `.env.example`, `CLAUDE.md` e `docs/referencia/configuracoes.md`:
+      vazio vale `admin/`, e as barras são opcionais. — RF-06
+- [x] Portão de qualidade. — `uv run ruff check .`, `uv run black --check .`,
+      `uv run mypy .`, `uv run pytest` verdes (239 testes).

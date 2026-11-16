@@ -25,7 +25,8 @@ XFrameOptionsMiddleware → CSPMiddleware → PermissionsPolicyMiddleware
   (ADR-04)
 - `ALLOWED_HOSTS` sem espaços e sem item vazio; vazia, a lista recusa todo host
 - URL do Admin ofuscada via `ADMIN_URL` (defesa em profundidade, não
-  substitui autenticação forte)
+  substitui autenticação forte); barras sobrando são ignoradas, e vazio ou só
+  barras vale `admin/`, para o painel nunca tomar a raiz do site
 
 **Cabeçalhos de segurança** (com qualquer valor de `DEBUG`):
 - CSP via `django-csp` 4, no dicionário `CONTENT_SECURITY_POLICY` (o pacote
@@ -70,9 +71,9 @@ somem a cada deploy. Caminho relativo parte do `BASE_DIR` (spec 006, ADR-05).
 
 **Banco de dados:** SQLite em desenvolvimento e em produção, no
 `DIRETORIO_DADOS`. Uma instância só monta o volume, então o desenho supõe uma
-réplica do serviço; o gunicorn pode ter mais de um worker (`WEB_CONCURRENCY`). O
-`psycopg2-binary` segue no extra `prod` para quem trocar o `DATABASES` por
-PostgreSQL à mão (sem `dj-database-url`).
+réplica do serviço; o gunicorn pode ter mais de um worker (`WEB_CONCURRENCY`).
+Quem trocar o `DATABASES` por PostgreSQL instala o driver (`psycopg`) junto da
+mudança: o projeto não traz um driver que não usa.
 
 **Log em produção:** com `DEBUG=False`, o `LOGGING` manda à saída de erro do
 processo (`StreamHandler` na raiz, nível WARNING) o traceback do 500 e a falha de
