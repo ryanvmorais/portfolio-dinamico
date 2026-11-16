@@ -3,7 +3,8 @@ Testes da home, do formulário de contato e da conversão de imagem.
 
 Cobrem o status e o número de consultas da página, a segurança do envio
 (XSS, honeypot, limite por IP e a reserva atômica dele no cache, falha de
-e-mail) e a conversão para WebP no ``save()`` dos models.
+e-mail), os cabeçalhos de segurança, o tipo do arquivo do currículo e a
+conversão para WebP no ``save()`` dos models.
 
 Estratégia de isolamento: nenhuma chamada de rede real é feita durante a
 suíte, e nenhum teste depende do conteúdo do `.env` local. O mailer `default`
@@ -34,12 +35,14 @@ import dotenv
 import pytest
 from django.core import mail
 from django.core.cache import cache, caches
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
 from django.urls import reverse
 from PIL import Image
 
 from app_portfolio.cache import CacheArquivoAtomico
+from app_portfolio.middleware import PERMISSIONS_POLICY
 from app_portfolio.models import MensagemContato, Perfil, Projeto
 from app_portfolio.views import (
     MENSAGEM_DADOS_INVALIDOS,
@@ -231,6 +234,17 @@ class TestPortfolioCore:
         assert diretivas["font-src"] == ["'self'"]
         assert diretivas["style-src"] == ["'self'", "'unsafe-inline'"]
         assert diretivas["img-src"] == ["'self'", "data:", "https:"]
+        # As que não herdam o default-src, e o object-src fechado.
+        assert diretivas["base-uri"] == ["'none'"]
+        assert diretivas["form-action"] == ["'self'"]
+        assert diretivas["object-src"] == ["'none'"]
+        assert diretivas["frame-ancestors"] == ["'none'"]
+
+    def test_home_envia_permissions_policy(self, client) -> None:
+        """A resposta nega os recursos do aparelho que o site não usa."""
+        response = client.get(reverse("home"))
+        assert response["Permissions-Policy"] == PERMISSIONS_POLICY
+        assert "camera=()" in response["Permissions-Policy"]
 
 
 # ---------------------------------------------------------------------------
@@ -630,6 +644,36 @@ class TestCacheArquivoAtomico:
         assert cache_teste.add("contact_limit_ip", True, 0) is True
         assert cache_teste.add("contact_limit_ip", True, 600) is True
         assert cache_teste.add("contact_limit_ip", True, 600) is False
+
+
+# ---------------------------------------------------------------------------
+# Upload do currículo
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestCurriculo:
+    def test_curriculo_recusa_arquivo_que_nao_e_pdf(self) -> None:
+        """Um .html no currículo seria servido como página pelo próprio domínio."""
+        perfil = Perfil(
+            nome="Pessoa",
+            cargo="Dev",
+            curriculo=SimpleUploadedFile("cv.html", b"<p>oi</p>"),
+        )
+
+        with pytest.raises(ValidationError) as erro:
+            perfil.full_clean()
+
+        assert "curriculo" in erro.value.message_dict
+
+    def test_curriculo_aceita_pdf(self) -> None:
+        perfil = Perfil(
+            nome="Pessoa",
+            cargo="Dev",
+            curriculo=SimpleUploadedFile("cv.pdf", b"%PDF-1.7"),
+        )
+
+        perfil.full_clean()
 
 
 # ---------------------------------------------------------------------------

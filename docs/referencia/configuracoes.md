@@ -10,7 +10,7 @@ sem `settings/base.py` + `dev.py` + `prod.py` (decisão de escala, ver
 ```
 SecurityMiddleware → WhiteNoiseMiddleware → SessionMiddleware → CommonMiddleware →
 CsrfViewMiddleware → AuthenticationMiddleware → MessageMiddleware →
-XFrameOptionsMiddleware → CSPMiddleware
+XFrameOptionsMiddleware → CSPMiddleware → PermissionsPolicyMiddleware
 ```
 
 **Segurança em produção** (`DEBUG=False` ativa automaticamente):
@@ -24,14 +24,22 @@ XFrameOptionsMiddleware → CSPMiddleware
   `https` e o `Host` preservado pelo proxy, a origem do próprio site já passa
   (ADR-04)
 - `ALLOWED_HOSTS` sem espaços e sem item vazio; vazia, a lista recusa todo host
+- URL do Admin ofuscada via `ADMIN_URL` (defesa em profundidade, não
+  substitui autenticação forte)
+
+**Cabeçalhos de segurança** (com qualquer valor de `DEBUG`):
 - CSP via `django-csp` 4, no dicionário `CONTENT_SECURITY_POLICY` (o pacote
   ignora os nomes antigos `CSP_*`; o app `csp` em `INSTALLED_APPS` faz o
   `manage.py check` acusar um `CSP_*` esquecido): `script-src 'self'` (sem
   `'unsafe-inline'`: nenhum template usa script inline); `style-src` mantém `'unsafe-inline'` (2 atributos `style=""` inline na
   barra de progresso de habilidades); as fontes vêm de `'self'` (spec 004: o
-  Google Fonts saiu de `style-src` e `font-src`)
-- URL do Admin ofuscada via `ADMIN_URL` (defesa em profundidade, não
-  substitui autenticação forte)
+  Google Fonts saiu de `style-src` e `font-src`); `base-uri 'none'`,
+  `form-action 'self'` e `frame-ancestors 'none'`, que não herdam o
+  `default-src`, e `object-src 'none'`, explícito embora herde
+- `Permissions-Policy` pelo `app_portfolio/middleware.py` (o Django não tem
+  configuração para ele): nega câmera, microfone, localização, pagamento, USB e
+  sensores de movimento. Só nomes que o Chrome reconhece: nome desconhecido vira
+  erro no console
 
 > ⚠️ **Não regredir:** ao adicionar qualquer `<script>` inline num template,
 > revise o `script-src` do `CONTENT_SECURITY_POLICY` antes — o navegador bloqueia silenciosamente (só no

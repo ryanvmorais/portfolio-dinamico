@@ -97,6 +97,7 @@ app_portfolio/        # A única aplicação
   forms.py             # MensagemContatoForm (ModelForm)
   admin.py             # Admin customizado para cada modelo
   utils.py             # converter_para_webp() — conversor universal de imagem
+  middleware.py        # PermissionsPolicyMiddleware: cabeçalho Permissions-Policy (o Django não tem configuração para ele)
   cache.py             # CacheArquivoAtomico: FileBasedCache com add() atômico (trava de arquivo), usado pelo rate limit
   urls.py              # URLs da aplicação (só a home)
   tests.py             # Suíte de testes (pytest): modelos, view e segurança do contato, ver "Qualidade" abaixo
