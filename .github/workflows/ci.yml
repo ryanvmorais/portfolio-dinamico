@@ -1,12 +1,13 @@
 # Pipeline de CI (GitHub Actions). Espelha o portão de qualidade local
 # (ruff -> black -> mypy -> pytest) para que um check verde no PR signifique o
 # mesmo que um clone limpo passando. Dois jobs independentes:
-#   qualidade  ruff -> black --check -> mypy -> pytest  (matriz: Python 3.12 e 3.14)
+#   qualidade  ruff -> black --check -> mypy -> pytest  (matriz: Python 3.12, 3.14 e 3.15)
 #   seguranca  pip-audit (CVEs) + manage.py check --deploy (postura de produção)
 #
-# O piso do projeto é o 3.12 (o mínimo do Django 6.1); o 3.14 é a versão
-# estável mais nova. A matriz testa as
-# duas pontas, para o piso declarado no pyproject.toml não ser só uma promessa.
+# O piso do projeto é o 3.12 (o mínimo do Django 6.1); o 3.15 é a versão
+# estável mais nova (o Django a declara desde a 6.1.3). A matriz testa as duas
+# pontas, para o piso declarado no pyproject.toml não ser só uma promessa, e
+# mantém o 3.14 no meio.
 #
 # CodeQL (code scanning) roda no workflow próprio codeql.yml, porque o repo é
 # público e o code scanning é grátis. Dependabot (alerts + version updates) cobre
@@ -36,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.14"]
+        python-version: ["3.12", "3.14", "3.15"]
     env:
       # portfolio.settings faz os.getenv("SECRET_KEY") + ValueError se ausente;
       # valor descartável, só para o settings importar em CI (não é produção).
