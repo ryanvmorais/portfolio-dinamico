@@ -749,12 +749,11 @@ class TestFontesLocais:
 
     def test_csp_nao_libera_mais_o_google(self, settings) -> None:
         """Os hosts do Google saíram de style-src e font-src."""
-        assert all(
-            "google" not in h and "gstatic" not in h for h in settings.CSP_STYLE_SRC
-        )
-        assert all(
-            "google" not in h and "gstatic" not in h for h in settings.CSP_FONT_SRC
-        )
+        diretivas = settings.CONTENT_SECURITY_POLICY["DIRECTIVES"]
+        for diretiva in ("style-src", "font-src"):
+            assert all(
+                "google" not in h and "gstatic" not in h for h in diretivas[diretiva]
+            )
 
 
 # ---------------------------------------------------------------------------

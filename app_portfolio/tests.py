@@ -208,6 +208,24 @@ class TestPortfolioCore:
         assert backend == "whitenoise.storage.CompressedStaticFilesStorage"
         assert settings.STORAGES["default"]["BACKEND"].endswith("FileSystemStorage")
 
+    def test_home_envia_a_csp(self, client) -> None:
+        """
+        A resposta traz o cabeçalho CSP, com script só do próprio site.
+
+        Ler o settings não basta: o django-csp 4 ignora os nomes antigos CSP_*,
+        e o cabeçalho sumiu sem que nenhum teste de configuração acusasse.
+        """
+        csp = client.get(reverse("home"))["Content-Security-Policy"]
+        diretivas = dict(
+            (partes[0], partes[1:])
+            for partes in (d.split() for d in csp.split(";") if d.strip())
+        )
+        assert diretivas["default-src"] == ["'self'"]
+        assert diretivas["script-src"] == ["'self'"]
+        assert diretivas["font-src"] == ["'self'"]
+        assert diretivas["style-src"] == ["'self'", "'unsafe-inline'"]
+        assert diretivas["img-src"] == ["'self'", "data:", "https:"]
+
 
 # ---------------------------------------------------------------------------
 # Configuração do modo demonstração e do e-mail (spec 005)

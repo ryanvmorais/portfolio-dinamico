@@ -81,7 +81,7 @@ Configurações sutis em que uma alteração "inofensiva" pode reintroduzir um
 problema já corrigido. Leia antes de mexer nos arquivos citados.
 
 - **CSP e scripts/estilos inline** (spec [003](003-configuracao-seguranca/)):
-  `CSP_SCRIPT_SRC` em `portfolio/settings.py` **não** tem `'unsafe-inline'` —
+  o `script-src` do `CONTENT_SECURITY_POLICY` em `portfolio/settings.py` **não** tem `'unsafe-inline'` —
   foi removido de propósito porque nenhum template usa `<script>` inline.
   Adicionar um `<script>` inline em qualquer template quebra silenciosamente
   (o navegador só bloqueia no console, o servidor não acusa erro). Se
