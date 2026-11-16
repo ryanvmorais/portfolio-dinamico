@@ -103,7 +103,7 @@ app_portfolio/        # A única aplicação
   test_semear_dados_demo.py # Testes do comando de demonstração e do Lighthouse CI
   test_readme_en.py    # Compara o README.en.md com o README.md (títulos, tabela, selos, blocos, links)
   test_comentarios_templates.py # Guarda a regra dos comentários dos templates ({# #}, nunca <!-- -->)
-  test_impessoalidade.py # Falha se o nome do mantenedor aparecer em arquivo versionado
+  test_impessoalidade.py # Falha se o nome do mantenedor aparecer em arquivo versionado ou se este arquivo citar skill pessoal
   management/commands/semear_dados_demo.py # Dados fictícios (Lighthouse CI e dev)
   migrations/
 templates/            # Templates HTML na raiz do projeto (não dentro de app_portfolio)
@@ -146,95 +146,28 @@ specs/                  # Especificações (spec-driven development); ver specs/
   NNN-feature/            # requirements.md + design.md + tasks.md por feature
 docs/
   stack.md                # Mapa de cada tecnologia da stack: o que faz, por que foi escolhida, o que estudar
-  referencia/             # Detalhes que não cabem aqui (quarentena do uv, cache, CI, regras de interface)
+  referencia/             # Detalhes que não cabem aqui (arquitetura, configurações, quarentena do uv, cache, CI, interface)
 ```
 
-### Modelos (em `models.py`)
+### Modelos, imagens e formulário de contato
 
-1. **Auxiliares** — `Tecnologia` (badge + ícone, `mostrar_no_home` filtra a
-   seção de ícones), `CategoriaProjeto` (agrupamento por `slug`)
-   e `CategoriaHabilidade`.
-2. **Identidade** — `Perfil` (sem constraint de singleton — convenção de uso,
-   não regra de negócio; um segundo registro faria `Perfil.objects.first()`
-   retornar algo arbitrário). `foto`, `curriculo`, `link_linkedin` e
-   `link_github` são opcionais: o template guarda cada um com `{% if %}`. As
-   redes do rodapé não vêm do `Perfil`: são seis links fixos de exemplo no
-   `base.html` (spec 004, ADR-04).
-3. **Portfólio** — `Projeto` (ordenado por `ordem`, M2M com `Tecnologia`,
-   `categoria_projeto` opcional via `SET_NULL`, `link_github` opcional).
-4. **Habilidades** — `Habilidade` (FK `CategoriaHabilidade`, `progresso` 0-100
-   sem validação de range — confiança no preenchimento via Admin).
-5. **Estatísticas** — `Estatistica` (números de destaque na Hero;
-   `destaque_sobre` também exibe na seção Sobre).
-6. **Contato** — `MensagemContato` (`mensagem` com `MaxLengthValidator(5000)`
-   — adicionado na auditoria de segurança desta modernização).
+Os seis grupos de modelos (`models.py`), a conversão para WebP no `save()` (`utils.py`) e o fluxo
+do POST do contato (`views.py`): `docs/referencia/arquitetura.md`: **leia antes de mexer em
+`models.py`, `utils.py` ou na view `home`**. Requisitos e ADRs: `specs/001-vitrine-portfolio/` e
+`specs/002-formulario-contato/`.
 
-Ver `specs/001-vitrine-portfolio/` e `specs/002-formulario-contato/` para o
-detalhamento completo de requisitos e decisões de design de cada área.
-
-### Tratamento de imagens
-
-`utils.converter_para_webp()` é chamado no `save()` de `Perfil` (campo `foto`)
-e `Projeto` (campo `imagem`).
-
-- **Qualidade**: comprime para WebP com `quality=80`.
-- **Skip automático**: se a imagem já estiver em WebP, retorna `(None, None)`.
-- **Transparência**: RGBA/P convertidos para RGBA (preserva alpha); demais
-  modos vão para RGB.
-- **`save=False`**: usado em `image_field.save(novo_nome, conteudo,
-  save=False)` para evitar recursão infinita (não chama o `save()` do model
-  de novo).
-
-Ao adicionar um novo model com `ImageField`, siga o mesmo padrão: sobrescreva
-`save()`, chame `converter_para_webp()`, cheque `if novo_conteudo and
-novo_nome:` (os dois juntos — `mypy` não infere que são não-`None` juntos a
-partir de checar só um) e use `save=False`.
-
-### Formulário de contato (em `views.py`)
-
-Tudo roda dentro da view `home`, no ramo `if request.method == "POST"`, em
-sequência:
-
-1. **Honeypot** — campo oculto `honeypot`; preenchido → redirect silencioso,
-   nada é salvo.
-2. **Rate limit** — cache em arquivo (`FileBasedCache`, pasta `django_cache/`,
-   compartilhado entre workers) por `contact_limit_{REMOTE_ADDR}`, janela de
-   600s, ativado **só depois** do envio de e-mail suceder.
-3. **Validação** — `MensagemContatoForm` (ModelForm).
-   **Modo demonstração** (spec 005) — logo depois da validação, com
-   `MODO_DEMONSTRACAO` ligado: responde `{"status": "demo", "message", "link"}`
-   (AJAX) ou `messages.info(..., extra_tags="demo")` + redirect, sem gravar,
-   enviar nem tocar no rate limit. A ordem real é honeypot → validação → modo →
-   rate limit → sanitização → gravação → e-mail.
-4. **Sanitização** — `bleach.clean(mensagem, tags=[], strip=True)` antes de
-   salvar (só o campo `mensagem`; `nome`/`assunto` não passam por `bleach`).
-5. **Envio de e-mail** — `send_mail()` síncrono; falha é capturada e logada
-   (`logger.exception`), nunca propaga — a mensagem já salva no banco não é
-   perdida.
-6. **Resposta híbrida** — header `X-Requested-With: XMLHttpRequest` decide
-   entre `JsonResponse` (AJAX) e `redirect`/`messages` (HTML tradicional). Os dois
-   fluxos dizem a mesma frase (`MENSAGEM_ENVIADO`, `MENSAGEM_LIMITE_ENVIO`,
-   `MENSAGEM_DADOS_INVALIDOS`, `MENSAGEM_FALHA_ENVIO`, em `views.py`): o
-   `main.js` mostra o `message` de toda resposta que não seja sucesso, e o
-   `base.html` mostra as `messages` no mesmo componente `.notification`.
-
-Ver `specs/002-formulario-contato/` para os critérios de aceite completos e
-os ADRs (por que honeypot+rate limit em vez de CAPTCHA, por que o rate limit
-ativa só após o envio, etc.).
-
-> ⚠️ **Não regredir:** os testes desta feature (`app_portfolio/tests.py`)
-> dependem da fixture autouse `disable_real_email`, que troca
-> `EMAIL_BACKEND` para `locmem` durante a suíte. Sem ela, `send_mail()`
-> tentaria conectar ao SMTP real do Gmail configurado em `settings.py` a cada
-> teste — lento, dependente de rede, e capaz de enviar e-mail de verdade se o
-> `.env` local tiver credenciais reais.
+- ⚠️ `ImageField` novo: sobrescreva `save()`, chame `converter_para_webp()`, cheque `if novo_conteudo and novo_nome:` e grave com `save=False` (sem isso, recursão infinita).
+- ⚠️ Ordem do POST: honeypot → validação → modo demonstração → rate limit (`cache.add` atômico) → sanitização → gravação → e-mail.
+- ⚠️ Falha do `send_mail()` é logada e nunca propaga: a mensagem já está no banco.
+- ⚠️ AJAX e HTML dizem a mesma frase: use as constantes `MENSAGEM_*` do `views.py`, nunca texto solto.
+- ⚠️ Os testes do contato dependem da fixture autouse `disable_real_email` (`EMAIL_BACKEND` em `locmem`); sem ela, `send_mail()` usa o SMTP real do `.env`.
+- ⚠️ `Perfil` não é singleton: um segundo registro faz `Perfil.objects.first()` devolver um qualquer.
 
 ### Interface e acessibilidade (spec 004)
 
-A home foi auditada em Chrome real e corrigida na spec `004-correcoes-de-interface`.
-As regras que ficaram (hero, menu inerte do celular, contraste, avisos, movimento
-reduzido, fontes, imagens e páginas de erro) estão em
-`docs/referencia/interface-e-acessibilidade.md`: **leia antes de mexer na interface**.
+As regras de interface (hero, menu inerte do celular, contraste, avisos, movimento
+reduzido, fontes, imagens e páginas de erro; origem na spec `004-correcoes-de-interface`)
+estão em `docs/referencia/interface-e-acessibilidade.md`: **leia antes de mexer na interface**.
 
 > ⚠️ **Não regredir (dado opcional):** `foto`, `curriculo`, `link_github` do
 > projeto e as redes do `Perfil` são opcionais. `{{ perfil.curriculo.url }}` sem
@@ -296,14 +229,10 @@ uv run mypy app_portfolio portfolio        # 3. checa tipos (NÃO altera, só re
 uv run pytest                              # 4. roda os testes
 ```
 
-Os testes ficam em arquivos ao lado do código, não numa pasta `tests/` — uma
-única view e um punhado de models não justificam a divisão por módulo:
-`tests.py` (modelos, view e segurança do contato),
-`test_interface.py` (as correções da spec 004, um grupo por requisito; lê o CSS e
-o JavaScript como texto, com fixtures de isolamento próprias e um override no mypy),
-`test_semear_dados_demo.py`, `test_readme_en.py`, `test_comentarios_templates.py` (guarda a
-regra dos comentários dos templates) e `test_impessoalidade.py` (falha se o
-nome do mantenedor aparecer em arquivo versionado ou se este arquivo citar skill pessoal).
+Os testes ficam em arquivos ao lado do código, não numa pasta `tests/` (uma
+única view e um punhado de models não justificam a divisão por módulo); o que
+cada arquivo cobre está na árvore de "Estrutura do projeto". O `test_interface.py`
+tem fixtures de isolamento próprias e um override no mypy.
 
 > ⚠️ **Não regredir (README bilíngue):** `README.md` (português) e `README.en.md`
 > mudam no mesmo PR, com as mesmas seções na mesma ordem; o `test_readme_en.py`
@@ -320,10 +249,7 @@ todo PR; pip-audit semanal, CodeQL, Lighthouse CI e Dependabot completam. Gatilh
 A pasta `specs/` documenta cada feature em três arquivos versionados —
 `requirements.md` (o quê/porquê + critérios de aceite em **Given/When/Then**),
 `design.md` (arquitetura + ADRs) e `tasks.md` (quebra rastreável `tarefa →
-requisito`). As specs 001 a 003 foram reconstruídas por **engenharia
-reversa** do código (`status: concluído`), numa auditoria de segurança +
-modernização de infraestrutura conduzida em 2026-09; a 004 nasceu da auditoria
-de interface de 2026-10-18. A metodologia e o índice completo estão em
+requisito`). A metodologia, o status e o índice completo estão em
 `specs/README.md`.
 
 ## Gestão de Dependências (uv)
