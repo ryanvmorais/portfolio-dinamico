@@ -13,6 +13,7 @@ import ssl
 from pathlib import Path
 
 import certifi
+from csp.constants import SELF, UNSAFE_INLINE
 from dotenv import load_dotenv
 
 # ---------------------------------------------------------------------------
@@ -81,6 +82,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # Só pelas checagens do django-csp: com o app instalado, um CSP_* do formato
+    # antigo vira erro no "manage.py check" em vez de sumir em silêncio.
+    "csp",
     "app_portfolio.apps.AppPortfolioConfig",
 ]
 
@@ -169,14 +173,22 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"  # nenhuma página pode ser enquadrada (clickjacking)
 
-# CSP: de onde a página pode carregar scripts, estilos, imagens e fontes.
-CSP_DEFAULT_SRC = ("'self'",)
-# As fontes agora vêm de static/fonts/ (spec 004, RF-17): o Google Fonts saiu de
-# style-src e font-src.
-CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
-CSP_SCRIPT_SRC = ("'self'",)
-CSP_IMG_SRC = ("'self'", "data:", "https:")
-CSP_FONT_SRC = ("'self'",)
+# CSP: de onde a página pode carregar scripts, estilos, imagens e fontes. O
+# django-csp 4 só lê este dicionário: os antigos CSP_DEFAULT_SRC, CSP_SCRIPT_SRC
+# etc. são ignorados, e com eles o cabeçalho não saía em resposta nenhuma.
+CONTENT_SECURITY_POLICY = {
+    "DIRECTIVES": {
+        "default-src": [SELF],
+        # 'unsafe-inline' só em estilo: a barra de progresso das habilidades usa
+        # style="" inline. Script nunca: nenhum template tem <script> inline.
+        "style-src": [SELF, UNSAFE_INLINE],
+        "script-src": [SELF],
+        "img-src": [SELF, "data:", "https:"],
+        # As fontes vêm de static/fonts/ (spec 004, RF-17): o Google Fonts saiu
+        # de style-src e font-src.
+        "font-src": [SELF],
+    }
+}
 
 # Só em produção: o runserver não fala HTTPS, então com estas opções o site
 # local não abriria.
