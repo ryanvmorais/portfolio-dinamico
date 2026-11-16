@@ -12,7 +12,7 @@ Deploy: processo único (WSGI, gunicorn), SQLite em dev e em produção (num vol
 pelo `DIRETORIO_DADOS`); receita de build da plataforma no `railpack.json`
 (spec 006).
 
-> **Python 3.12 é o piso (`requires-python = ">=3.12"`):** é o mínimo do Django 6.1. O `.python-version` fixa o 3.12 no desenvolvimento, o CI testa o 3.12 e o 3.14 (matriz) e `ruff`, `black` e `mypy` apontam para o 3.12: não use sintaxe exclusiva de versão mais nova (ex.: `except A, B:` sem parênteses, do 3.14).
+> **Python 3.12 é o piso (`requires-python = ">=3.12"`):** é o mínimo do Django 6.1. O `.python-version` fixa o 3.12 no desenvolvimento, o CI testa do 3.12 ao 3.15 (matriz) e `ruff`, `black` e `mypy` apontam para o 3.12: não use sintaxe exclusiva de versão mais nova (ex.: `except A, B:` sem parênteses, do 3.14).
 
 ## Comandos Comuns
 

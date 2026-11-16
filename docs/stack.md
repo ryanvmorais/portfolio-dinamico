@@ -27,7 +27,7 @@ Django Admin (escrita)  ──►  SQLite (db.sqlite3)  ──►  view home()  
 ### Python 3.12+
 
 O runtime de todo o backend. O piso é o 3.12, o mínimo que o Django 6.1
-aceita. O CI roda o projeto no 3.12 e no 3.14 (a versão estável mais
+aceita. O CI roda o projeto do 3.12 ao 3.15 (a versão estável mais
 atual), e o `ruff`, o `black` e o `mypy` apontam para o 3.12, para o próprio lint
 barrar sintaxe que o piso não tem.
 
