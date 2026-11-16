@@ -22,9 +22,11 @@ django_cache/
 
 # --- 3. SEGURANÇA E PRIVACIDADE (CRÍTICO) ---
 # NUNCA remova o .env daqui. Ele contém sua SECRET_KEY e senhas de e-mail.
+# O .env.* cobre as variações (.env.local, .env.prod).
 .env
-.env.local
-.env.prod
+.env.*
+# Exceção: o .env.example é o modelo versionado, sem valor real.
+!.env.example
 config.json
 secrets.txt
 *.log
