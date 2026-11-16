@@ -87,6 +87,8 @@ limitado/pago em muitos provedores), e sem exigir CAPTCHA de terceiros.
 
 ### RF-05 — Notificação por e-mail
 
+**Superseded by** PR #16, na ativação do rate limit: `cache.add()` atômico reserva a vaga antes de gravar e enviar.
+
 - **Given** uma mensagem válida e não bloqueada por rate limit
   **When** ela é salva
   **Then** `send_mail()` envia um e-mail em texto simples (assunto

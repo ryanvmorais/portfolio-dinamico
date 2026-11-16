@@ -17,7 +17,8 @@ origin: engenharia reversa do código existente (portfolio/settings.py)
 
 ## 1. Contexto e problema
 
-O projeto é deployado no PythonAnywhere a partir de um único `settings.py`
+O projeto é deployado no PythonAnywhere (na escrita desta spec; a spec 006
+levou a demo para a Railway) a partir de um único `settings.py`
 compartilhado entre dev e produção, diferenciado só por variáveis de
 ambiente (`.env`, nunca commitado). Precisa ser seguro por padrão mesmo se
 alguém esquecer de configurar algo em produção.
@@ -35,7 +36,7 @@ alguém esquecer de configurar algo em produção.
 
 - 2FA no Admin (não implementado — ver "Limites conhecidos").
 - Rate limit distribuído (Redis) — `LocMemCache` é suficiente no deploy atual
-  (ver spec 002, ADR-04).
+  (ver spec 002, ADR-04, que o PR #16 trocou por `FileBasedCache`).
 - WAF/proteção de borda — fora do controle da aplicação Django.
 
 ## 4. Requisitos funcionais e critérios de aceite
@@ -56,6 +57,8 @@ alguém esquecer de configurar algo em produção.
 
 ### RF-03 — ALLOWED_HOSTS controlado por ambiente
 
+**Superseded by** 006-hospedagem, RF-04.
+
 - **Given** `DEBUG=True`
   **Then** `ALLOWED_HOSTS = ["*"]` (conveniência local).
 - **Given** `DEBUG=False`
@@ -74,6 +77,8 @@ alguém esquecer de configurar algo em produção.
   `runserver` local em HTTP).
 
 ### RF-05 — Content Security Policy
+
+**Superseded by** 004-correcoes-de-interface, RF-17, nas fontes.
 
 - **Given** qualquer resposta HTTP
   **Then** o header CSP é definido via `django-csp`: `default-src 'self'`,
