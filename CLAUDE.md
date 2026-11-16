@@ -8,8 +8,9 @@ Portfólio profissional pessoal do mantenedor do repositório, construído com D
 Projeto educacional de app único (`app_portfolio`) que serve uma página única
 (a home): perfil do desenvolvedor, projetos, habilidades técnicas,
 estatísticas de destaque e um formulário de contato com camadas anti-spam.
-Deploy: processo único (WSGI), SQLite em dev, PostgreSQL opcional em
-produção via `psycopg2-binary`.
+Deploy: processo único (WSGI, gunicorn), SQLite em dev e em produção (num volume,
+pelo `DIRETORIO_DADOS`); receita de build da plataforma no `railpack.json`
+(spec 006).
 
 > **Python 3.12 é o piso (`requires-python = ">=3.12"`):** é o mínimo do Django 6.1. O `.python-version` fixa o 3.12 no desenvolvimento, o CI testa o 3.12 e o 3.14 (matriz) e `ruff`, `black` e `mypy` apontam para o 3.12: não use sintaxe exclusiva de versão mais nova (ex.: `except A, B:` sem parênteses, do 3.14).
 
@@ -82,6 +83,7 @@ serve de template documentado com todos os placeholders.
 | `EMAIL_USER` | — | Conta Gmail que envia (e recebe) as notificações do formulário de contato; vazio com `DEBUG=True` imprime o e-mail no terminal (backend de console) |
 | `EMAIL_PASS` | — | **Senha de app** do Gmail (não a senha normal da conta) |
 | `MODO_DEMONSTRACAO` | `False` | `True` numa demo pública: o formulário valida, mas não grava nem envia, e avisa o visitante (spec 005) |
+| `DIRETORIO_DADOS` | raiz do repositório | Pasta de `db.sqlite3`, `media/` e `django_cache/`; num contêiner, o caminho do volume persistente (ex.: `/data`). Relativo parte da raiz (spec 006) |
 
 ## Arquitetura
 
@@ -91,7 +93,7 @@ serve de template documentado com todos os placeholders.
 portfolio/           # Configuração do projeto Django (settings, urls raiz, wsgi/asgi)
 app_portfolio/        # A única aplicação
   models.py           # Todos os modelos de dados
-  views.py             # View única (home): GET da vitrine + POST do formulário de contato
+  views.py             # home (GET da vitrine + POST do formulário de contato) e servir_midia (/media/ com e sem DEBUG)
   forms.py             # MensagemContatoForm (ModelForm)
   admin.py             # Admin customizado para cada modelo
   utils.py             # converter_para_webp() — conversor universal de imagem
@@ -117,6 +119,7 @@ static/
   fonts/               # woff2 variáveis (latin) + licenças OFL
   js/main.js           # JavaScript vanilla (menu mobile com inert, filtros, avisos, formulário AJAX)
   icons/                # SVGs de UI, tecnologias e redes sociais; default_perfil/default_projeto.webp (reserva) e favicon.webp
+railpack.json          # Receita de build e start da Railway (uv sync --locked, collectstatic; migrate && gunicorn)
 pyproject.toml         # Gerenciado com uv. [project]=runtime, [dependency-groups].dev, [project.optional-dependencies].prod + config das ferramentas (ruff, black, mypy, pytest)
 uv.lock                # Lock único gerado por `uv lock` — todo o grafo pinado (NUNCA editar à mão)
 .python-version        # Fixa o Python 3.12 (o piso) no desenvolvimento
@@ -244,13 +247,14 @@ reduzido, fontes, imagens e páginas de erro) estão em
 ### Configurações notáveis (em `portfolio/settings.py`)
 
 Um único `settings.py` para dev e produção, ramificado por `if not DEBUG:`
-(ADR-01 da spec 003). Middleware, segurança em produção, CSP, estáticos, banco
-e e-mail: `docs/referencia/configuracoes.md`: **leia antes de mexer em
-`settings.py`**.
+(ADR-01 da spec 003). Middleware, segurança em produção (com o proxy), CSP,
+estáticos, mídia (`servir_midia`), dados graváveis, banco, log e e-mail:
+`docs/referencia/configuracoes.md`: **leia antes de mexer em `settings.py`**.
 
 - ⚠️ `<script>` inline num template exige revisar `CSP_SCRIPT_SRC`: o navegador bloqueia em silêncio.
 - ⚠️ Rate limit em `FileBasedCache`, nunca `LocMemCache` (`docs/referencia/dependencias-e-cache.md`).
 - ⚠️ `STORAGES["staticfiles"]`, nunca `STATICFILES_STORAGE`: o Django 6.1 o ignora (issue #38).
+- ⚠️ `SECURE_PROXY_SSL_HEADER` supõe um proxy na frente: com o Django direto na internet, remova a linha (o cliente forjaria o `X-Forwarded-Proto`).
 
 ## Convenções
 

@@ -1,6 +1,6 @@
 ---
 feature: Hospedagem da demo na Railway
-status: aprovado
+status: em andamento
 date: 2026-11-16
 related:
   - 002-formulario-contato
@@ -297,3 +297,35 @@ Tudo em `app_portfolio/tests.py`, sem rede e sem tocar a pasta de dados real:
 - **Receita de build:** lê o `railpack.json` como JSON e confere `--locked`,
   `--extra prod`, `collectstatic`, `migrate` antes de `gunicorn` e
   `${PORT:-8000}`.
+
+## Desvios
+
+1. **Rota da mídia (RF-06):** o Django devolve o `MEDIA_URL` com a barra inicial
+   (`/media/`), e a rota da seção 2 virava `//media/`, que nenhum pedido alcança. A
+   rota usa `settings.MEDIA_URL.lstrip('/')`.
+2. **Caminho que sai da pasta (RF-06, ADR-06):** o `safe_join` do `serve` levanta
+   `SuspiciousFileOperation` com `../`, que o Django responde com 400 (e registra no
+   log), não com o 404 que a seção 2 supunha. A `servir_midia` converte a exceção em
+   `Http404`, e o `../` responde como um arquivo que não existe, como pede o RF-06.
+3. **Tipo do `.webp` (RF-06):** o Python 3.12 só conhece o `.webp` pelo `mime.types`
+   do sistema, e sem ele o `serve` respondia `application/octet-stream`; com o
+   `nosniff`, o navegador não mostraria a imagem. O `views.py` registra
+   `image/webp` no `mimetypes` ao carregar.
+4. **Testes de proxy e CSRF (RF-08, seção 7):** sem o cabeçalho `Host`, o test
+   client monta `testserver:80`, que com o esquema `https` não bate com a origem
+   `https://testserver`. Os testes mandam o `Host` de um domínio de exemplo, posto
+   em `ALLOWED_HOSTS` pela fixture, como o navegador faz atrás do proxy.
+
+## Notas de implementação
+
+- **Suíte:** de 164 para 185 testes (21 novos em `app_portfolio/tests.py`: leitura
+  do `settings.py`, proxy e CSRF, mídia e receita de build).
+- **`check --deploy`:** com `DEBUG=False ALLOWED_HOSTS=exemplo.com`, nenhum aviso,
+  o mesmo resultado da `main`.
+- **Railpack:** os `commands` de um step no `railpack.json` substituem os do
+  provider (o `"..."` os estenderia); o step de instalação do provider roda antes,
+  sem o extra `prod`, e o `uv sync --locked --no-dev --extra prod` do build o
+  completa. O `.venv` fica no `PATH` do build, então o `python manage.py
+  collectstatic` usa as dependências do lock.
+- **Mídia no 404:** o `../`, a pasta e o arquivo que falta renderizam o `404.html`
+  (conferido pelo teste, com `DEBUG=False`).

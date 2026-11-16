@@ -280,12 +280,62 @@ o IPython se disponível).
 
 ---
 
+## Hospedagem
+
+### gunicorn
+
+Servidor WSGI de produção: recebe o HTTP da plataforma e repassa cada pedido ao
+Django em processos separados (workers). Só é instalado com o extra `prod`
+(`uv sync --no-dev --extra prod`).
+
+**Por que este:** é o servidor WSGI mais usado com Django, sem configuração
+própria além do `--bind`; o `runserver` não serve para produção.
+
+**Estudar:** o modelo de workers (`--workers` ou a variável `WEB_CONCURRENCY`) e
+por que eles exigem um cache compartilhado entre processos (o `FileBasedCache` do
+rate limit); `--bind 0.0.0.0:${PORT}`; a diferença entre WSGI e ASGI.
+
+**Docs:** [docs.gunicorn.org](https://docs.gunicorn.org/)
+
+### Railway
+
+Plataforma que hospeda a demo: constrói e publica o projeto a cada push na
+`main`, monta um volume persistente para os dados graváveis e põe um proxy com
+TLS na frente do gunicorn.
+
+**Por que esta:** deploy por push, cobrança por uso, domínio próprio sem trocar de
+plano e o Python da versão do `.python-version` (spec 006).
+
+**Estudar:** volumes (só o caminho montado sobrevive ao deploy, por isso o
+`DIRETORIO_DADOS`); o proxy que termina o TLS e manda o `X-Forwarded-Proto`
+(`SECURE_PROXY_SSL_HEADER`); por que o `REMOTE_ADDR` vira o IP do proxy.
+
+**Docs:** [docs.railway.com](https://docs.railway.com/)
+
+### Railpack
+
+O construtor padrão da Railway: detecta o Python pelo `.python-version` e o uv pelo
+`uv.lock`, e monta a imagem. O `railpack.json` da raiz fixa o build
+(`uv sync --locked --no-dev --extra prod` e `collectstatic`) e o start (`migrate`
+e o gunicorn na porta `PORT`).
+
+**Por que este:** a receita fica no repositório, com esquema validável, sem um
+Dockerfile para manter (imagem base, instalação do uv, cache de camadas); em
+outra plataforma, os mesmos comandos vão para o formato dela (spec 006, ADR-01).
+
+**Estudar:** os steps do provider Python (o `commands` de um step substitui os do
+provider, e `"..."` os estende); por que o `migrate` roda no start, e não no build
+(o volume só existe no start, ADR-02); `--locked` contra `--frozen` no `uv sync`.
+
+**Docs:** [railpack.com](https://railpack.com/)
+
+---
+
 ## Peças menores
 
 | Peça | Papel |
 |---|---|
-| `gunicorn` (extra `prod`) | Servidor WSGI de produção — só instalado com `uv sync --extra prod` |
-| `psycopg2-binary` (extra `prod`) | Driver PostgreSQL para produção (dev usa SQLite) |
+| `psycopg2-binary` (extra `prod`) | Driver PostgreSQL para quem trocar o `DATABASES` à mão; a demo usa SQLite também em produção |
 | `asgiref`, `sqlparse`, `tzdata` | Dependências transitivas do próprio Django, não importadas diretamente |
 | `webencodings` | Dependência transitiva do `bleach` |
 | Inter e JetBrains Mono (`static/fonts/`) | Fontes do texto e do código, hospedadas no projeto em arquivo variável (latin, `font-display: swap`) em vez do Google Fonts: sem requisição de terceiros (LGPD) e sem CSS externo bloqueando a primeira pintura (spec 004, ADR-05). Licença OFL ao lado dos arquivos |
@@ -295,9 +345,12 @@ o IPython se disponível).
 
 ## O que deliberadamente não está na stack
 
-- **PostgreSQL em desenvolvimento** — SQLite é suficiente para um projeto de
-  um único usuário/administrador; PostgreSQL só entra via `psycopg2-binary`
-  no deploy de produção.
+- **PostgreSQL** — SQLite é suficiente para um projeto de um único
+  usuário/administrador, em desenvolvimento e na demo, com o arquivo num volume
+  (spec 006); o `psycopg2-binary` fica no extra `prod` para quem trocar o banco.
+- **Dockerfile e armazenamento de objetos (S3, R2)** — o `railpack.json` fixa o
+  build sem imagem própria, e a mídia enviada pelo Admin fica no mesmo volume do
+  banco (spec 006, ADR-01 e ADR-06).
 - **Redis / cache distribuído** — o rate limit usa `FileBasedCache`, compartilhado entre
   workers sem infraestrutura extra; o `LocMemCache` foi descartado por ser por processo.
 - **django-two-factor-auth / django-axes (2FA e brute-force no Admin)** —
