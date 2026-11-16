@@ -75,13 +75,17 @@ de destaque, todos editáveis via Django Admin sem precisar mexer em código.
 
 ### RF-04 — Link GitHub opcional
 
+**Superseded by** 004-correcoes-de-interface, RF-10.
+
 - **Given** um projeto com `link_github` preenchido
   **Then** o card exibe o botão "Ver no GitHub".
 - **Given** `link_github` vazio
-  **Then** o botão aponta para `href=""` (o campo é opcional; o template não
-  omite o link, apenas fica vazio).
+  **Then** o botão aponta para `href="None"` (o campo é opcional e aceita nulo;
+  o template não omite o link e imprime o valor nulo como texto).
 
 ### RF-05 — Ícone/imagem do projeto e do perfil em WebP
+
+**Superseded by** 004-correcoes-de-interface, RF-09, na foto de reserva do perfil.
 
 - **Given** uma `imagem` (Projeto) ou `foto` (Perfil) enviada via Admin
   **When** o registro é salvo

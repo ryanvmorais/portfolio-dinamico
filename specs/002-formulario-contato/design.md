@@ -15,7 +15,9 @@ origin: engenharia reversa do código existente (app_portfolio)
 Toda a lógica vive na mesma view `home` que renderiza a vitrine (`GET`) — o
 `POST` do formulário de contato é tratado como um ramo condicional dentro
 dela, não uma view separada. Quatro camadas são aplicadas em sequência antes
-de persistir: honeypot → rate limit → validação de formulário → sanitização.
+de persistir: honeypot → rate limit → validação de formulário → sanitização
+(ordem da escrita; o PR #16 levou o rate limit para depois da validação, e a
+spec 005, ADR-02, pôs o modo demonstração entre os dois).
 
 ## 2. Componentes
 
@@ -26,7 +28,7 @@ de persistir: honeypot → rate limit → validação de formulário → sanitiz
 | `MensagemContato` | `app_portfolio/models.py` | Persistência; `mensagem` com `MaxLengthValidator(5000)` |
 | `MensagemContatoAdmin` | `app_portfolio/admin.py` | Consulta somente leitura das mensagens recebidas |
 | `bleach.clean` | biblioteca `bleach` | Remove todas as tags HTML do campo `mensagem` |
-| `django.core.cache` (`LocMemCache`) | `portfolio/settings.py` | Armazena a chave `contact_limit_{ip}` do rate limit |
+| `django.core.cache` (`LocMemCache`; hoje `FileBasedCache`, PR #16) | `portfolio/settings.py` | Armazena a chave `contact_limit_{ip}` do rate limit |
 | Template `contact__form` | `templates/home.html` | Honeypot oculto via `display:none`, `{% csrf_token %}` |
 | `contactForm` handler | `static/js/main.js` | Submissão via `fetch` com `X-Requested-With` e `X-CSRFToken` |
 
@@ -51,9 +53,9 @@ Sem rota própria — o formulário faz POST para a própria URL da home
 |---|---|---|
 | Honeypot preenchido | `redirect("home")` | idem (sem diferenciar) |
 | Rate limit ativo | `messages.error` + redirect | `429` + `{"status": "error"}` |
-| Formulário inválido | Re-renderiza `home.html` com erros do form | `400` + `{"status": "error", "message": "Dados inválidos."}` |
+| Formulário inválido | Re-renderiza `home.html` com erros do form | `400` + `{"status": "error", "message": "Dados inválidos."}` (frase trocada na spec 004, RF-03) |
 | Envio OK | `redirect("home")` | `200` + `{"status": "success", "message": "Mensagem enviada!"}` |
-| Falha no SMTP | Aviso `MENSAGEM_FALHA_ENVIO` (RF-05, corrigido na spec 004) | `500` + `{"status": "error", "message": "Erro ao enviar e-mail."}` |
+| Falha no SMTP | Aviso `MENSAGEM_FALHA_ENVIO` (RF-05, corrigido na spec 004) | `500` + `{"status": "error", "message": "Erro ao enviar e-mail."}` (frase trocada na spec 004, RF-03) |
 
 ## 5. Decisões técnicas (ADRs)
 
@@ -87,6 +89,8 @@ Sem rota própria — o formulário faz POST para a própria URL da home
 
 ### ADR-03 — Rate limit ativado só após o envio (não a validação)
 
+**Superseded by** PR #16: `cache.add()` atômico reserva a vaga antes de gravar e enviar, para que pedidos simultâneos não passem todos pela checagem (CWE-362).
+
 - **Decisão:** `cache.set(cache_key, True, 600)` roda **depois** de
   `send_mail()` suceder, não logo após `form.is_valid()`.
 - **Porquê:** se o envio falhar, o visitante pode tentar de novo imediatamente
@@ -95,6 +99,8 @@ Sem rota própria — o formulário faz POST para a própria URL da home
   bloqueio), mas cada tentativa ainda passa pelo honeypot/sanitização.
 
 ### ADR-04 — Rate limit em memória (`LocMemCache`), não distribuído
+
+**Superseded by** PR #16: `FileBasedCache`, compartilhado entre os workers do gunicorn; a pasta segue o `DIRETORIO_DADOS` desde a spec 006, ADR-05.
 
 - **Decisão:** `CACHES["default"]` usa `LocMemCache`.
 - **Porquê:** deploy de processo único (PythonAnywhere); não há múltiplos

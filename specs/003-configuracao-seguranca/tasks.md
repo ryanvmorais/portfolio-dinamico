@@ -39,12 +39,12 @@ origin: engenharia reversa do código existente (portfolio/settings.py)
 - [x] Migração de `pip` + `requirements/*.txt` para `uv` (`pyproject.toml` +
       `uv.lock`). Não é um requisito funcional desta spec, mas sustenta o
       `pip-audit` reproduzível (`uv run pip-audit`) e o `mypy`/`ruff`/`black`.
-- [x] `.github/dependabot.yml` criado (ecossistemas `pip` + `github-actions`,
+- [x] `.github/dependabot.yml` criado (ecossistemas `uv` + `github-actions`,
       `weekly`/`monday`, `open-pull-requests-limit: 5`) — cobre a varredura
       contínua de dependências que o `pip-audit` manual não substitui.
 - [x] `.github/workflows/ci.yml` criado com job `seguranca`
       (`pip-audit` + `manage.py check --deploy`), fecha a lacuna da versão
-      inicial desta spec (o CI não automatizava a checagem de deploy).
+      inicial desta spec (o CI não automatizava a checagem de deploy). — RF-08
 - [x] Portão de qualidade completo. — `uv run ruff check .`,
       `uv run black --check .`, `uv run mypy app_portfolio portfolio`,
       `uv run pytest` verdes.

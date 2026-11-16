@@ -24,7 +24,7 @@ de settings.
 | Bloco 1 (env/segredos) | `portfolio/settings.py`, bloco 1 | `SECRET_KEY`, `DEBUG`, `ADMIN_URL_PATH`, `ALLOWED_HOSTS` |
 | `MIDDLEWARE` | `portfolio/settings.py`, bloco 2 | Ordem: Security → WhiteNoise → Session → Common → CSRF → Auth → Messages → XFrameOptions → CSP |
 | Bloco 4 (cabeçalhos e HTTPS) | `portfolio/settings.py`, bloco 4 | HSTS, cookies seguros, SSL redirect — só com `DEBUG=False` |
-| `django-csp` | `portfolio/settings.py`, bloco 4 (`CSP_*`) | Diretivas `CSP_*` |
+| `django-csp` | `portfolio/settings.py`, bloco 4 (`CSP_*`) | Diretivas `CSP_*` (hoje o dicionário `CONTENT_SECURITY_POLICY` do django-csp 4, PR #78) |
 | `portfolio/urls.py` | raiz | Monta `admin.site.urls` em `settings.ADMIN_URL_PATH` |
 | `whitenoise` | `MIDDLEWARE` + `STORAGES["staticfiles"]` | Serve e comprime estáticos sem servidor dedicado |
 | `.env.example` | raiz | Documenta cada variável exigida, sem valores reais |
@@ -67,7 +67,9 @@ Variáveis de ambiente consumidas por `settings.py` (documentadas em
 - **Decisão (corrigida em 2026-09-11):** `CSP_SCRIPT_SRC = ("'self'",)` — sem
   `'unsafe-inline'`. `CSP_STYLE_SRC` mantém `'unsafe-inline'` porque
   `home.html` usa 2 atributos `style=""` inline (barra de progresso de
-  habilidades, com largura dinâmica vinda do banco).
+  habilidades, com largura dinâmica vinda do banco). (Hoje `script-src` e
+  `style-src` do dicionário `CONTENT_SECURITY_POLICY`, PR #78; a decisão segue
+  a mesma.)
 - **Porquê:** antes da correção, `script-src` também tinha `'unsafe-inline'`
   sem necessidade real (nenhum `<script>` inline em nenhum template) — isso
   anulava boa parte do valor do CSP como defesa contra XSS.
@@ -97,7 +99,8 @@ Variáveis de ambiente consumidas por `settings.py` (documentadas em
 - `django-csp`, `whitenoise`, `python-dotenv`, `certifi` são as dependências
   diretas desta spec (declaradas em `pyproject.toml`).
 - Qualquer novo `<script>`/`<style>` inline em template exige revisar
-  `CSP_SCRIPT_SRC`/`CSP_STYLE_SRC` antes de shippar — regressão silenciosa
+  `CSP_SCRIPT_SRC`/`CSP_STYLE_SRC` (hoje `script-src`/`style-src` do
+  `CONTENT_SECURITY_POLICY`, PR #78) antes de shippar — regressão silenciosa
   senão (o CSP bloqueia sem erro visível no servidor, só no console do
   navegador).
 
