@@ -1,22 +1,37 @@
 """
-View da página única do portfólio.
+Views do portfólio: a página única e a entrega da mídia enviada pelo Admin.
 
 A ``home`` monta a página com os dados do banco e recebe o formulário de
 contato. O envio passa por honeypot, limite por IP e sanitização antes de
 gravar e notificar por e-mail, e responde em HTML ou em JSON (AJAX). Com o
 ``MODO_DEMONSTRACAO`` ligado, o envio válido para depois da validação: nada é
 gravado nem enviado, e o visitante recebe o aviso de demonstração.
+
+A ``servir_midia`` entrega os arquivos do ``MEDIA_ROOT`` também com
+``DEBUG=False``, porque a plataforma da demo não tem servidor web na frente
+do Django (spec 006).
 """
 
 import logging
+import mimetypes
 
 import bleach
 from django.conf import settings
 from django.contrib import messages
 from django.core.cache import cache
+from django.core.exceptions import SuspiciousFileOperation
 from django.core.mail import send_mail
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseBase,
+    JsonResponse,
+)
 from django.shortcuts import redirect, render
+from django.views.decorators.cache import cache_control
+from django.views.decorators.http import require_safe
+from django.views.static import serve
 
 from .forms import MensagemContatoForm
 from .models import (
@@ -50,6 +65,11 @@ MENSAGEM_DEMONSTRACAO = (
 TEXTO_LINK_DEMONSTRACAO = "Clone ou baixe o código no GitHub"
 
 logger = logging.getLogger(__name__)
+
+# O Python 3.12 só conhece o .webp pelo mime.types do sistema, que a imagem de
+# um contêiner enxuto pode não ter. Sem o tipo, a servir_midia responderia
+# application/octet-stream, e com o nosniff o navegador não mostraria a foto.
+mimetypes.add_type("image/webp", ".webp")
 
 
 def home(request: HttpRequest) -> HttpResponse:
@@ -217,3 +237,44 @@ def home(request: HttpRequest) -> HttpResponse:
     }
 
     return render(request, "home.html", context)
+
+
+# ---------------------------------------------------------------------------
+# Mídia enviada pelo Admin
+# ---------------------------------------------------------------------------
+
+
+@require_safe
+@cache_control(public=True, max_age=86400)
+def servir_midia(request: HttpRequest, caminho: str) -> HttpResponseBase:
+    """
+    Entrega um arquivo do ``MEDIA_ROOT`` (fotos e currículo), com ou sem DEBUG.
+
+    O ``serve`` do Django já junta o caminho à pasta com ``safe_join`` (``../``
+    vira 404), recusa pasta sem listar o conteúdo, põe o ``Content-Type`` pela
+    extensão e responde 304 ao ``If-Modified-Since``. A documentação dele
+    desaconselha o uso em produção por eficiência; aqui o tráfego é baixo, o
+    envio é só pelo Admin e a Cloudflare guarda as imagens em cache (spec 006,
+    ADR-06). O ``max-age`` de um dia não esconde troca de imagem: o Django gera
+    nome novo quando o arquivo já existe. O ``MEDIA_ROOT`` é lido a cada pedido,
+    não na carga das rotas.
+
+    O caminho que sai da pasta (``../``) faz o ``safe_join`` levantar
+    ``SuspiciousFileOperation``, que o Django responderia com 400 e registraria
+    no log; aqui vira 404, como um arquivo que não existe.
+
+    Args:
+        request (HttpRequest): Pedido GET ou HEAD (os outros métodos recebem 405).
+        caminho (str): Caminho do arquivo dentro do ``MEDIA_ROOT``.
+
+    Returns:
+        HttpResponseBase: O arquivo (200) ou 304, se o navegador já tem a versão
+            atual.
+
+    Raises:
+        Http404: Se o arquivo não existe, é uma pasta ou sai do ``MEDIA_ROOT``.
+    """
+    try:
+        return serve(request, caminho, document_root=str(settings.MEDIA_ROOT))
+    except SuspiciousFileOperation as erro:
+        raise Http404("Arquivo não encontrado.") from erro

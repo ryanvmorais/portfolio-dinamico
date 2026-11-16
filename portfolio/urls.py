@@ -2,15 +2,16 @@
 Rotas globais do projeto.
 
 Monta o painel administrativo num caminho configurável, inclui as rotas do
-app do portfólio e, só em desenvolvimento, serve os arquivos de mídia.
+app do portfólio e serve os arquivos de mídia, com ou sem DEBUG.
 """
 
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import include, path
 from django.views.generic.base import RedirectView
+
+from app_portfolio.views import servir_midia
 
 urlpatterns = [
     # O caminho do admin vem do settings (ADMIN_URL no .env) em vez de
@@ -25,15 +26,9 @@ urlpatterns = [
         "favicon.ico",
         RedirectView.as_view(url=staticfiles_storage.url("icons/favicon.webp")),
     ),
+    # Mídia enviada pelo admin, também com DEBUG=False: a plataforma da demo
+    # não tem servidor web na frente do Django para servir /media/, e o
+    # static() do Django só funciona com DEBUG (spec 006, RF-06). O Django
+    # devolve o MEDIA_URL com a barra inicial ("/media/"), e a rota não leva.
+    path(f"{settings.MEDIA_URL.lstrip('/')}<path:caminho>", servir_midia, name="midia"),
 ]
-
-
-# ---------------------------------------------------------------------------
-# Mídia em desenvolvimento
-# ---------------------------------------------------------------------------
-
-
-# Em produção quem serve /media/ é o servidor web; o Django só o faz com
-# DEBUG=True, para as fotos enviadas pelo admin aparecerem no runserver.
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

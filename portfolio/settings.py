@@ -3,8 +3,9 @@ Configurações do projeto Django.
 
 Um arquivo só para desenvolvimento e produção: o que muda entre os dois vem
 do ``.env`` (``SECRET_KEY``, ``DEBUG``, ``ALLOWED_HOSTS``, ``ADMIN_URL``,
-``MODO_DEMONSTRACAO`` e as credenciais de e-mail). Com ``DEBUG=False`` liga o
-HTTPS obrigatório, os cookies seguros e o HSTS.
+``MODO_DEMONSTRACAO``, ``DIRETORIO_DADOS`` e as credenciais de e-mail). Com
+``DEBUG=False`` liga o HTTPS obrigatório (atrás do proxy da plataforma), os
+cookies seguros, o HSTS e o log de erros na saída de erro do processo.
 """
 
 import os
@@ -25,6 +26,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # projeto, então um caminho relativo não acharia o arquivo no deploy.
 env_path = BASE_DIR / ".env"
 load_dotenv(dotenv_path=env_path)
+
+# Pasta dos dados graváveis: banco, mídia enviada pelo Admin e cache do rate
+# limit. Em produção aponta para o volume montado pela plataforma, que sobrevive
+# ao deploy; o resto do contêiner é recriado a cada versão (spec 006, ADR-05).
+# Vazia, fica a raiz do repositório. O "/" do Path resolve os dois casos: um
+# caminho absoluto (/data) substitui o BASE_DIR, e um relativo fica dentro dele.
+_DIRETORIO_DADOS = os.getenv("DIRETORIO_DADOS", "").strip()
+DIRETORIO_DADOS = BASE_DIR / _DIRETORIO_DADOS if _DIRETORIO_DADOS else BASE_DIR
 
 # Assina sessões, cookies e tokens CSRF; vem só do .env, nunca do código.
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -56,8 +65,14 @@ ADMIN_URL_PATH = os.getenv("ADMIN_URL", "admin/")
 
 # Domínios aceitos no cabeçalho Host (defesa contra Host header poisoning); em
 # desenvolvimento aceita qualquer um.
-# No .env use: ALLOWED_HOSTS=seu-dominio.com.br,www.seu-dominio.com.br
-ALLOWED_HOSTS = ["*"] if DEBUG else os.getenv("ALLOWED_HOSTS", "").split(",")
+# No .env use: ALLOWED_HOSTS=seu-dominio.com.br, www.seu-dominio.com.br
+# Espaços e item vazio (vírgula no fim) saem da lista. Vazia, a lista recusa
+# todo host: um deploy sem a variável falha fechado.
+ALLOWED_HOSTS = (
+    ["*"]
+    if DEBUG
+    else [h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()]
+)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -108,10 +123,11 @@ TEMPLATES = [
 WSGI_APPLICATION = "portfolio.wsgi.application"
 
 # SQLite: um arquivo, sem servidor de banco; serve ao volume de um portfólio.
+# Fica no DIRETORIO_DADOS, para o deploy não apagar o conteúdo do Admin.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": DIRETORIO_DADOS / "db.sqlite3",
     }
 }
 
@@ -132,9 +148,10 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 # Destino do collectstatic; é desta pasta que o WhiteNoise serve o CSS/JS.
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-# Uploads feitos pelo admin (fotos de projeto e de perfil, currículo).
+# Uploads feitos pelo admin (fotos de projeto e de perfil, currículo). Ficam no
+# DIRETORIO_DADOS, junto do banco que guarda o nome de cada arquivo.
 MEDIA_URL = "media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_ROOT = DIRETORIO_DADOS / "media"
 
 # WhiteNoise: comprime os arquivos estáticos (gzip) no collectstatic.
 # O nome tem de ser STORAGES: o Django 6.1 ignora o antigo STATICFILES_STORAGE
@@ -173,6 +190,25 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
+    # Atrás do proxy da plataforma o TLS termina antes do Django, que recebe
+    # HTTP. O proxy avisa o protocolo original neste cabeçalho; sem ler, o
+    # SECURE_SSL_REDIRECT redireciona para sempre (spec 006, ADR-03). Num
+    # servidor que entrega o Django direto à internet, sem proxy, remova a
+    # linha: o cliente poderia mandar o cabeçalho e pular o redirect.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+    # O LOGGING padrão do Django só manda o erro 500 por e-mail aos ADMINS, que
+    # o projeto não define: sem isto, o erro não aparece no log do serviço
+    # (spec 006, ADR-07).
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "handlers": {"console": {"class": "logging.StreamHandler"}},
+        "root": {"handlers": ["console"], "level": "WARNING"},
+        # 404 é registrado como WARNING no django.request; ERROR deixa só o 500.
+        "loggers": {"django.request": {"level": "ERROR"}},
+    }
+
 # ---------------------------------------------------------------------------
 # 5. E-mail e cache
 # ---------------------------------------------------------------------------
@@ -204,10 +240,10 @@ EMAIL_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 # extra "prod"), cada worker teria seu próprio contador e o limite por IP
 # seria multiplicado pelo número de workers (achado da auditoria de
 # segurança). FileBasedCache é compartilhado entre processos sem exigir
-# infra extra (Redis/Memcached).
+# infra extra (Redis/Memcached). Fica no DIRETORIO_DADOS, junto do banco.
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
-        "LOCATION": BASE_DIR / "django_cache",
+        "LOCATION": DIRETORIO_DADOS / "django_cache",
     }
 }

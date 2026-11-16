@@ -1,6 +1,6 @@
 ---
 feature: Hospedagem da demo na Railway
-status: aprovado
+status: em andamento
 date: 2026-11-16
 related:
   - 002-formulario-contato

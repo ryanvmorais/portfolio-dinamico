@@ -36,4 +36,12 @@ o motivo e a data de remoção no comentário do `pyproject.toml` (hoje: nenhuma
 
 `FileBasedCache` em `django_cache/`, e não `LocMemCache`: o cache `LocMemCache` é por processo e, com
 mais de um worker do gunicorn, o limite por IP do formulário de contato seria multiplicado pelo número
-de workers (achado da auditoria de segurança). A pasta é criada em runtime e fica no `.gitignore`.
+de workers (achado da auditoria de segurança). A pasta é criada em runtime, dentro do
+`DIRETORIO_DADOS` (a raiz do repositório, por padrão), e fica no `.gitignore`.
+
+**Atrás de proxy:** a chave do rate limit é o `REMOTE_ADDR`, e atrás do proxy de uma plataforma
+(e da Cloudflare) esse valor é o IP do proxy, não o do visitante: todo visitante divide a mesma
+chave, e um envio bloqueia o formulário para todos por 10 minutos. A demo pública roda com
+`MODO_DEMONSTRACAO=True`, que responde antes do rate limit (spec 005). Quem publica com o fluxo
+completo atrás de proxy precisa ler o IP real do cabeçalho do proxy e, para esse cabeçalho não ser
+forjado, aceitar só pedidos que vêm do proxy (spec 006, decisão resolvida 3).

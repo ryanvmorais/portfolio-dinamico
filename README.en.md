@@ -45,7 +45,7 @@ For beginners, the biggest challenge is not memorizing Django commands, but unde
 6. **Browser Shielding (CSP):** we set up the *Content Security Policy*. It works like a guard at the site's door telling the browser: "only run scripts that come from this very server". That stops attackers from injecting external code into your front-end.
 7. **Dynamic Skills:** the system gives you full control over the skills progress bar. In the Admin Panel, you set the percentage (0 to 100) for each technology. If you prefer not to show the progress bar, just untick the `Exibir barras de progresso` option ("Show progress bars") in your Profile in the Admin Panel and save.
 8. **Slugs in Categories:** each `CategoriaProjeto` (project category) has a unique *Slug* (e.g. `web`, `api`), a short, readable identifier. The projects section filter uses that value to show and hide the cards without reloading the page.
-9. **Real Production Environment:** the project does not only run on your computer. It was structured with environment variables (`.env`) and server-specific settings (such as `WhiteNoise` for static files), so deploying to any host that supports Python is smooth and safe.
+9. **Real Production Environment:** the project does not only run on your computer. It was structured with environment variables (`.env`) and server-specific settings (such as `WhiteNoise` for static files), so deploying to any host that supports Python is smooth and safe. The `railpack.json` file holds the build and start recipe (dependencies from `uv.lock`, `collectstatic`, `migrate` and gunicorn), and the `DIRETORIO_DADOS` variable moves the database, media and cache to a persistent volume that survives every deploy.
 
 ---
 
