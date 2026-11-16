@@ -3,7 +3,9 @@ View da página única do portfólio.
 
 A ``home`` monta a página com os dados do banco e recebe o formulário de
 contato. O envio passa por honeypot, limite por IP e sanitização antes de
-gravar e notificar por e-mail, e responde em HTML ou em JSON (AJAX).
+gravar e notificar por e-mail, e responde em HTML ou em JSON (AJAX). Com o
+``MODO_DEMONSTRACAO`` ligado, o envio válido para depois da validação: nada é
+gravado nem enviado, e o visitante recebe o aviso de demonstração.
 """
 
 import logging
@@ -38,6 +40,15 @@ MENSAGEM_FALHA_ENVIO = (
 )
 MENSAGEM_DADOS_INVALIDOS = "Confira os campos do formulário e tente novamente."
 
+# Aviso do envio no modo demonstração (spec 005, RF-05). O link vai à parte, em
+# dados (JSON) ou montado pelo base.html, nunca como HTML dentro da frase
+# (ADR-03): o visitante lê "frase + link + ponto final".
+MENSAGEM_DEMONSTRACAO = (
+    "Este formulário faz parte de um projeto educacional e não envia mensagens. "
+    "Quer ver como ele funciona por dentro?"
+)
+TEXTO_LINK_DEMONSTRACAO = "Clone ou baixe o código no GitHub"
+
 logger = logging.getLogger(__name__)
 
 
@@ -45,11 +56,13 @@ def home(request: HttpRequest) -> HttpResponse:
     """
     Renderiza a Home e processa o formulário de contato (GET + POST).
 
-    No POST, aplica em sequência honeypot, validação do formulário, rate
-    limit por IP (reserva atômica via ``cache.add()``) e sanitização (Bleach)
-    antes de salvar a mensagem e disparar o e-mail de notificação. Responde em
-    HTML (navegação comum) ou JSON (requisição AJAX, identificada pelo header
-    ``X-Requested-With``).
+    No POST, aplica em sequência honeypot, validação do formulário, modo
+    demonstração, rate limit por IP (reserva atômica via ``cache.add()``) e
+    sanitização (Bleach) antes de salvar a mensagem e disparar o e-mail de
+    notificação. Com o modo demonstração ligado, o envio válido para antes do
+    rate limit e responde o aviso de demonstração (status ``demo`` no JSON,
+    mensagem ``info`` no HTML). Responde em HTML (navegação comum) ou JSON
+    (requisição AJAX, identificada pelo header ``X-Requested-With``).
 
     Args:
         request (HttpRequest): Requisição GET (exibição) ou POST (envio do
@@ -94,6 +107,27 @@ def home(request: HttpRequest) -> HttpResponse:
         form = MensagemContatoForm(request.POST)
 
         if form.is_valid():
+            # MODO DEMONSTRAÇÃO (spec 005, ADR-02)
+            # Depois da validação, que é parte do que a demo mostra, e antes do
+            # rate limit: sem gravar nem enviar, o dado do visitante não fica
+            # guardado sem finalidade, e nenhuma chave nasce no cache (dá para
+            # testar de novo na hora).
+            if settings.MODO_DEMONSTRACAO:
+                if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                    return JsonResponse(
+                        {
+                            "status": "demo",
+                            "message": MENSAGEM_DEMONSTRACAO,
+                            "link": {
+                                "texto": TEXTO_LINK_DEMONSTRACAO,
+                                "url": settings.URL_REPOSITORIO,
+                            },
+                        }
+                    )
+                # extra_tags="demo" diz ao base.html que o aviso leva o link.
+                messages.info(request, MENSAGEM_DEMONSTRACAO, extra_tags="demo")
+                return redirect("home")
+
             # B. SEGURANÇA: RATE LIMIT (Controle de Fluxo)
             # cache.add() só grava se a chave ainda não existir -- operação
             # atômica que reserva o slot antes de processar o envio. Um
@@ -176,6 +210,10 @@ def home(request: HttpRequest) -> HttpResponse:
         "tech_icons": tech_icons,
         "estatisticas": estatisticas,
         "categorias_projetos": categorias_projetos,
+        # O aviso fixo do formulário e o link do aviso do envio (spec 005).
+        "modo_demonstracao": settings.MODO_DEMONSTRACAO,
+        "url_repositorio": settings.URL_REPOSITORIO,
+        "texto_link_demonstracao": TEXTO_LINK_DEMONSTRACAO,
     }
 
     return render(request, "home.html", context)

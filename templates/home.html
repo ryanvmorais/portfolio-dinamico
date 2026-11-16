@@ -314,6 +314,18 @@
                             <input type="text" name="honeypot" tabindex="-1" autocomplete="off">
                         </div>
 
+                        {# MODO DEMONSTRAÇÃO (spec 005, RF-04): o envio não grava nem manda e-mail; o aviso diz isso antes do primeiro campo. O ícone é decorativo (aria-hidden): o texto já diz tudo #}
+                        {% if modo_demonstracao %}
+                        <p class="contact__aviso">
+                            <svg class="contact__aviso-icone" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="11" x2="12" y2="16"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            <span>Formulário de demonstração: nenhuma mensagem é enviada. <a href="{{ url_repositorio }}" class="contact__aviso-link" target="_blank" rel="noopener">Veja como ele funciona no GitHub</a>.</span>
+                        </p>
+                        {% endif %}
+
                         <div class="form__group">
                             <label for="name" class="form__label">Nome</label>
                             <input type="text" id="name" name="nome" class="form__input" placeholder="Seu nome completo" required autocomplete="name">

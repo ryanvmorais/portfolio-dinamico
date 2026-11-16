@@ -1,6 +1,9 @@
 """
 Testes das correções de interface da auditoria — spec 004, RF-01 a RF-24.
 
+O último grupo cobre a interface do modo demonstração (spec 005): o aviso fixo
+do formulário, o aviso do envio com link e as regras novas do CSS e do JS.
+
 Cobre o HTML renderizado da home (cliente de teste do Django), as respostas da
 view de contato, as páginas de erro e as regras que só existem em arquivo
 estático: o CSS e o JavaScript são lidos como texto e conferidos por regra
@@ -40,9 +43,11 @@ from app_portfolio.models import (
 )
 from app_portfolio.views import (
     MENSAGEM_DADOS_INVALIDOS,
+    MENSAGEM_DEMONSTRACAO,
     MENSAGEM_ENVIADO,
     MENSAGEM_FALHA_ENVIO,
     MENSAGEM_LIMITE_ENVIO,
+    TEXTO_LINK_DEMONSTRACAO,
 )
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -77,6 +82,8 @@ def ambiente_isolado(settings, tmp_path) -> None:
     settings.EMAIL_HOST_USER = "contato-teste@example.com"
     settings.MEDIA_ROOT = str(tmp_path)
     settings.SECURE_SSL_REDIRECT = False
+    # O modo demonstração vem do .env local; os testes do modo o ligam à parte.
+    settings.MODO_DEMONSTRACAO = False
     cache.clear()  # isola o rate limit por IP entre os testes
 
 
@@ -425,6 +432,20 @@ class TestAvisos:
         """No fluxo HTML o aviso vem dentro de uma região role=status."""
         html = client.post(reverse("home"), {**ENVIO_VALIDO, "email": "x"}).content
         assert 'class="notifications" role="status"' in html.decode("utf-8")
+
+    def test_regiao_viva_ja_existe_antes_do_primeiro_aviso(self, client) -> None:
+        """A região vem vazia no HTML: criada junto com o aviso, o NVDA não a anunciava."""
+        html = _home(client)
+        assert re.search(r'class="notifications" role="status">\s*</div>', html)
+
+    def test_xis_do_botao_de_fechar_fica_fora_do_anuncio(self) -> None:
+        """O "×" é aria-hidden; o nome do botão vem do aria-label."""
+        assert "xis.setAttribute('aria-hidden', 'true')" in JS
+
+    def test_botao_de_fechar_fica_no_canto_superior(self) -> None:
+        """No aviso de várias linhas, o × fica no topo, não no meio da caixa."""
+        assert "align-self: flex-start" in _regra(CSS, ".notification__close")
+        assert "fechar.setAttribute('aria-label', 'Fechar aviso')" in JS
 
 
 # ---------------------------------------------------------------------------
@@ -910,3 +931,108 @@ class TestRodapeEIcone:
         assert cor
         chip = _tokens()["color-bg-tertiary"]
         assert _contraste(cor.group(1), chip) >= CONTRASTE_MINIMO
+
+
+# ---------------------------------------------------------------------------
+# Spec 005 — Modo demonstração: aviso fixo, aviso do envio, JS e CSS
+# ---------------------------------------------------------------------------
+
+
+def _sobrepor(cor: str, fundo: str, opacidade: float) -> str:
+    """
+    Compõe uma cor translúcida sobre um fundo opaco (mistura alfa).
+
+    Args:
+        cor (str): Cor de cima, ``#rrggbb``.
+        fundo (str): Cor de baixo, ``#rrggbb``.
+        opacidade (float): Alfa da cor de cima, de 0 a 1.
+
+    Returns:
+        str: A cor que o olho vê, ``#rrggbb``.
+    """
+    canais = [
+        round(
+            int(cor[i : i + 2], 16) * opacidade
+            + int(fundo[i : i + 2], 16) * (1 - opacidade)
+        )
+        for i in (1, 3, 5)
+    ]
+    return "#" + "".join(f"{c:02x}" for c in canais)
+
+
+@pytest.mark.django_db
+class TestModoDemonstracaoNaInterface:
+    def test_aviso_fixo_aparece_com_o_modo_ligado(self, client, settings) -> None:
+        """RF-04: o card do formulário avisa e aponta para o repositório."""
+        settings.MODO_DEMONSTRACAO = True
+        html = _home(client)
+        assert 'class="contact__aviso"' in html
+        assert "Formulário de demonstração: nenhuma mensagem é enviada." in html
+        assert f'href="{settings.URL_REPOSITORIO}"' in html
+        assert "Veja como ele funciona no GitHub" in html
+
+    def test_aviso_fixo_vem_antes_do_primeiro_campo(self, client, settings) -> None:
+        """RF-04: o aviso fica no topo do formulário, antes do campo Nome."""
+        settings.MODO_DEMONSTRACAO = True
+        html = _home(client)
+        assert html.index("contact__aviso") < html.index('class="form__group"')
+
+    def test_aviso_fixo_some_com_o_modo_desligado(self, client) -> None:
+        """RF-04: sem o modo, o aviso não existe no HTML."""
+        assert "contact__aviso" not in _home(client)
+
+    def test_post_comum_mostra_aviso_info_com_link(self, client, settings) -> None:
+        """RF-05: sem JavaScript, o redirect leva o aviso neutro com o link."""
+        settings.MODO_DEMONSTRACAO = True
+        resposta = client.post(reverse("home"), ENVIO_VALIDO, follow=True)
+        html = resposta.content.decode("utf-8")
+        assert "notification notification--info" in html
+        assert "notification--demo" not in html  # level_tag, não tags
+        assert MENSAGEM_DEMONSTRACAO in html
+        assert f'href="{settings.URL_REPOSITORIO}" class="notification__link"' in html
+        assert f">{TEXTO_LINK_DEMONSTRACAO}</a>." in html
+
+    def test_javascript_tem_o_ramo_demo_sem_innerhtml(self) -> None:
+        """RF-05, ADR-03: status demo vira aviso info; o link sai de createElement."""
+        assert "dados.status === 'demo'" in JS
+        assert "mostrarNotificacao(dados.message, 'info', dados.link)" in JS
+        assert "createElement('a')" in JS
+        assert "ancora.textContent = link.texto" in JS
+        # Fora dos comentários, o único innerHTML é o do botão de enviar (texto fixo)
+        codigo = [
+            linha for linha in JS.splitlines() if not linha.strip().startswith("//")
+        ]
+        assert all("botaoEnviar" in linha for linha in codigo if "innerHTML" in linha)
+
+    def test_aviso_com_link_nao_some_sozinho(self) -> None:
+        """RF-05, ADR-05: o temporizador de 6 s pula o aviso com link."""
+        assert "if (tipo !== 'error' && !link)" in JS
+
+    def test_javascript_limpa_o_formulario_no_ramo_demo(self) -> None:
+        """RF-05: depois do aviso de demonstração, os campos ficam vazios."""
+        ramo = JS[JS.index("dados.status === 'demo'") :]
+        assert ramo.index("contactForm.reset()") < ramo.index("} else {")
+
+    def test_css_tem_a_variante_info_e_o_link_sublinhado(self) -> None:
+        """RF-05: variante informativa própria; o link se distingue sem a cor."""
+        assert "var(--color-info)" in _regra(CSS, ".notification--info")
+        assert "text-decoration: underline" in _regra(CSS, ".notification__link")
+
+    def test_aviso_longo_nao_ocupa_a_largura_do_desktop(self) -> None:
+        """O contêiner dos avisos tem teto de 28rem (antes: a tela inteira a 1280 px)."""
+        assert "max-width: min(28rem," in _regra(CSS, ".notifications")
+
+    def test_contraste_do_aviso_do_envio(self) -> None:
+        """RNF-02: texto e link brancos sobre o azul do aviso passam do AA."""
+        tokens = _tokens()
+        razao = _contraste(tokens["color-white"], tokens["color-info"])
+        assert razao >= CONTRASTE_MINIMO
+
+    def test_contraste_do_aviso_fixo(self) -> None:
+        """RNF-02: texto e link do aviso fixo passam do AA sobre o fundo composto."""
+        tokens = _tokens()
+        regra = _regra(CSS, ".contact__aviso")
+        assert "rgba(0, 212, 255, 0.08)" in regra
+        fundo = _sobrepor(tokens["color-accent"], tokens["color-bg-card"], 0.08)
+        assert _contraste(tokens["color-gray-100"], fundo) >= CONTRASTE_MINIMO
+        assert _contraste(tokens["color-accent"], fundo) >= CONTRASTE_MINIMO
