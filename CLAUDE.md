@@ -20,7 +20,7 @@ pelo `DIRETORIO_DADOS`); receita de build da plataforma no `railpack.json`
 # Sincronizar o ambiente (.venv) a partir do uv.lock — dev: runtime + grupo dev (padrão)
 uv sync
 
-# Ambiente de produção: runtime + extras de prod (gunicorn, psycopg2-binary), sem ferramentas de dev
+# Ambiente de produção: runtime + extra de prod (gunicorn), sem ferramentas de dev
 uv sync --no-dev --extra prod
 
 # Gerenciar dependências (atualiza pyproject.toml + uv.lock automaticamente)
