@@ -134,6 +134,7 @@ media/                 # Uploads do Admin (gitignored)
 assets/                # Capa dos READMEs (portfolio-django-home-desktop.png) e imagem de social preview (1280×640; o envio é manual, em Settings)
 README.en.md           # README em inglês (repo público é bilíngue): mesmas seções do README.md, na mesma ordem
 CONTRIBUTING.md        # Guia de contribuição
+SECURITY.md            # Política de segurança: relato privado pelos avisos do GitHub, prazos e escopo
 LICENSE                # MIT
 .github/                # Serviços do GitHub (commitado)
   workflows/ci.yml       # CI: job "qualidade" (ruff/black/mypy/pytest) + job "seguranca" (pip-audit + check --deploy); em push na main e em PR
@@ -141,7 +142,7 @@ LICENSE                # MIT
   workflows/codeql.yml   # CodeQL (code scanning) de Python: PR, main e semanal
   workflows/lighthouse.yml # Lighthouse CI (config e resumo em .github/lighthouse/)
   dependabot.yml         # PRs de atualização de dependências aos domingos, agrupados por ecossistema (uv + github-actions)
-  ISSUE_TEMPLATE/        # Formulário de dúvida, erro ou sugestão (+ config.yml sem issue em branco)
+  ISSUE_TEMPLATE/        # Formulário de dúvida, erro ou sugestão (+ config.yml sem issue em branco e com o atalho para o aviso privado de segurança)
   pull_request_template.md  # Corpo padrão do PR: o quê/por quê e "Closes #N"
 specs/                  # Especificações (spec-driven development); ver specs/README.md
   README.md              # Metodologia, convenções e índice das specs
