@@ -133,8 +133,9 @@ usada aqui — lista vazia de tags permitidas remove todo HTML).
 
 ### django-csp
 
-Adiciona o header `Content-Security-Policy` a toda resposta, configurável via
-`CSP_*` em `settings.py`. É a camada que limita de onde o navegador pode
+Adiciona o header `Content-Security-Policy` a toda resposta, configurável pelo
+dicionário `CONTENT_SECURITY_POLICY` em `settings.py` (a versão 4 ignora os
+antigos `CSP_*`). É a camada que limita de onde o navegador pode
 carregar/executar script, estilo e imagem.
 
 **Por que este:** é a integração padrão de CSP para Django; escrever o header
