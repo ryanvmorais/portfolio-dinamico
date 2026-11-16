@@ -114,7 +114,7 @@ ignore_errors = true
 # importar tipos internos do pytest só para satisfazer o mypy. Os testes são
 # validados pela execução (pytest), não pelo type checker.
 [[tool.mypy.overrides]]
-module = ["app_portfolio.tests", "app_portfolio.test_interface"]
+module = ["app_portfolio.tests", "app_portfolio.test_interface", "app_portfolio.test_descoberta"]
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 disable_error_code = ["attr-defined", "union-attr", "arg-type", "return-value"]

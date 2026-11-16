@@ -5,21 +5,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    {# BLOCO DE TÍTULO: Permite que páginas filhas alterem o título da aba do navegador #}
-    <title>{% block title %}{{ perfil.nome|default:"Seu Nome" }} | Desenvolvedor Full-Stack{% endblock %}</title>
-    
-    {# SEO & ACESSIBILIDADE: Metatags dinâmicas para melhor ranqueamento e leitura de redes sociais #}
-    <meta name="description" content="{{ perfil.bio_curta|default:'Portfólio de Desenvolvedor Full-Stack focado em soluções robustas.' }}">
+    {# METADADOS: decididos pela montar_metadados (app_portfolio/descoberta.py, spec 007); o template só renderiza. #}
+    {# Com o modo demonstração, título, description e imagem dizem que é a demo do template; sem ele, vêm do Perfil. #}
+    <title>{% block title %}{{ metadados.titulo }}{% endblock %}</title>
+    <meta name="description" content="{{ metadados.descricao }}">
+    {% if metadados.url_canonica %}
+    {# Endereço canônico só de URL_PUBLICA, nunca do Host do pedido: sem ela, o buscador fica sem canonical. #}
+    <link rel="canonical" href="{{ metadados.url_canonica }}">
+    {% endif %}
     <meta name="theme-color" content="#0a1628">
 
     {# OPEN GRAPH: Define como o site aparece ao ser compartilhado no LinkedIn ou WhatsApp #}
     <meta property="og:type" content="website">
-    <meta property="og:title" content="{{ perfil.nome|default:'Portfólio' }} | Desenvolvedor Full-Stack">
-    <meta property="og:description" content="{{ perfil.bio_curta }}">
-    {% if perfil.foto %}
-    {# As redes sociais exigem endereço absoluto na og:image; foto.url sozinha é relativa (spec 004, RF-20) #}
-    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ perfil.foto.url }}">
+    <meta property="og:title" content="{{ metadados.og_titulo }}">
+    <meta property="og:description" content="{{ metadados.og_descricao }}">
+    {% if metadados.url_canonica %}
+    <meta property="og:url" content="{{ metadados.url_canonica }}">
     {% endif %}
+    {% if metadados.imagem %}
+    {# As redes sociais exigem endereço absoluto na og:image (spec 004, RF-20) #}
+    <meta property="og:image" content="{{ metadados.imagem }}">
+    {% if metadados.imagem_largura %}
+    <meta property="og:image:width" content="{{ metadados.imagem_largura }}">
+    <meta property="og:image:height" content="{{ metadados.imagem_altura }}">
+    {% endif %}
+    {% if metadados.imagem_alt %}
+    <meta property="og:image:alt" content="{{ metadados.imagem_alt }}">
+    {% endif %}
+    {% endif %}
+
+    {# TWITTER/X: sem twitter:title e afins, o X usa os og:* acima; summary_large_image só com imagem. #}
+    <meta name="twitter:card" content="{{ metadados.twitter_card }}">
 
     {# FONTES: Inter e JetBrains Mono vêm de static/fonts/, sem requisição ao Google (spec 004, RF-17). #}
     {# O preload baixa a Inter em paralelo ao CSS, que é quem a declara. #}
@@ -28,6 +44,8 @@
 
     {# ARQUIVOS ESTÁTICOS: O Django gerencia o versionamento de CSS e imagens via {% static %} #}
     <link rel="icon" type="image/webp" href="{% static 'icons/favicon.webp' %}">
+    {# Ícone ao salvar na tela inicial do celular: PNG opaco de 180 px, reduzido do favicon (spec 007, ADR-06). #}
+    <link rel="apple-touch-icon" href="{% static 'icons/apple-touch-icon.png' %}">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
