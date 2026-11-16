@@ -22,8 +22,10 @@ numa cópia avulsa do módulo, com o ambiente controlado (`_carregar_settings`).
 
 import importlib.util
 import io
+import json
 from pathlib import Path
 from types import ModuleType
+from typing import TYPE_CHECKING, Any
 from unittest.mock import patch
 
 import dotenv
@@ -31,6 +33,7 @@ import pytest
 from django.core import mail
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client
 from django.urls import reverse
 from PIL import Image
 
@@ -41,6 +44,10 @@ from app_portfolio.views import (
     MENSAGEM_ENVIADO,
     TEXTO_LINK_DEMONSTRACAO,
 )
+
+if TYPE_CHECKING:
+    # Só existe nos stubs: é a resposta do test client, com ``templates``.
+    from django.test.client import _MonkeyPatchedWSGIResponse
 
 # ---------------------------------------------------------------------------
 # Fixtures de ambiente
@@ -147,7 +154,14 @@ def _carregar_settings(monkeypatch: pytest.MonkeyPatch, **ambiente: str) -> Modu
         ModuleType: O módulo carregado, com as configurações calculadas.
     """
     monkeypatch.setattr(dotenv, "load_dotenv", lambda *args, **kwargs: False)
-    for nome in ("DEBUG", "MODO_DEMONSTRACAO", "EMAIL_USER", "EMAIL_PASS"):
+    for nome in (
+        "DEBUG",
+        "MODO_DEMONSTRACAO",
+        "EMAIL_USER",
+        "EMAIL_PASS",
+        "ALLOWED_HOSTS",
+        "DIRETORIO_DADOS",
+    ):
         monkeypatch.delenv(nome, raising=False)
     monkeypatch.setenv("SECRET_KEY", "chave-de-teste")
     for nome, valor in ambiente.items():
@@ -237,6 +251,148 @@ class TestConfiguracaoModoDemonstracao:
         modulo = _carregar_settings(monkeypatch, DEBUG="False")
         assert modulo.EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
         assert modulo.EMAIL_HOST_USER is None
+
+
+# ---------------------------------------------------------------------------
+# Configuração de produção: hosts, dados, proxy e log (spec 006)
+# ---------------------------------------------------------------------------
+
+
+class TestConfiguracaoProducao:
+    def test_allowed_hosts_sem_espacos_nem_item_vazio(self, monkeypatch) -> None:
+        """Espaços e a vírgula no fim saem da lista (RF-04)."""
+        modulo = _carregar_settings(
+            monkeypatch,
+            DEBUG="False",
+            ALLOWED_HOSTS="exemplo.com, www.exemplo.com,",
+        )
+        assert modulo.ALLOWED_HOSTS == ["exemplo.com", "www.exemplo.com"]
+
+    @pytest.mark.parametrize("ambiente", [{}, {"ALLOWED_HOSTS": ""}])
+    def test_allowed_hosts_vazio_recusa_todo_host(
+        self, monkeypatch, ambiente: dict[str, str]
+    ) -> None:
+        """Sem a variável, ou com ela vazia, a lista fica vazia: falha fechada."""
+        modulo = _carregar_settings(monkeypatch, DEBUG="False", **ambiente)
+        assert modulo.ALLOWED_HOSTS == []
+
+    def test_allowed_hosts_aceita_tudo_em_desenvolvimento(self, monkeypatch) -> None:
+        """Com DEBUG, qualquer host passa, como antes."""
+        modulo = _carregar_settings(monkeypatch, DEBUG="True")
+        assert modulo.ALLOWED_HOSTS == ["*"]
+
+    def test_dados_na_raiz_sem_diretorio_dados(self, monkeypatch) -> None:
+        """Sem DIRETORIO_DADOS, banco, mídia e cache ficam onde sempre ficaram."""
+        modulo = _carregar_settings(monkeypatch)
+        raiz = modulo.BASE_DIR
+        assert modulo.DATABASES["default"]["NAME"] == raiz / "db.sqlite3"
+        assert modulo.MEDIA_ROOT == raiz / "media"
+        assert modulo.CACHES["default"]["LOCATION"] == raiz / "django_cache"
+
+    def test_dados_no_caminho_absoluto(self, monkeypatch, tmp_path: Path) -> None:
+        """Um caminho absoluto (o volume da plataforma) recebe os três."""
+        modulo = _carregar_settings(monkeypatch, DIRETORIO_DADOS=str(tmp_path))
+        assert modulo.DATABASES["default"]["NAME"] == tmp_path / "db.sqlite3"
+        assert modulo.MEDIA_ROOT == tmp_path / "media"
+        assert modulo.CACHES["default"]["LOCATION"] == tmp_path / "django_cache"
+
+    def test_dados_no_caminho_relativo(self, monkeypatch) -> None:
+        """Um caminho relativo parte da raiz do repositório."""
+        modulo = _carregar_settings(monkeypatch, DIRETORIO_DADOS="dados")
+        pasta = modulo.BASE_DIR / "dados"
+        assert modulo.DATABASES["default"]["NAME"] == pasta / "db.sqlite3"
+        assert modulo.MEDIA_ROOT == pasta / "media"
+        assert modulo.CACHES["default"]["LOCATION"] == pasta / "django_cache"
+
+    def test_proxy_e_log_em_producao(self, monkeypatch) -> None:
+        """Com DEBUG=False: cabeçalho do proxy lido e erros na saída de erro (RF-02, RF-07)."""
+        modulo = _carregar_settings(monkeypatch, DEBUG="False")
+        assert modulo.SECURE_PROXY_SSL_HEADER == ("HTTP_X_FORWARDED_PROTO", "https")
+        log = modulo.LOGGING
+        assert log["disable_existing_loggers"] is False
+        assert log["handlers"]["console"]["class"] == "logging.StreamHandler"
+        assert log["root"] == {"handlers": ["console"], "level": "WARNING"}
+        # O 404 sai como WARNING no django.request; ERROR deixa passar só o 500.
+        assert log["loggers"]["django.request"]["level"] == "ERROR"
+
+    def test_sem_proxy_nem_log_em_desenvolvimento(self, monkeypatch) -> None:
+        """Com DEBUG=True, nada muda no runserver."""
+        modulo = _carregar_settings(monkeypatch, DEBUG="True")
+        assert not hasattr(modulo, "SECURE_PROXY_SSL_HEADER")
+        assert not hasattr(modulo, "LOGGING")
+
+
+# Domínio público da demo nos testes de proxy. O navegador sempre manda o Host, e
+# o proxy o preserva; sem ele, o test client monta "testserver:80", que não bate
+# com a origem https://testserver.
+_HOST_PUBLICO = "demo.example.com"
+
+
+@pytest.mark.django_db
+class TestHttpsAtrasDoProxy:
+    @pytest.fixture(autouse=True)
+    def producao_atras_do_proxy(self, settings) -> None:
+        """Liga o redirect, os cookies seguros e a leitura do cabeçalho do proxy."""
+        settings.ALLOWED_HOSTS = [_HOST_PUBLICO]
+        settings.SECURE_SSL_REDIRECT = True
+        settings.SESSION_COOKIE_SECURE = True
+        settings.CSRF_COOKIE_SECURE = True
+        settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+    def test_https_pelo_proxy_responde_sem_redirect(self, client) -> None:
+        """Com X-Forwarded-Proto: https, a página abre e o cookie CSRF é Secure (RF-02)."""
+        response = client.get(
+            reverse("home"), HTTP_HOST=_HOST_PUBLICO, HTTP_X_FORWARDED_PROTO="https"
+        )
+        assert response.status_code == 200
+        assert response.cookies["csrftoken"]["secure"] is True
+
+    @pytest.mark.parametrize("cabecalho", [{}, {"HTTP_X_FORWARDED_PROTO": "http"}])
+    def test_http_redireciona_para_https(
+        self, client, cabecalho: dict[str, str]
+    ) -> None:
+        """Sem o cabeçalho, ou com http, segue o 301 para HTTPS."""
+        response = client.get(reverse("home"), HTTP_HOST=_HOST_PUBLICO, **cabecalho)
+        assert response.status_code == 301
+        assert response["Location"] == f"https://{_HOST_PUBLICO}/"
+
+    def _post_com_origem(self, origem: str) -> "_MonkeyPatchedWSGIResponse":
+        """
+        Envia o formulário pelo proxy, com o token CSRF do cookie e a origem dada.
+
+        O formulário vai inválido: a view responde 400 sem gravar nem enviar.
+
+        Args:
+            origem (str): Valor do cabeçalho ``Origin``.
+
+        Returns:
+            _MonkeyPatchedWSGIResponse: A resposta do POST, com os templates usados.
+        """
+        cliente = Client(enforce_csrf_checks=True)
+        cliente.get(
+            reverse("home"), HTTP_HOST=_HOST_PUBLICO, HTTP_X_FORWARDED_PROTO="https"
+        )
+        token = cliente.cookies["csrftoken"].value
+        return cliente.post(
+            reverse("home"),
+            {"csrfmiddlewaretoken": token, "honeypot": ""},
+            HTTP_HOST=_HOST_PUBLICO,
+            HTTP_X_FORWARDED_PROTO="https",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+            HTTP_ORIGIN=origem,
+        )
+
+    def test_post_com_origem_do_site_passa_pelo_csrf(self) -> None:
+        """Origin igual a https://<host> passa sem CSRF_TRUSTED_ORIGINS (RF-03, ADR-04)."""
+        response = self._post_com_origem(f"https://{_HOST_PUBLICO}")
+        assert response.status_code == 400
+        assert MensagemContato.objects.count() == 0
+
+    def test_post_com_origem_de_fora_da_403(self) -> None:
+        """Origin de outro site: 403, com a página de falha de CSRF."""
+        response = self._post_com_origem("https://outro-site.example")
+        assert response.status_code == 403
+        assert "403_csrf.html" in [t.name for t in response.templates]
 
 
 # ---------------------------------------------------------------------------
@@ -484,6 +640,87 @@ class TestModoDemonstracao:
         assert response.json() == {"status": "success", "message": MENSAGEM_ENVIADO}
         assert MensagemContato.objects.count() == 1
         assert len(mail.outbox) == 1
+
+
+# ---------------------------------------------------------------------------
+# Mídia servida com DEBUG=False (spec 006)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+class TestServirMidia:
+    @pytest.fixture(autouse=True)
+    def pasta_de_midia(self, settings, tmp_path: Path) -> Path:
+        """
+        Põe uma imagem e uma subpasta no ``MEDIA_ROOT`` temporário.
+
+        Args:
+            settings: Fixture do pytest-django.
+            tmp_path (Path): Pasta temporária do teste.
+
+        Returns:
+            Path: A pasta de mídia, com ``foto.webp`` e ``projetos/``.
+        """
+        midia = tmp_path / "midia"
+        (midia / "projetos").mkdir(parents=True)
+        (midia / "foto.webp").write_bytes(b"RIFF0000WEBP")
+        settings.MEDIA_ROOT = midia
+        return midia
+
+    def test_arquivo_existente(self, client) -> None:
+        """200 com o tipo do arquivo, nosniff e cache de um dia (RF-06)."""
+        response = client.get("/media/foto.webp")
+        assert response.status_code == 200
+        assert response["Content-Type"] == "image/webp"
+        assert response["X-Content-Type-Options"] == "nosniff"
+        assert "max-age=86400" in response["Cache-Control"]
+        assert "public" in response["Cache-Control"]
+        assert b"".join(response.streaming_content) == b"RIFF0000WEBP"
+
+    @pytest.mark.parametrize(
+        "caminho",
+        ["/media/nao-existe.webp", "/media/projetos/", "/media/../settings.py"],
+    )
+    def test_inexistente_pasta_e_fuga_dao_404(self, client, caminho: str) -> None:
+        """Arquivo que falta, pasta e ../ respondem 404 com a página de erro."""
+        response = client.get(caminho)
+        assert response.status_code == 404
+        assert "404.html" in [t.name for t in response.templates]
+
+    def test_post_da_405(self, client) -> None:
+        """Só GET e HEAD: o resto recebe 405."""
+        assert client.post("/media/foto.webp").status_code == 405
+
+
+# ---------------------------------------------------------------------------
+# Receita de build da plataforma (spec 006)
+# ---------------------------------------------------------------------------
+
+
+class TestReceitaDeBuild:
+    @pytest.fixture
+    def receita(self) -> dict[str, Any]:
+        """
+        Lê o ``railpack.json`` da raiz do repositório.
+
+        Returns:
+            dict[str, Any]: O arquivo como JSON.
+        """
+        caminho = Path(__file__).resolve().parent.parent / "railpack.json"
+        conteudo: dict[str, Any] = json.loads(caminho.read_text(encoding="utf-8"))
+        return conteudo
+
+    def test_build_instala_pelo_lock_e_coleta_estaticos(self, receita) -> None:
+        """O build confere o lock, instala o extra prod e roda o collectstatic (RF-01)."""
+        comandos = receita["steps"]["build"]["commands"]
+        assert comandos[0] == "uv sync --locked --no-dev --extra prod"
+        assert any("collectstatic --noinput" in comando for comando in comandos)
+
+    def test_start_migra_antes_do_gunicorn_na_porta(self, receita) -> None:
+        """O migrate roda antes do gunicorn, ligado por &&, na porta de PORT."""
+        start = receita["deploy"]["startCommand"]
+        assert start.index("migrate --noinput") < start.index("&& gunicorn")
+        assert "--bind 0.0.0.0:${PORT:-8000}" in start
 
 
 # ---------------------------------------------------------------------------
