@@ -4,8 +4,8 @@
 #   qualidade  ruff -> black --check -> mypy -> pytest  (matriz: Python 3.12 e 3.14)
 #   seguranca  pip-audit (CVEs) + manage.py check --deploy (postura de produção)
 #
-# O piso do projeto é o 3.12 (a versão do servidor no PythonAnywhere, que lista
-# Python só até o 3.13); o 3.14 é a versão estável mais nova. A matriz testa as
+# O piso do projeto é o 3.12 (o mínimo do Django 6.1); o 3.14 é a versão
+# estável mais nova. A matriz testa as
 # duas pontas, para o piso declarado no pyproject.toml não ser só uma promessa.
 #
 # CodeQL (code scanning) roda no workflow próprio codeql.yml, porque o repo é

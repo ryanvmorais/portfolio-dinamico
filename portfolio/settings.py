@@ -46,7 +46,7 @@ ADMIN_URL_PATH = os.getenv("ADMIN_URL", "admin/")
 
 # Domínios aceitos no cabeçalho Host (defesa contra Host header poisoning); em
 # desenvolvimento aceita qualquer um.
-# No .env use: ALLOWED_HOSTS=djangofullstackportfolio.pythonanywhere.com
+# No .env use: ALLOWED_HOSTS=seu-dominio.com.br,www.seu-dominio.com.br
 ALLOWED_HOSTS = ["*"] if DEBUG else os.getenv("ALLOWED_HOSTS", "").split(",")
 
 INSTALLED_APPS = [
@@ -119,7 +119,7 @@ STATIC_URL = "static/"
 # Fonte dos estáticos do projeto (fora dos apps).
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
-# Destino do collectstatic; é desta pasta que o PythonAnywhere serve o CSS/JS.
+# Destino do collectstatic; é desta pasta que o WhiteNoise serve o CSS/JS.
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # Uploads feitos pelo admin (fotos de projeto e de perfil, currículo).
@@ -184,7 +184,7 @@ EMAIL_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 # extra "prod"), cada worker teria seu próprio contador e o limite por IP
 # seria multiplicado pelo número de workers (achado da auditoria de
 # segurança). FileBasedCache é compartilhado entre processos sem exigir
-# infra extra (Redis/Memcached) no plano gratuito do PythonAnywhere.
+# infra extra (Redis/Memcached).
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",

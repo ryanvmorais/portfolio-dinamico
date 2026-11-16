@@ -26,15 +26,13 @@ Django Admin (escrita)  ──►  SQLite (db.sqlite3)  ──►  view home()  
 
 ### Python 3.12+
 
-O runtime de todo o backend. O piso é o 3.12, que é também a versão do servidor
-no PythonAnywhere (a plataforma lista Python só até o 3.13) e o mínimo que o
-Django 6.1 aceita. O CI roda o projeto no 3.12 e no 3.14 (a versão estável mais
+O runtime de todo o backend. O piso é o 3.12, o mínimo que o Django 6.1
+aceita. O CI roda o projeto no 3.12 e no 3.14 (a versão estável mais
 atual), e o `ruff`, o `black` e o `mypy` apontam para o 3.12, para o próprio lint
 barrar sintaxe que o piso não tem.
 
-**Por que esta:** o piso é o menor entre o mínimo do framework e o máximo da
-plataforma onde o site roda, e é testado de verdade no CI. Um piso mais alto não
-instalaria no servidor; um mais baixo não instalaria o Django.
+**Por que esta:** o piso acompanha o mínimo do framework e é testado de verdade
+no CI. Um piso mais baixo não instalaria o Django.
 
 **Estudar:** sintaxe moderna de type hints (`X | None`, `list[str]`), f-strings,
 o modelo de objetos do Django (models, querysets, managers).
@@ -106,7 +104,7 @@ Serve os arquivos estáticos (CSS, JS, ícones) diretamente pelo processo
 Django, com compressão (gzip) no `collectstatic` — sem precisar de um
 Nginx ou CDN dedicado.
 
-**Por que este:** o deploy é um único processo no PythonAnywhere; adicionar
+**Por que este:** o deploy é um único processo WSGI; adicionar
 um servidor de estáticos separado seria complexidade desnecessária nessa
 escala.
 
