@@ -170,6 +170,7 @@ def _carregar_settings(monkeypatch: pytest.MonkeyPatch, **ambiente: str) -> Modu
         "EMAIL_PASS",
         "ALLOWED_HOSTS",
         "DIRETORIO_DADOS",
+        "URL_PUBLICA",
     ):
         monkeypatch.delenv(nome, raising=False)
     monkeypatch.setenv("SECRET_KEY", "chave-de-teste")

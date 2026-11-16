@@ -82,7 +82,8 @@ serve de template documentado com todos os placeholders.
 | `ALLOWED_HOSTS` | `*` (dev) | Lista de hosts permitidos em produção, separados por vírgula; vazio em produção rejeita todo host (falha fechada) |
 | `EMAIL_USER` | — | Conta Gmail que envia (e recebe) as notificações do formulário de contato; vazio com `DEBUG=True` imprime o e-mail no terminal (backend de console) |
 | `EMAIL_PASS` | — | **Senha de app** do Gmail (não a senha normal da conta) |
-| `MODO_DEMONSTRACAO` | `False` | `True` numa demo pública: o formulário valida, mas não grava nem envia, e avisa o visitante (spec 005) |
+| `MODO_DEMONSTRACAO` | `False` | `True` numa demo pública: o formulário valida, mas não grava nem envia, e avisa o visitante (spec 005); título, description e cartão viram os da demo do template, e sai o `security.txt` (spec 007) |
+| `URL_PUBLICA` | — | Endereço público, só esquema e domínio (ex.: `https://seu-dominio.com.br`): canonical, `og:url`, `sitemap.xml` e `Sitemap:` do `robots.txt`; vazio, nada disso. Valor inválido impede a subida (spec 007) |
 | `DIRETORIO_DADOS` | raiz do repositório | Pasta de `db.sqlite3`, `media/` e `django_cache/`; num contêiner, o caminho do volume persistente (ex.: `/data`). Relativo parte da raiz (spec 006) |
 
 ## Arquitetura
@@ -99,10 +100,12 @@ app_portfolio/        # A única aplicação
   utils.py             # converter_para_webp() — conversor universal de imagem
   middleware.py        # PermissionsPolicyMiddleware: cabeçalho Permissions-Policy (o Django não tem configuração para ele)
   cache.py             # CacheArquivoAtomico: FileBasedCache com add() atômico (trava de arquivo), usado pelo rate limit
-  urls.py              # URLs da aplicação (só a home)
+  urls.py              # URLs da aplicação: a home, robots.txt, sitemap.xml e .well-known/security.txt
+  descoberta.py        # Metadados do <head> (montar_metadados) e as views de robots.txt, sitemap.xml e security.txt (spec 007)
   tests.py             # Suíte de testes (pytest): modelos, view e segurança do contato, ver "Qualidade" abaixo
   test_interface.py    # Testes das correções da auditoria de interface (spec 004): HTML, view, páginas de erro, CSS e JS lidos como texto
   test_semear_dados_demo.py # Testes do comando de demonstração e do Lighthouse CI
+  test_descoberta.py   # URL_PUBLICA, metadados do <head>, imagens do cartão e os arquivos de descoberta, inclusive o prazo do Expires
   test_readme_en.py    # Compara o README.en.md com o README.md (títulos, tabela, selos, blocos, links)
   test_comentarios_templates.py # Guarda a regra dos comentários dos templates ({# #}, nunca <!-- -->)
   test_impessoalidade.py # Falha se o nome do mantenedor aparecer em arquivo versionado ou se este arquivo citar skill pessoal
@@ -122,7 +125,8 @@ static/
   css/fontes.css       # @font-face de Inter e JetBrains Mono (hospedadas em static/fonts/)
   fonts/               # woff2 variáveis (latin) + licenças OFL
   js/main.js           # JavaScript vanilla (menu mobile com inert, filtros, avisos, formulário AJAX)
-  icons/                # SVGs de UI, tecnologias e redes sociais; default_perfil/default_projeto.webp (reserva) e favicon.webp
+  icons/                # SVGs de UI, tecnologias e redes sociais; default_perfil/default_projeto.webp (reserva), favicon.webp e apple-touch-icon.png (180 px, reduzido do favicon)
+  img/portfolio-django-divulgacao.jpg # Cartão da demo nas redes sociais e social preview do repositório (1280×640; o envio ao GitHub é manual, em Settings)
 railpack.json          # Receita de build e start da Railway (uv sync --locked, collectstatic; migrate && gunicorn)
 pyproject.toml         # Gerenciado com uv. [project]=runtime, [dependency-groups].dev, [project.optional-dependencies].prod + config das ferramentas (ruff, black, mypy, pytest)
 uv.lock                # Lock único gerado por `uv lock` — todo o grafo pinado (NUNCA editar à mão)
@@ -131,7 +135,7 @@ uv.lock                # Lock único gerado por `uv lock` — todo o grafo pinad
 .env.example           # Template documentado de variáveis de ambiente (commitado no repo)
 django_cache/          # Cache em arquivo do rate limit (gitignored)
 media/                 # Uploads do Admin (gitignored)
-assets/                # Capa dos READMEs (portfolio-django-home-desktop.png) e imagem de social preview (1280×640; o envio é manual, em Settings)
+assets/                # Capa dos READMEs (portfolio-django-home-desktop.png)
 README.en.md           # README em inglês (repo público é bilíngue): mesmas seções do README.md, na mesma ordem
 CONTRIBUTING.md        # Guia de contribuição
 SECURITY.md            # Política de segurança: relato privado pelos avisos do GitHub, prazos e escopo

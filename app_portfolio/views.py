@@ -33,6 +33,7 @@ from django.views.decorators.cache import cache_control
 from django.views.decorators.http import require_safe
 from django.views.static import serve
 
+from .descoberta import montar_metadados
 from .forms import MensagemContatoForm
 from .models import (
     CategoriaHabilidade,
@@ -236,6 +237,8 @@ def home(request: HttpRequest) -> HttpResponse:
         "modo_demonstracao": settings.MODO_DEMONSTRACAO,
         "url_repositorio": settings.URL_REPOSITORIO,
         "texto_link_demonstracao": TEXTO_LINK_DEMONSTRACAO,
+        # Título, description, canonical e cartão das redes sociais (spec 007).
+        "metadados": montar_metadados(request, perfil),
     }
 
     return render(request, "home.html", context)

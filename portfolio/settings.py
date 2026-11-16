@@ -3,7 +3,8 @@ Configurações do projeto Django.
 
 Um arquivo só para desenvolvimento e produção: o que muda entre os dois vem
 do ``.env`` (``SECRET_KEY``, ``DEBUG``, ``ALLOWED_HOSTS``, ``ADMIN_URL``,
-``MODO_DEMONSTRACAO``, ``DIRETORIO_DADOS`` e as credenciais de e-mail). Com
+``MODO_DEMONSTRACAO``, ``URL_PUBLICA``, ``DIRETORIO_DADOS`` e as credenciais de
+e-mail). Com
 ``DEBUG=False`` liga o HTTPS obrigatório (atrás do proxy da plataforma), os
 cookies seguros, o HSTS e o log de erros na saída de erro do processo.
 """
@@ -11,6 +12,7 @@ cookies seguros, o HSTS e o log de erros na saída de erro do processo.
 import os
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from csp.constants import NONE, SELF, UNSAFE_INLINE
 from dotenv import load_dotenv
@@ -53,11 +55,57 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 # os campos mas não grava a mensagem nem envia o e-mail, e o visitante vê um
 # aviso de que o formulário é de demonstração. Padrão False: quem clona estuda
 # o fluxo completo; só a demo pública liga, para não guardar dado de visitante.
+# Ligado, também identifica a demo do template para buscadores e redes sociais
+# (título, description e imagem do cartão) e publica o security.txt com o
+# contato do repositório (spec 007).
 MODO_DEMONSTRACAO = os.getenv("MODO_DEMONSTRACAO", "False").lower() == "true"
 
 # Repositório do código, para onde apontam os avisos do modo demonstração.
 # Num fork, troque pelo endereço do seu repositório.
 URL_REPOSITORIO = "https://github.com/ryanvmorais/portfolio-dinamico"
+
+
+def _ler_url_publica(valor: str) -> str:
+    """
+    Valida o endereço público do site e o devolve sem a barra final.
+
+    O endereço vira canonical, ``og:url`` e sitemap, que o buscador guarda por
+    semanas: um valor sem esquema ou com caminho publicaria endereços errados, e
+    o erro só apareceria no relatório de indexação. Por isso a subida falha na
+    hora, como a falta de ``SECRET_KEY`` (spec 007, ADR-04).
+
+    Args:
+        valor (str): Conteúdo de ``URL_PUBLICA`` no ambiente.
+
+    Returns:
+        str: O endereço sem a barra final, ou ``""`` se a variável estiver vazia.
+
+    Raises:
+        ValueError: Se o valor não for ``http(s)://domínio``, com ou sem a barra
+            final, sem caminho, query nem fragmento.
+    """
+    valor = valor.strip()
+    if not valor:
+        return ""
+    partes = urlsplit(valor)
+    if (
+        partes.scheme not in ("http", "https")
+        or not partes.netloc
+        or partes.path not in ("", "/")
+        or partes.query
+        or partes.fragment
+    ):
+        raise ValueError(
+            "ERRO: URL_PUBLICA deve ser só o esquema e o domínio, como "
+            f"https://seu-dominio.com.br; valor recebido: {valor!r}"
+        )
+    return valor.rstrip("/")
+
+
+# Endereço público do site (spec 007). Única fonte do endereço absoluto do
+# canonical, do og:url, do sitemap e do security.txt: nunca o Host do pedido,
+# que o cliente escolhe. Vazia, o site sobe sem canonical nem sitemap.
+URL_PUBLICA = _ler_url_publica(os.getenv("URL_PUBLICA", ""))
 
 # Caminho do painel administrativo. Em produção, troque no .env: /admin/ é o
 # primeiro caminho que robôs de força bruta testam.
