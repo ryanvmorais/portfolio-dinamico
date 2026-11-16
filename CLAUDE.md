@@ -102,6 +102,8 @@ app_portfolio/        # A única aplicação
   test_interface.py    # Testes das correções da auditoria de interface (spec 004): HTML, view, páginas de erro, CSS e JS lidos como texto
   test_semear_dados_demo.py # Testes do comando de demonstração e do Lighthouse CI
   test_readme_en.py    # Compara o README.en.md com o README.md (títulos, tabela, selos, blocos, links)
+  test_comentarios_templates.py # Guarda a regra dos comentários dos templates ({# #}, nunca <!-- -->)
+  test_impessoalidade.py # Falha se o nome do mantenedor aparecer em arquivo versionado
   management/commands/semear_dados_demo.py # Dados fictícios (Lighthouse CI e dev)
   migrations/
 templates/            # Templates HTML na raiz do projeto (não dentro de app_portfolio)
@@ -299,7 +301,8 @@ Os testes ficam em arquivos ao lado do código, não numa pasta `tests/` — uma
 `tests.py` (modelos, view e segurança do contato),
 `test_interface.py` (as correções da spec 004, um grupo por requisito; lê o CSS e
 o JavaScript como texto, com fixtures de isolamento próprias e um override no mypy),
-`test_semear_dados_demo.py`, `test_readme_en.py` e `test_impessoalidade.py` (falha se o
+`test_semear_dados_demo.py`, `test_readme_en.py`, `test_comentarios_templates.py` (guarda a
+regra dos comentários dos templates) e `test_impessoalidade.py` (falha se o
 nome do mantenedor aparecer em arquivo versionado ou se este arquivo citar skill pessoal).
 
 > ⚠️ **Não regredir (README bilíngue):** `README.md` (português) e `README.en.md`

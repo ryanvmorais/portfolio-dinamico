@@ -14,7 +14,7 @@ Este repositório não é apenas um site pessoal, mas um laboratório de boas pr
 1.  Faça o **Fork** do projeto.
 2.  Crie uma branch para sua modificação: `git checkout -b feature/melhoria-tecnica`.
 3.  Realize seus commits seguindo o padrão **Conventional Commits** (ex: `feat:`, `fix:`, `security:`).
-4. Envie suas alterações para o seu fork: `git push origin feature/nome-da-melhoria`.
+4.  Envie suas alterações para o seu fork: `git push origin feature/melhoria-tecnica`.
 5.  Rode o portão de qualidade completo (ver [README → Qualidade e testes](README.md#qualidade-e-testes)) e garanta que está tudo verde.
 6.  Abra um **Pull Request** detalhando tecnicamente o que foi alterado e o impacto da mudança.
 
