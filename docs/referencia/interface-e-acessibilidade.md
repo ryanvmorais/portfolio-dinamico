@@ -18,7 +18,10 @@ regras que ficaram, e que um ajuste "inofensivo" desfaria:
   fundo). `--color-gray-500` é só cor de borda, nunca de texto.
 - **Avisos:** um componente só, `.notification`, para o `main.js` (AJAX) e para as
   `messages` do `base.html` (sem JavaScript). O de erro leva `role="alert"` e fica
-  até ser fechado.
+  até ser fechado; o de link (modo demonstração, spec 005) também. A região
+  `.notifications` (`role="status"`) sai **sempre** no `base.html`, vazia sem
+  mensagem: criada junto com o aviso, o NVDA não a anunciava. O "×" do botão de
+  fechar é `aria-hidden` e fica no canto superior direito.
 - **Movimento reduzido:** o bloco `prefers-reduced-motion` é o **último** do
   `styles.css` e a rolagem do JS passa por `comportamentoDeRolagem()`. Nada de
   `behavior: 'smooth'` solto nem de `transition: all`.

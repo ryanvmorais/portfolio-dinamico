@@ -87,6 +87,7 @@ As ferramentas de qualidade (Ruff, Black, Mypy e Pytest) estão em [Qualidade e 
     # Windows (PowerShell)
     Copy-Item .env.example .env
     ```
+    Sem conta Gmail? Com `DEBUG=True` e `EMAIL_USER` vazio, o e-mail do formulário de contato aparece no terminal do `runserver` em vez de ser enviado. Para publicar uma demonstração, `MODO_DEMONSTRACAO=True` faz o formulário validar os campos sem gravar nem enviar nada, e avisa o visitante.
 3.  **Instale as dependências:**
     ```bash
     uv sync
