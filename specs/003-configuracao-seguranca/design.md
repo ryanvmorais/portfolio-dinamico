@@ -80,12 +80,19 @@ Variáveis de ambiente consumidas por `settings.py` (documentadas em
 ### ADR-03 — Ofuscação da URL do Admin como defesa em profundidade
 
 - **Decisão:** `ADMIN_URL_PATH` via `.env`, sem valor fixo `admin/` em
-  produção.
+  produção. Desde 2026-11-16, o valor é normalizado:
+  `(os.getenv("ADMIN_URL", "").strip().strip("/") or "admin") + "/"`.
+- **Alternativas:** (a) ler o valor cru, como até 2026-11-16; (b) recusar na
+  subida o valor sem a barra no fim.
 - **Porquê:** reduz o volume de tentativas de brute-force automatizado (bots
-  que varrem `/admin/` por padrão), sem substituir autenticação real.
+  que varrem `/admin/` por padrão), sem substituir autenticação real. Com (a),
+  a linha vazia montava o painel na raiz e `painel` sem barra gerava
+  `painellogin/`; (b) derruba um deploy por um detalhe de conserto óbvio.
+  Normalizar aceita as formas comuns e não deixa caminho quebrado.
 - **Trade-off:** segurança por obscuridade — não impede um atacante
   direcionado que descubra a URL por outro meio (linkado, vazado em log,
-  etc.). Complementar, não substituto, de uma senha forte.
+  etc.). Complementar, não substituto, de uma senha forte. Um caminho com
+  barra no meio (`a/b/`) passa como está.
 
 ### ADR-04 — Sem 2FA no Admin
 
@@ -111,3 +118,7 @@ manual (`manage.py check --deploy` + auditoria de segurança de 2026-09-11:
 `pip-audit`, `semgrep`, `detect-secrets`, revisão OWASP). `disable_ssl_redirect`
 (spec 002) existe justamente porque os testes de view rodam contra este
 `settings.py` sem um settings de teste dedicado.
+
+Exceção: a normalização do `ADMIN_URL` (RF-06, ADR-03) tem teste próprio
+(`TestCaminhoDoAdmin` em `app_portfolio/tests.py`), que carrega uma cópia
+avulsa do `settings.py` com cada valor da variável.

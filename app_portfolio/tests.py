@@ -171,6 +171,7 @@ def _carregar_settings(monkeypatch: pytest.MonkeyPatch, **ambiente: str) -> Modu
         "ALLOWED_HOSTS",
         "DIRETORIO_DADOS",
         "URL_PUBLICA",
+        "ADMIN_URL",
     ):
         monkeypatch.delenv(nome, raising=False)
     monkeypatch.setenv("SECRET_KEY", "chave-de-teste")
@@ -378,6 +379,40 @@ class TestConfiguracaoProducao:
         modulo = _carregar_settings(monkeypatch, DEBUG="True")
         assert not hasattr(modulo, "SECURE_PROXY_SSL_HEADER")
         assert not hasattr(modulo, "LOGGING")
+
+
+# ---------------------------------------------------------------------------
+# Caminho do painel administrativo (spec 003)
+# ---------------------------------------------------------------------------
+
+
+class TestCaminhoDoAdmin:
+    def test_sem_a_variavel_fica_em_admin(self, monkeypatch) -> None:
+        """Ausente, o painel fica no caminho padrão do Django (RF-06)."""
+        assert _carregar_settings(monkeypatch).ADMIN_URL_PATH == "admin/"
+
+    @pytest.mark.parametrize(
+        ("valor", "esperado"),
+        [
+            ("", "admin/"),
+            ("  ", "admin/"),
+            ("/", "admin/"),
+            ("painel-secreto/", "painel-secreto/"),
+            ("painel-secreto", "painel-secreto/"),
+            ("/painel-secreto/", "painel-secreto/"),
+            (" painel-secreto/ ", "painel-secreto/"),
+        ],
+    )
+    def test_normaliza_e_nunca_fica_vazio(
+        self, monkeypatch, valor: str, esperado: str
+    ) -> None:
+        """Vazio poria o painel na raiz, no lugar da página inicial (RF-06)."""
+        modulo = _carregar_settings(monkeypatch, ADMIN_URL=valor)
+        assert modulo.ADMIN_URL_PATH == esperado
+
+    def test_painel_responde_no_caminho_configurado(self, settings) -> None:
+        """A rota do painel vem do ADMIN_URL_PATH, sem caminho fixo no urls.py."""
+        assert reverse("admin:index") == "/" + settings.ADMIN_URL_PATH
 
 
 # Domínio público da demo nos testes de proxy. O navegador sempre manda o Host, e

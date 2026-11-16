@@ -25,7 +25,8 @@ XFrameOptionsMiddleware → CSPMiddleware → PermissionsPolicyMiddleware
   (ADR-04)
 - `ALLOWED_HOSTS` sem espaços e sem item vazio; vazia, a lista recusa todo host
 - URL do Admin ofuscada via `ADMIN_URL` (defesa em profundidade, não
-  substitui autenticação forte)
+  substitui autenticação forte); barras sobrando são ignoradas, e vazio ou só
+  barras vale `admin/`, para o painel nunca tomar a raiz do site
 
 **Cabeçalhos de segurança** (com qualquer valor de `DEBUG`):
 - CSP via `django-csp` 4, no dicionário `CONTENT_SECURITY_POLICY` (o pacote

@@ -78,7 +78,7 @@ serve de template documentado com todos os placeholders.
 | --- | --- | --- |
 | `SECRET_KEY` | **obrigatória** | Chave secreta do Django |
 | `DEBUG` | `False` | Defina como `True` só em desenvolvimento local |
-| `ADMIN_URL` | `admin/` | Caminho do painel Admin — troque em produção para dificultar brute-force automatizado |
+| `ADMIN_URL` | `admin/` | Caminho do painel Admin — troque em produção para dificultar brute-force automatizado; barras sobrando são ignoradas e vazio vale `admin/` |
 | `ALLOWED_HOSTS` | `*` (dev) | Lista de hosts permitidos em produção, separados por vírgula; vazio em produção rejeita todo host (falha fechada) |
 | `EMAIL_USER` | — | Conta Gmail que envia (e recebe) as notificações do formulário de contato; vazio com `DEBUG=True` imprime o e-mail no terminal (backend de console) |
 | `EMAIL_PASS` | — | **Senha de app** do Gmail (não a senha normal da conta) |
