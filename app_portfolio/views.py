@@ -77,7 +77,8 @@ def home(request: HttpRequest) -> HttpResponse:
     Renderiza a Home e processa o formulário de contato (GET + POST).
 
     No POST, aplica em sequência honeypot, validação do formulário, modo
-    demonstração, rate limit por IP (reserva atômica via ``cache.add()``) e
+    demonstração, rate limit por IP (reserva atômica via ``cache.add()``, com
+    a trava do backend ``CacheArquivoAtomico``) e
     sanitização (Bleach) antes de salvar a mensagem e disparar o e-mail de
     notificação. Com o modo demonstração ligado, o envio válido para antes do
     rate limit e responde o aviso de demonstração (status ``demo`` no JSON,
@@ -149,12 +150,12 @@ def home(request: HttpRequest) -> HttpResponse:
                 return redirect("home")
 
             # B. SEGURANÇA: RATE LIMIT (Controle de Fluxo)
-            # cache.add() só grava se a chave ainda não existir -- operação
-            # atômica que reserva o slot antes de processar o envio. Um
-            # cache.get() + cache.set() posterior (versão anterior) permite
-            # que requisições concorrentes passem pela checagem antes que a
-            # primeira grave o bloqueio, e todas completem o envio de e-mail
-            # (achado da auditoria de segurança: race condition CWE-362).
+            # cache.add() só grava se a chave ainda não existir e reserva o
+            # slot antes de processar o envio. Um cache.get() + cache.set()
+            # deixaria requisições concorrentes passarem pela checagem antes
+            # que a primeira gravasse o bloqueio (race condition, CWE-362). A
+            # reserva só é atômica porque o backend do projeto trava o add()
+            # (app_portfolio/cache.py): o do FileBasedCache puro não trava.
             user_ip = request.META.get("REMOTE_ADDR")
             cache_key = f"contact_limit_{user_ip}"
             if not cache.add(cache_key, True, 600):

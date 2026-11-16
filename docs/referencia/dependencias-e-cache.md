@@ -34,10 +34,16 @@ o motivo e a data de remoção no comentário do `pyproject.toml` (hoje: nenhuma
 
 ## Cache do rate limit
 
-`FileBasedCache` em `django_cache/`, e não `LocMemCache`: o cache `LocMemCache` é por processo e, com
+Cache em arquivo em `django_cache/`, e não `LocMemCache`: o cache `LocMemCache` é por processo e, com
 mais de um worker do gunicorn, o limite por IP do formulário de contato seria multiplicado pelo número
 de workers (achado da auditoria de segurança). A pasta é criada em runtime, dentro do
 `DIRETORIO_DADOS` (a raiz do repositório, por padrão), e fica no `.gitignore`.
+
+O backend é o `CacheArquivoAtomico` (`app_portfolio/cache.py`), subclasse do `FileBasedCache`. O
+`add()` do `FileBasedCache` faz `has_key()` e depois `set()`, sem trava: pedidos simultâneos do mesmo
+IP veriam a vaga livre e todos passariam. A subclasse faz o `add()` dentro de uma trava exclusiva de
+arquivo (`django.core.files.locks`, que funciona no Linux e no Windows), no arquivo `reserva.lock`
+da mesma pasta.
 
 **Atrás de proxy:** a chave do rate limit é o `REMOTE_ADDR`, e atrás do proxy de uma plataforma
 (e da Cloudflare) esse valor é o IP do proxy, não o do visitante: todo visitante divide a mesma
