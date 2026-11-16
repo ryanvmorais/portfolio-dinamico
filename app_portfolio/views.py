@@ -185,15 +185,16 @@ def home(request: HttpRequest) -> HttpResponse:
                     f"Conteúdo:\n{mensagem_obj.mensagem}"
                 )
 
+                # ENDERECO_CONTATO vem do .env; se ausente, o send_mail falha
+                # aqui dentro e cai no except abaixo (comportamento já
+                # esperado, não um caso a modelar no tipo). Sem fail_silently:
+                # o argumento está depreciado no Django 6.1 e o padrão já
+                # propaga a falha até o except.
                 send_mail(
                     assunto_email,
                     corpo_email,
-                    settings.EMAIL_HOST_USER,
-                    [settings.EMAIL_HOST_USER],  # type: ignore[list-item]
-                    # EMAIL_HOST_USER vem do .env; se ausente, o send_mail
-                    # falha aqui dentro e cai no except abaixo (comportamento
-                    # já esperado, não um caso a modelar no tipo).
-                    fail_silently=False,
+                    settings.ENDERECO_CONTATO,
+                    [settings.ENDERECO_CONTATO],  # type: ignore[list-item]
                 )
 
                 # Suporte para respostas assíncronas (AJAX)

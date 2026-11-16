@@ -58,7 +58,7 @@ Nenhuma mudança. `MensagemContato` segue igual; o modo só deixa de gravar.
 |---|---|---|---|
 | `MODO_DEMONSTRACAO` | `bool` | `os.getenv("MODO_DEMONSTRACAO", "False").lower() == "true"` | `False` |
 | `URL_REPOSITORIO` | `str` | constante no `settings.py` | URL do repositório público do projeto |
-| `EMAIL_BACKEND` | `str` | console se `DEBUG` e `EMAIL_USER` vazio; SMTP nos outros casos | SMTP |
+| `EMAIL_BACKEND` | `str` | console se `DEBUG` e `EMAIL_USER` vazio; SMTP nos outros casos (hoje o `BACKEND` do mailer `default` do `MAILERS`: o Django 6.1 depreciou os `EMAIL_*`) | SMTP |
 
 ### Resposta do POST com o modo ligado e formulário válido
 
@@ -177,6 +177,8 @@ entram nesta pasta na implementação, em WebP.
 - **Decisão:** com `DEBUG=True` e `EMAIL_USER` vazio, `EMAIL_BACKEND` vira o
   de console e `EMAIL_HOST_USER` recebe `contato@example.com` (domínio
   reservado da RFC 2606), para o e-mail impresso ter remetente e destino.
+  (A decisão segue; o mecanismo mudou com o `MAILERS` do Django 6.1: o mailer
+  `default` vira o de console e o endereço fica no `ENDERECO_CONTATO`.)
 - **Alternativas:** (a) console sempre que `EMAIL_USER` estiver vazio; (b)
   deixar como hoje.
 - **Porquê:** (a) faria um deploy sem e-mail responder "Mensagem enviada!" sem

@@ -21,7 +21,6 @@ dependencies = [
     "bleach>=6.4.0",
     "django-csp>=4.0",
     "python-dotenv>=1.2.4",
-    "certifi>=2026.10.23",
 ]
 
 [project.optional-dependencies]

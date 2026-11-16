@@ -163,18 +163,6 @@ depender de um serviço de secrets externo — proporcional a um projeto solo.
 
 **Docs:** [github.com/theskumar/python-dotenv](https://github.com/theskumar/python-dotenv)
 
-### certifi
-
-Fornece o pacote de certificados raiz confiáveis (Mozilla CA bundle). Usado
-em `settings.py` para montar o `EMAIL_SSL_CONTEXT` que permite ao Django
-autenticar via TLS no SMTP do Gmail em qualquer plataforma.
-
-**Por que este:** o Python nem sempre encontra o repositório de certificados
-correto do sistema operacional (comum no Windows); `certifi` garante um
-caminho confiável e portátil.
-
-**Docs:** [github.com/certifi/python-certifi](https://github.com/certifi/python-certifi)
-
 ---
 
 ## Qualidade e automação (grupo dev)
@@ -232,7 +220,7 @@ Django (banco de teste, fixtures `client`/`settings`/`django_db`);
 
 **Por que este, e não `unittest`/`TestCase` puro do Django:** fixtures
 (`@pytest.fixture`) compõem melhor que herança de classe para os cenários
-deste projeto (troca de `EMAIL_BACKEND`, `MEDIA_ROOT` temporário,
+deste projeto (troca do mailer `default` do `MAILERS`, `MEDIA_ROOT` temporário,
 `SECURE_SSL_REDIRECT` desligado — todos via fixtures autouse em `tests.py`).
 
 **Estudar:** `@pytest.fixture(autouse=True)`, `@pytest.mark.django_db`,

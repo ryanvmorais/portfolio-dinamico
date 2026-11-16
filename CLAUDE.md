@@ -160,7 +160,8 @@ do POST do contato (`views.py`): `docs/referencia/arquitetura.md`: **leia antes 
 - ⚠️ Ordem do POST: honeypot → validação → modo demonstração → rate limit (`cache.add` atômico) → sanitização → gravação → e-mail.
 - ⚠️ Falha do `send_mail()` é logada e nunca propaga: a mensagem já está no banco.
 - ⚠️ AJAX e HTML dizem a mesma frase: use as constantes `MENSAGEM_*` do `views.py`, nunca texto solto.
-- ⚠️ Os testes do contato dependem da fixture autouse `disable_real_email` (`EMAIL_BACKEND` em `locmem`); sem ela, `send_mail()` usa o SMTP real do `.env`.
+- ⚠️ Os testes do contato dependem da fixture autouse `disable_real_email` (mailer `default` do `MAILERS` em `locmem`); sem ela, `send_mail()` usa o SMTP real do `.env`.
+- ⚠️ E-mail só pelo `MAILERS` (Django 6.1), nunca `EMAIL_*`: com o `MAILERS` definido, ler `settings.EMAIL_*` dá `AttributeError`; o endereço da conta é o `ENDERECO_CONTATO`.
 - ⚠️ `Perfil` não é singleton: um segundo registro faz `Perfil.objects.first()` devolver um qualquer.
 
 ### Interface e acessibilidade (spec 004)
