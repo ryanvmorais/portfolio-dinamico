@@ -1,5 +1,5 @@
 {% load static %}
-{# PÁGINA DE ERRO BASE: HTML completo e independente (não herda o base.html). Serve ao 404.html, 403.html e 500.html, que o Django procura sozinho com DEBUG=False (spec 004, RF-19). #}
+{# PÁGINA DE ERRO BASE: HTML completo e independente (não herda o base.html). Serve ao 400.html, 403.html, 403_csrf.html, 404.html e 500.html, que o Django procura sozinho (spec 004, RF-19); com DEBUG=True, o 400, o 404 e o 500 dão lugar à página técnica. #}
 {# Não depende de banco, de sessão nem de contexto: o 500 é renderizado justamente quando algo falhou, e o base.html consulta o perfil. Sem JavaScript. #}
 <!DOCTYPE html>
 <html lang="pt-BR">

@@ -1,0 +1,7 @@
+{% extends 'erro.html' %}
+{# O Django procura este nome na falha de CSRF (django.views.csrf.csrf_failure), não o 403.html; sem ele, mostra a página embutida em inglês. #}
+
+{% block titulo %}Envio não confirmado{% endblock %}
+{% block codigo %}403{% endblock %}
+{% block titulo_pagina %}Envio não confirmado{% endblock %}
+{% block texto %}O formulário ficou aberto por muito tempo ou o navegador bloqueou os cookies deste site. Volte para a página inicial, recarregue e envie de novo.{% endblock %}

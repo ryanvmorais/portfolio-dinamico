@@ -29,7 +29,7 @@ import pytest
 from django.contrib.staticfiles import finders
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import RequestFactory
+from django.test import Client, RequestFactory
 from django.urls import reverse
 from django.views.defaults import permission_denied, server_error
 from PIL import Image
@@ -809,11 +809,30 @@ class TestPaginasDeErro:
         assert resposta.status_code == 500
         assert "Algo deu errado" in html and "Voltar para a página inicial" in html
 
+    def test_400_de_host_recusado_usa_a_pagina_do_projeto(
+        self, client, settings
+    ) -> None:
+        """Host fora do ALLOWED_HOSTS mostra a página em português, não "Bad Request (400)"."""
+        settings.ALLOWED_HOSTS = ["testserver"]
+        resposta = client.get("/", HTTP_HOST="outro-host.example")
+        html = resposta.content.decode("utf-8")
+        assert resposta.status_code == 400
+        assert "Pedido inválido" in html and 'lang="pt-BR"' in html
+        assert 'name="robots" content="noindex"' in html
+
+    def test_falha_de_csrf_usa_a_pagina_do_projeto(self) -> None:
+        """POST sem token CSRF mostra o 403_csrf.html, não a página do Django em inglês."""
+        resposta = Client(enforce_csrf_checks=True).post("/", {"nome": "Ana"})
+        html = resposta.content.decode("utf-8")
+        assert resposta.status_code == 403
+        assert "Envio não confirmado" in html and 'lang="pt-BR"' in html
+        assert "Forbidden" not in html and "CSRF verification failed" not in html
+
     def test_paginas_de_erro_nao_tem_javascript_nem_base(self) -> None:
         """O erro.html é independente: não herda o base.html e não carrega script."""
         texto = (RAIZ / "templates/erro.html").read_text(encoding="utf-8")
         assert "extends" not in texto and "<script" not in texto
-        for nome in ("404", "403", "500"):
+        for nome in ("400", "403", "403_csrf", "404", "500"):
             filho = (RAIZ / f"templates/{nome}.html").read_text(encoding="utf-8")
             assert "{% extends 'erro.html' %}" in filho
 
