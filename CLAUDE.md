@@ -106,8 +106,10 @@ templates/            # Templates HTML na raiz do projeto (não dentro de app_po
   base.html
   home.html            # Única página: Hero, Sobre, Projetos, Habilidades, Contato
   erro.html            # Base independente das páginas de erro (não herda o base.html)
-  404.html             # Página não encontrada (estende erro.html)
+  400.html             # Pedido inválido, ex.: Host fora do ALLOWED_HOSTS (estende erro.html)
   403.html             # Ação não permitida (estende erro.html)
+  403_csrf.html        # Falha de CSRF: o Django procura este nome, não o 403.html (estende erro.html)
+  404.html             # Página não encontrada (estende erro.html)
   500.html             # Erro do servidor, sem banco e sem contexto (estende erro.html)
 static/
   css/styles.css       # Folha única (4 espaços, aspas simples): tokens, seções, avisos, erro, toque, movimento reduzido

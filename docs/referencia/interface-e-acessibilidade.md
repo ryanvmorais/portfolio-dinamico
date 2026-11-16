@@ -31,6 +31,9 @@ regras que ficaram, e que um ajuste "inofensivo" desfaria:
   (4:5), WebP q80, nome de arquivo com palavras-chave. As imagens de reserva
   (`default_perfil.webp`, `default_projeto.webp`) e o `favicon.webp` ficam em
   `static/icons/` e não têm a marca d'água do Gemini.
-- **Páginas de erro:** `404.html`, `403.html` e `500.html` estendem o `erro.html`,
-  independente do `base.html` (sem banco, sem JavaScript). Só aparecem com
-  `DEBUG=False`; com `DEBUG=True` o Django mostra a página técnica.
+- **Páginas de erro:** `400.html`, `403.html`, `403_csrf.html`, `404.html` e `500.html`
+  estendem o `erro.html`, independente do `base.html` (sem banco, sem JavaScript). A
+  falha de CSRF procura o `403_csrf.html`, não o `403.html`: sem ele, o Django mostra a
+  página embutida em inglês. O `403.html` e o `403_csrf.html` aparecem com qualquer
+  `DEBUG`; o 400, o 404 e o 500, só com `DEBUG=False` (com `DEBUG=True` o Django mostra a
+  página técnica).
