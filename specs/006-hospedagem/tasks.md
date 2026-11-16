@@ -1,6 +1,6 @@
 ---
 feature: Hospedagem da demo na Railway
-status: em andamento
+status: concluído
 date: 2026-11-16
 related:
   - 002-formulario-contato
@@ -98,10 +98,11 @@ As etapas 1 a 4 vão num PR. A etapa 5 vai num PR próprio, depois de o deploy d
 
 ## Etapa 5 — Link da demo (PR próprio, depois do deploy)
 
-- [ ] Com a demo respondendo em `https://portfolio-dinamico.ryanmorais.com.br` com o
+- [x] Com a demo respondendo em `https://portfolio-dinamico.ryanmorais.com.br` com o
   conteúdo cadastrado e o modo demonstração ligado: link da demo no `README.md` e
   no `README.en.md`. — RNF-05
-- [ ] `specs/README.md`: linha da 006 com `concluído`; os três arquivos da spec com
+- [x] `specs/README.md`: linha da 006 com `concluído`; os três arquivos da spec com
   `status: concluído`. —
-- [ ] Portão de qualidade: `uv run ruff check --fix .`, `uv run black .`,
-  `uv run mypy app_portfolio portfolio`, `uv run pytest`. —
+- [x] Portão de qualidade: `uv run ruff check --fix .`, `uv run black .`,
+  `uv run mypy app_portfolio portfolio`, `uv run pytest`. — 186 passed; ruff, black e
+  mypy verdes.

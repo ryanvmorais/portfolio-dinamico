@@ -13,6 +13,8 @@
 ![types](https://img.shields.io/badge/types-mypy%20strict-2A6DB2)
 ![license](https://img.shields.io/badge/license-MIT-green?logo=opensourceinitiative&logoColor=white)
 
+🔗 **[See the live demo](https://portfolio-dinamico.ryanmorais.com.br/)** (the site itself is in Portuguese)
+
 This repository holds a **Dynamic Portfolio with Django**, a professional portfolio built as an educational template. Although it looks like a *SPA* (Single Page Application), the project was built as a robust system, focused on **advanced security**, **database optimization** and **clean architecture**.
 
 ### 🎯 Project Goal:
