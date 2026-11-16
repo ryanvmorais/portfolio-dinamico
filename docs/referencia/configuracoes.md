@@ -55,9 +55,10 @@ conhece pelo `mime.types` do sistema (spec 006, ADR-06).
 repositório. Num contêiner, aponte para o volume persistente, senão os três
 somem a cada deploy. Caminho relativo parte do `BASE_DIR` (spec 006, ADR-05).
 
-> ⚠️ **Não regredir (cache):** o rate limit usa `FileBasedCache` em `django_cache/`, nunca
-> `LocMemCache` (por processo: com vários workers o limite por IP se multiplica). Ver
-> `docs/referencia/dependencias-e-cache.md`.
+> ⚠️ **Não regredir (cache):** o rate limit usa o `CacheArquivoAtomico` (subclasse do
+> `FileBasedCache`, `app_portfolio/cache.py`) em `django_cache/`, nunca `LocMemCache` (por
+> processo: com vários workers o limite por IP se multiplica) nem o `FileBasedCache` puro (o
+> `add()` dele não é atômico). Ver `docs/referencia/dependencias-e-cache.md`.
 
 **Banco de dados:** SQLite em desenvolvimento e em produção, no
 `DIRETORIO_DADOS`. Uma instância só monta o volume, então o desenho supõe uma

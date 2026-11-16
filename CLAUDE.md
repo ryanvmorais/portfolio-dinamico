@@ -97,6 +97,7 @@ app_portfolio/        # A única aplicação
   forms.py             # MensagemContatoForm (ModelForm)
   admin.py             # Admin customizado para cada modelo
   utils.py             # converter_para_webp() — conversor universal de imagem
+  cache.py             # CacheArquivoAtomico: FileBasedCache com add() atômico (trava de arquivo), usado pelo rate limit
   urls.py              # URLs da aplicação (só a home)
   tests.py             # Suíte de testes (pytest): modelos, view e segurança do contato, ver "Qualidade" abaixo
   test_interface.py    # Testes das correções da auditoria de interface (spec 004): HTML, view, páginas de erro, CSS e JS lidos como texto
@@ -157,7 +158,7 @@ do POST do contato (`views.py`): `docs/referencia/arquitetura.md`: **leia antes 
 `specs/002-formulario-contato/`.
 
 - ⚠️ `ImageField` novo: sobrescreva `save()`, chame `converter_para_webp()`, cheque `if novo_conteudo and novo_nome:` e grave com `save=False` (sem isso, recursão infinita).
-- ⚠️ Ordem do POST: honeypot → validação → modo demonstração → rate limit (`cache.add` atômico) → sanitização → gravação → e-mail.
+- ⚠️ Ordem do POST: honeypot → validação → modo demonstração → rate limit (`cache.add`, atômico pela trava do `CacheArquivoAtomico`) → sanitização → gravação → e-mail.
 - ⚠️ Falha do `send_mail()` é logada e nunca propaga: a mensagem já está no banco.
 - ⚠️ AJAX e HTML dizem a mesma frase: use as constantes `MENSAGEM_*` do `views.py`, nunca texto solto.
 - ⚠️ Os testes do contato dependem da fixture autouse `disable_real_email` (mailer `default` do `MAILERS` em `locmem`); sem ela, `send_mail()` usa o SMTP real do `.env`.
@@ -189,7 +190,7 @@ estáticos, mídia (`servir_midia`), dados graváveis, banco, log e e-mail:
 
 - ⚠️ `<script>` inline num template exige revisar o `script-src` do `CONTENT_SECURITY_POLICY`: o navegador bloqueia em silêncio.
 - ⚠️ CSP só no dicionário `CONTENT_SECURITY_POLICY`: o django-csp 4 ignora os `CSP_*` antigos, e o cabeçalho some.
-- ⚠️ Rate limit em `FileBasedCache`, nunca `LocMemCache` (`docs/referencia/dependencias-e-cache.md`).
+- ⚠️ Rate limit no `CacheArquivoAtomico` (`app_portfolio/cache.py`), nunca `LocMemCache` nem o `FileBasedCache` puro, cujo `add()` não é atômico (`docs/referencia/dependencias-e-cache.md`).
 - ⚠️ `STORAGES["staticfiles"]`, nunca `STATICFILES_STORAGE`: o Django 6.1 o ignora (issue #38).
 - ⚠️ `SECURE_PROXY_SSL_HEADER` supõe um proxy na frente: com o Django direto na internet, remova a linha (o cliente forjaria o `X-Forwarded-Proto`).
 

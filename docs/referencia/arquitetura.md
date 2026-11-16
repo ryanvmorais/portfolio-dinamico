@@ -52,11 +52,13 @@ ordem:
    `{"status": "demo", "message", "link"}` (AJAX) ou
    `messages.info(..., extra_tags="demo")` + redirect, sem gravar, enviar nem
    tocar no rate limit.
-4. **Rate limit**: cache em arquivo (`FileBasedCache`, pasta `django_cache/`,
+4. **Rate limit**: cache em arquivo (`CacheArquivoAtomico`, subclasse do
+   `FileBasedCache` em `app_portfolio/cache.py`, pasta `django_cache/`,
    compartilhado entre workers) pela chave `contact_limit_{REMOTE_ADDR}`, janela
-   de 600 s. `cache.add()` é atômico e reserva a vaga **antes** de gravar e enviar,
-   para que pedidos concorrentes não passem todos pela checagem (CWE-362). A vaga
-   não é liberada se o e-mail falhar.
+   de 600 s. `cache.add()` reserva a vaga **antes** de gravar e enviar, para que
+   pedidos concorrentes não passem todos pela checagem (CWE-362). A reserva só é
+   atômica pela trava de arquivo da subclasse: o `add()` do `FileBasedCache` puro
+   checa e grava sem trava. A vaga não é liberada se o e-mail falhar.
 5. **Sanitização**: `bleach.clean(mensagem, tags=[], strip=True)` antes de
    salvar (só o campo `mensagem`; `nome`/`assunto` não passam por `bleach`).
 6. **Gravação**: `form.save(commit=False)`, troca da mensagem pela versão limpa e `save()`.

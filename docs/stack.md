@@ -281,8 +281,8 @@ Django em processos separados (workers). Só é instalado com o extra `prod`
 própria além do `--bind`; o `runserver` não serve para produção.
 
 **Estudar:** o modelo de workers (`--workers` ou a variável `WEB_CONCURRENCY`) e
-por que eles exigem um cache compartilhado entre processos (o `FileBasedCache` do
-rate limit); `--bind 0.0.0.0:${PORT}`; a diferença entre WSGI e ASGI.
+por que eles exigem um cache compartilhado entre processos (o cache em arquivo do
+rate limit, `CacheArquivoAtomico`); `--bind 0.0.0.0:${PORT}`; a diferença entre WSGI e ASGI.
 
 **Docs:** [docs.gunicorn.org](https://docs.gunicorn.org/)
 
@@ -340,8 +340,9 @@ provider, e `"..."` os estende); por que o `migrate` roda no start, e não no bu
 - **Dockerfile e armazenamento de objetos (S3, R2)** — o `railpack.json` fixa o
   build sem imagem própria, e a mídia enviada pelo Admin fica no mesmo volume do
   banco (spec 006, ADR-01 e ADR-06).
-- **Redis / cache distribuído** — o rate limit usa `FileBasedCache`, compartilhado entre
-  workers sem infraestrutura extra; o `LocMemCache` foi descartado por ser por processo.
+- **Redis / cache distribuído** — o rate limit usa o `CacheArquivoAtomico` (subclasse do
+  `FileBasedCache` com `add()` atômico), compartilhado entre workers sem infraestrutura extra;
+  o `LocMemCache` foi descartado por ser por processo.
 - **django-two-factor-auth / django-axes (2FA e brute-force no Admin)** —
   decisão explícita de escala não trazer aqui: um único administrador, risco aceito (ver
   `specs/003-configuracao-seguranca/design.md`, ADR-04).

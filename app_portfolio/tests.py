@@ -2,8 +2,8 @@
 Testes da home, do formulário de contato e da conversão de imagem.
 
 Cobrem o status e o número de consultas da página, a segurança do envio
-(XSS, honeypot, limite por IP, falha de e-mail) e a conversão para WebP no
-``save()`` dos models.
+(XSS, honeypot, limite por IP e a reserva atômica dele no cache, falha de
+e-mail) e a conversão para WebP no ``save()`` dos models.
 
 Estratégia de isolamento: nenhuma chamada de rede real é feita durante a
 suíte, e nenhum teste depende do conteúdo do `.env` local. O mailer `default`
@@ -24,6 +24,7 @@ ambiente controlado (`_carregar_settings`).
 import importlib.util
 import io
 import json
+import threading
 from pathlib import Path
 from types import ModuleType
 from typing import TYPE_CHECKING, Any
@@ -32,12 +33,13 @@ from unittest.mock import patch
 import dotenv
 import pytest
 from django.core import mail
-from django.core.cache import cache
+from django.core.cache import cache, caches
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client
 from django.urls import reverse
 from PIL import Image
 
+from app_portfolio.cache import CacheArquivoAtomico
 from app_portfolio.models import MensagemContato, Perfil, Projeto
 from app_portfolio.views import (
     MENSAGEM_DADOS_INVALIDOS,
@@ -583,6 +585,51 @@ class TestSegurancaContato:
 
         assert response.status_code == 400
         assert response.json()["status"] == "error"
+
+
+# ---------------------------------------------------------------------------
+# Reserva atômica do rate limit (cache em arquivo)
+# ---------------------------------------------------------------------------
+
+
+class TestCacheArquivoAtomico:
+    def test_settings_usa_cache_atomico(self) -> None:
+        """O cache padrão é o backend com trava, não o FileBasedCache puro."""
+        # caches[...] devolve o backend; o `cache` importado é um proxy dele.
+        assert isinstance(caches["default"], CacheArquivoAtomico)
+
+    def test_add_concorrente_reserva_uma_vez(self, tmp_path: Path) -> None:
+        """
+        Vinte threads liberadas juntas pedem a mesma chave: só uma reserva.
+
+        Com o add() do FileBasedCache puro, todas veem a chave ausente e
+        todas reservam.
+        """
+        cache_teste = CacheArquivoAtomico(str(tmp_path), {})
+        total = 20
+        largada = threading.Barrier(total)
+        resultados: list[bool] = []
+
+        def reservar() -> None:
+            largada.wait()
+            resultados.append(cache_teste.add("contact_limit_ip", True, 600))
+
+        threads = [threading.Thread(target=reservar) for _ in range(total)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        assert resultados.count(True) == 1
+
+    def test_add_depois_de_expirar_reserva_de_novo(self, tmp_path: Path) -> None:
+        """Reserva vencida não bloqueia: o add() seguinte volta a gravar."""
+        cache_teste = CacheArquivoAtomico(str(tmp_path), {})
+
+        # timeout=0 grava já vencido (o Django converte em validade passada).
+        assert cache_teste.add("contact_limit_ip", True, 0) is True
+        assert cache_teste.add("contact_limit_ip", True, 600) is True
+        assert cache_teste.add("contact_limit_ip", True, 600) is False
 
 
 # ---------------------------------------------------------------------------

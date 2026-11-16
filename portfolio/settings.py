@@ -263,9 +263,12 @@ DEFAULT_FROM_EMAIL = f"Projeto Portfólio <{ENDERECO_CONTATO}>"
 # seria multiplicado pelo número de workers (achado da auditoria de
 # segurança). FileBasedCache é compartilhado entre processos sem exigir
 # infra extra (Redis/Memcached). Fica no DIRETORIO_DADOS, junto do banco.
+# O backend é uma subclasse do FileBasedCache: o add() do Django checa e grava
+# sem trava, e pedidos simultâneos passariam todos pelo limite; a subclasse
+# serializa as reservas com uma trava de arquivo (app_portfolio/cache.py).
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "BACKEND": "app_portfolio.cache.CacheArquivoAtomico",
         "LOCATION": DIRETORIO_DADOS / "django_cache",
     }
 }
