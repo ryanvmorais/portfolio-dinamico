@@ -79,8 +79,9 @@ serve de template documentado com todos os placeholders.
 | `DEBUG` | `False` | Defina como `True` só em desenvolvimento local |
 | `ADMIN_URL` | `admin/` | Caminho do painel Admin — troque em produção para dificultar brute-force automatizado |
 | `ALLOWED_HOSTS` | `*` (dev) | Lista de hosts permitidos em produção, separados por vírgula; vazio em produção rejeita todo host (falha fechada) |
-| `EMAIL_USER` | — | Conta Gmail que envia (e recebe) as notificações do formulário de contato |
+| `EMAIL_USER` | — | Conta Gmail que envia (e recebe) as notificações do formulário de contato; vazio com `DEBUG=True` imprime o e-mail no terminal (backend de console) |
 | `EMAIL_PASS` | — | **Senha de app** do Gmail (não a senha normal da conta) |
+| `MODO_DEMONSTRACAO` | `False` | `True` numa demo pública: o formulário valida, mas não grava nem envia, e avisa o visitante (spec 005) |
 
 ## Arquitetura
 
@@ -193,6 +194,11 @@ sequência:
    compartilhado entre workers) por `contact_limit_{REMOTE_ADDR}`, janela de
    600s, ativado **só depois** do envio de e-mail suceder.
 3. **Validação** — `MensagemContatoForm` (ModelForm).
+   **Modo demonstração** (spec 005) — logo depois da validação, com
+   `MODO_DEMONSTRACAO` ligado: responde `{"status": "demo", "message", "link"}`
+   (AJAX) ou `messages.info(..., extra_tags="demo")` + redirect, sem gravar,
+   enviar nem tocar no rate limit. A ordem real é honeypot → validação → modo →
+   rate limit → sanitização → gravação → e-mail.
 4. **Sanitização** — `bleach.clean(mensagem, tags=[], strip=True)` antes de
    salvar (só o campo `mensagem`; `nome`/`assunto` não passam por `bleach`).
 5. **Envio de e-mail** — `send_mail()` síncrono; falha é capturada e logada

@@ -43,4 +43,13 @@ obrigatório antes do deploy.
 
 **E-mail:** SMTP do Gmail fixo (`smtp.gmail.com:587`); `EMAIL_SSL_CONTEXT`
 via `certifi` para funcionar em qualquer SO. Requer "Senha de App" do Google,
-não a senha normal da conta.
+não a senha normal da conta. Com `DEBUG=True` e `EMAIL_USER` vazio, o backend
+vira o de console (o e-mail sai no terminal do `runserver`) e `EMAIL_HOST_USER`
+recebe `contato@example.com`; em produção, `EMAIL_USER` vazio segue no SMTP e o
+envio falha à vista (spec 005, ADR-06).
+
+**Modo demonstração:** `MODO_DEMONSTRACAO` (padrão `False`, lido como o `DEBUG`).
+Ligado, o envio válido do formulário de contato para depois da validação: não
+grava, não envia e não cria a chave do rate limit, e o visitante vê o aviso com
+link para `URL_REPOSITORIO` (constante no `settings.py`; num fork, troque pelo
+endereço do fork). Ver `specs/005-modo-demonstracao/`.

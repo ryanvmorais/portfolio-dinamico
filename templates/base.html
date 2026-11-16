@@ -134,16 +134,18 @@
         <img src="{% static 'icons/arrow-up.svg' %}" alt="" aria-hidden="true" width="24" height="24">
     </a>
 
-    {# DJANGO MESSAGES: avisos do fluxo sem JavaScript (envio por POST comum). Usam as mesmas classes dos avisos que o main.js cria no fluxo AJAX (spec 004, RF-03) #}
-    {% if messages %}
+    {% comment %}
+    DJANGO MESSAGES: avisos do fluxo sem JavaScript (envio por POST comum). Usam as mesmas classes dos avisos que o main.js cria no fluxo AJAX (spec 004, RF-03).
+    A classe sai de level_tag, não de tags: com extra_tags, tags vira "demo info" e quebraria a classe BEM. O "demo" marca o aviso do modo demonstração, que ganha o link do repositório (spec 005, ADR-03).
+    A região role="status" existe sempre, mesmo vazia: o leitor de tela só anuncia o que muda numa região viva que já estava na página, e o main.js põe nela os avisos do fluxo AJAX.
+    {% endcomment %}
     <div class="notifications" role="status">
         {% for message in messages %}
-        <div class="notification notification--{{ message.tags }}">
-            <span class="notification__message">{{ message }}</span>
+        <div class="notification notification--{{ message.level_tag }}">
+            <span class="notification__message">{{ message }}{% if "demo" in message.extra_tags %} <a href="{{ url_repositorio }}" class="notification__link" target="_blank" rel="noopener">{{ texto_link_demonstracao }}</a>.{% endif %}</span>
         </div>
         {% endfor %}
     </div>
-    {% endif %}
 
     {# SCRIPTS: Carregados no final para não bloquear a renderização inicial do HTML #}
     <script src="{% static 'js/main.js' %}"></script>

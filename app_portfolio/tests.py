@@ -15,12 +15,18 @@ a credencial real do `.env` de quem estiver rodando a suíte, tornando os
 testes lentos, dependentes de rede, capazes de enviar e-mails de verdade, e
 dependentes de uma variável de ambiente que não existe em CI. A falha de
 envio (`test_contato_erro_envio_email`) mocka `views.send_mail` diretamente,
-no ponto de uso.
+no ponto de uso. O modo demonstração (spec 005) começa desligado em cada teste
+(`modo_demonstracao_desligado`), e a leitura das chaves do `settings.py` roda
+numa cópia avulsa do módulo, com o ambiente controlado (`_carregar_settings`).
 """
 
+import importlib.util
 import io
+from pathlib import Path
+from types import ModuleType
 from unittest.mock import patch
 
+import dotenv
 import pytest
 from django.core import mail
 from django.core.cache import cache
@@ -29,6 +35,12 @@ from django.urls import reverse
 from PIL import Image
 
 from app_portfolio.models import MensagemContato, Perfil, Projeto
+from app_portfolio.views import (
+    MENSAGEM_DADOS_INVALIDOS,
+    MENSAGEM_DEMONSTRACAO,
+    MENSAGEM_ENVIADO,
+    TEXTO_LINK_DEMONSTRACAO,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures de ambiente
@@ -71,6 +83,18 @@ def disable_real_email(settings):
 
 
 @pytest.fixture(autouse=True)
+def modo_demonstracao_desligado(settings):
+    """
+    Parte de cada teste com o modo demonstração desligado (spec 005).
+
+    O valor vem do `.env` local: quem roda a suíte com `MODO_DEMONSTRACAO=True`
+    veria os testes do fluxo normal falharem. Os testes do modo o ligam pela
+    fixture `settings`.
+    """
+    settings.MODO_DEMONSTRACAO = False
+
+
+@pytest.fixture(autouse=True)
 def media_root_tmp(settings, tmp_path):
     """
     Redireciona MEDIA_ROOT para um diretório temporário durante os testes.
@@ -97,6 +121,43 @@ def _uploaded_png(nome: str = "teste.png") -> SimpleUploadedFile:
     Image.new("RGB", (1, 1), color="red").save(buffer, format="PNG")
     buffer.seek(0)
     return SimpleUploadedFile(nome, buffer.read(), content_type="image/png")
+
+
+# Caminho do arquivo, não do módulo: a cópia avulsa é carregada direto do disco,
+# sem passar pelo ``portfolio.settings`` que o Django já tem em uso.
+_ARQUIVO_SETTINGS = Path(__file__).resolve().parent.parent / "portfolio" / "settings.py"
+
+
+def _carregar_settings(monkeypatch: pytest.MonkeyPatch, **ambiente: str) -> ModuleType:
+    """
+    Executa uma cópia avulsa do ``settings.py`` com o ambiente pedido.
+
+    A cópia não entra em ``sys.modules``: o ``django.conf.settings`` em uso e o
+    módulo ``portfolio.settings`` seguem intactos. O ``load_dotenv`` vira no-op
+    para o ``.env`` local não interferir, e as variáveis que o teste não passa
+    saem do ambiente.
+
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Fixture do pytest que desfaz as
+            trocas de ambiente no fim do teste.
+        **ambiente (str): Variáveis de ambiente da execução (``SECRET_KEY``
+            entra sempre, com um valor de teste).
+
+    Returns:
+        ModuleType: O módulo carregado, com as configurações calculadas.
+    """
+    monkeypatch.setattr(dotenv, "load_dotenv", lambda *args, **kwargs: False)
+    for nome in ("DEBUG", "MODO_DEMONSTRACAO", "EMAIL_USER", "EMAIL_PASS"):
+        monkeypatch.delenv(nome, raising=False)
+    monkeypatch.setenv("SECRET_KEY", "chave-de-teste")
+    for nome, valor in ambiente.items():
+        monkeypatch.setenv(nome, valor)
+
+    spec = importlib.util.spec_from_file_location("settings_avulso", _ARQUIVO_SETTINGS)
+    assert spec is not None and spec.loader is not None
+    modulo = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modulo)
+    return modulo
 
 
 # ---------------------------------------------------------------------------
@@ -132,6 +193,50 @@ class TestPortfolioCore:
         backend = settings.STORAGES["staticfiles"]["BACKEND"]
         assert backend == "whitenoise.storage.CompressedStaticFilesStorage"
         assert settings.STORAGES["default"]["BACKEND"].endswith("FileSystemStorage")
+
+
+# ---------------------------------------------------------------------------
+# Configuração do modo demonstração e do e-mail (spec 005)
+# ---------------------------------------------------------------------------
+
+
+class TestConfiguracaoModoDemonstracao:
+    def test_modo_desligado_sem_a_chave(self, monkeypatch) -> None:
+        """Sem MODO_DEMONSTRACAO no ambiente, o modo fica desligado."""
+        assert _carregar_settings(monkeypatch).MODO_DEMONSTRACAO is False
+
+    @pytest.mark.parametrize("valor", ["True", "true", "TRUE"])
+    def test_modo_ligado_com_true(self, monkeypatch, valor: str) -> None:
+        """'true' liga o modo sem diferenciar maiúsculas, como o DEBUG."""
+        modulo = _carregar_settings(monkeypatch, MODO_DEMONSTRACAO=valor)
+        assert modulo.MODO_DEMONSTRACAO is True
+
+    @pytest.mark.parametrize("valor", ["sim", "1", "False", ""])
+    def test_modo_desligado_com_outro_valor(self, monkeypatch, valor: str) -> None:
+        """Qualquer valor que não seja 'true' deixa o modo desligado."""
+        modulo = _carregar_settings(monkeypatch, MODO_DEMONSTRACAO=valor)
+        assert modulo.MODO_DEMONSTRACAO is False
+
+    def test_console_em_desenvolvimento_sem_email_user(self, monkeypatch) -> None:
+        """Com DEBUG e sem EMAIL_USER, o e-mail sai no terminal, com remetente fictício."""
+        modulo = _carregar_settings(monkeypatch, DEBUG="True")
+        assert modulo.EMAIL_BACKEND == "django.core.mail.backends.console.EmailBackend"
+        assert modulo.EMAIL_HOST_USER == "contato@example.com"
+        assert "contato@example.com" in modulo.DEFAULT_FROM_EMAIL
+
+    def test_smtp_em_desenvolvimento_com_email_user(self, monkeypatch) -> None:
+        """Com EMAIL_USER preenchido, o desenvolvimento usa o SMTP de verdade."""
+        modulo = _carregar_settings(
+            monkeypatch, DEBUG="True", EMAIL_USER="conta@example.com"
+        )
+        assert modulo.EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
+        assert modulo.EMAIL_HOST_USER == "conta@example.com"
+
+    def test_smtp_em_producao_sem_email_user(self, monkeypatch) -> None:
+        """Em produção, EMAIL_USER vazio segue no SMTP: o envio falha à vista."""
+        modulo = _carregar_settings(monkeypatch, DEBUG="False")
+        assert modulo.EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
+        assert modulo.EMAIL_HOST_USER is None
 
 
 # ---------------------------------------------------------------------------
@@ -281,6 +386,104 @@ class TestSegurancaContato:
 
         assert response.status_code == 400
         assert response.json()["status"] == "error"
+
+
+# ---------------------------------------------------------------------------
+# Modo demonstração do formulário de contato (spec 005)
+# ---------------------------------------------------------------------------
+
+# Envio que passa na validação: com o modo ligado, tem de ser aceito sem gravar
+# nem enviar nada.
+_ENVIO_VALIDO = {
+    "nome": "U",
+    "email": "u@t.com",
+    "assunto": "O",
+    "mensagem": "M",
+    "honeypot": "",
+}
+
+
+@pytest.mark.django_db
+class TestModoDemonstracao:
+    @pytest.fixture(autouse=True)
+    def modo_ligado(self, settings) -> None:
+        """Liga o modo demonstração em todos os testes deste grupo."""
+        settings.MODO_DEMONSTRACAO = True
+
+    def test_ajax_valido_responde_demo_sem_gravar_nem_enviar(
+        self, client, settings
+    ) -> None:
+        """AJAX válido: 200 com status demo e o link, sem banco, e-mail nem cache."""
+        response = client.post(
+            reverse("home"), _ENVIO_VALIDO, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "status": "demo",
+            "message": MENSAGEM_DEMONSTRACAO,
+            "link": {
+                "texto": TEXTO_LINK_DEMONSTRACAO,
+                "url": settings.URL_REPOSITORIO,
+            },
+        }
+        assert MensagemContato.objects.count() == 0
+        assert mail.outbox == []
+        assert cache.get("contact_limit_127.0.0.1") is None
+
+    def test_post_comum_valido_redireciona_com_aviso_info(self, client) -> None:
+        """Sem JavaScript: redirect e mensagem info marcada com 'demo'."""
+        response = client.post(reverse("home"), _ENVIO_VALIDO, follow=True)
+
+        avisos = list(response.context["messages"])
+        assert response.redirect_chain == [(reverse("home"), 302)]
+        assert len(avisos) == 1
+        assert avisos[0].level_tag == "info"
+        assert "demo" in avisos[0].extra_tags
+        assert avisos[0].message == MENSAGEM_DEMONSTRACAO
+        assert MensagemContato.objects.count() == 0
+        assert mail.outbox == []
+
+    def test_honeypot_segue_com_redirect_silencioso(self, client) -> None:
+        """Honeypot preenchido: redirect sem aviso, como no fluxo normal."""
+        dados = {**_ENVIO_VALIDO, "honeypot": "Sou robô"}
+        response = client.post(reverse("home"), dados, follow=True)
+
+        assert list(response.context["messages"]) == []
+        assert MENSAGEM_DEMONSTRACAO not in response.content.decode("utf-8")
+
+    def test_formulario_invalido_segue_com_400(self, client) -> None:
+        """Validação continua valendo: e-mail malformado responde 400 no AJAX."""
+        dados = {**_ENVIO_VALIDO, "email": "nao-e-email"}
+        response = client.post(
+            reverse("home"), dados, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+        )
+
+        assert response.status_code == 400
+        assert response.json() == {
+            "status": "error",
+            "message": MENSAGEM_DADOS_INVALIDOS,
+        }
+
+    def test_dois_envios_seguidos_respondem_demo(self, client) -> None:
+        """Sem rate limit no modo: o visitante pode testar de novo na hora."""
+        cabecalho = {"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"}
+        primeira = client.post(reverse("home"), _ENVIO_VALIDO, **cabecalho)
+        segunda = client.post(reverse("home"), _ENVIO_VALIDO, **cabecalho)
+
+        assert primeira.json()["status"] == "demo"
+        assert segunda.json()["status"] == "demo"
+
+    def test_modo_desligado_grava_e_envia(self, client, settings) -> None:
+        """Com o modo desligado, o envio grava, manda o e-mail e responde success."""
+        settings.MODO_DEMONSTRACAO = False
+        response = client.post(
+            reverse("home"), _ENVIO_VALIDO, HTTP_X_REQUESTED_WITH="XMLHttpRequest"
+        )
+
+        assert response.json() == {"status": "success", "message": MENSAGEM_ENVIADO}
+        assert MensagemContato.objects.count() == 1
+        assert len(mail.outbox) == 1
 
 
 # ---------------------------------------------------------------------------

@@ -291,6 +291,8 @@
     // Mostra o resultado do envio do formulário. Os avisos moram numa região
     // role="status" (o leitor de tela anuncia); o de erro leva role="alert" e
     // fica até ser fechado. O visual está em .notification, no styles.css (RF-03).
+    // O aviso com link (o do modo demonstração, spec 005) também fica até ser
+    // fechado: quem quer seguir o link precisa de tempo (ADR-05, WCAG 2.2.1).
     // -----------------------------------------------------------------------
     function obterContainerDeAvisos() {
         let container = document.querySelector('.notifications');
@@ -309,7 +311,9 @@
         setTimeout(() => aviso.remove(), 300);
     }
 
-    function mostrarNotificacao(mensagem, tipo = 'info') {
+    // link: {texto, url} opcional, vindo do JSON da view. O <a> é montado com
+    // nós do DOM e textContent, nunca com innerHTML (spec 005, ADR-03).
+    function mostrarNotificacao(mensagem, tipo = 'info', link = null) {
         const container = obterContainerDeAvisos();
         container.querySelectorAll('.notification').forEach((antigo) => antigo.remove());
 
@@ -323,17 +327,32 @@
         texto.className = 'notification__message';
         texto.textContent = mensagem;
 
+        if (link) {
+            const ancora = document.createElement('a');
+            ancora.className = 'notification__link';
+            ancora.href = link.url;
+            ancora.target = '_blank';
+            ancora.rel = 'noopener';
+            ancora.textContent = link.texto;
+            texto.append(' ', ancora, '.');
+        }
+
         const fechar = document.createElement('button');
         fechar.type = 'button';
         fechar.className = 'notification__close';
         fechar.setAttribute('aria-label', 'Fechar aviso');
-        fechar.textContent = '×';
+        // O "×" é só visual: sem aria-hidden, o leitor de tela o lê no fim do
+        // anúncio da região viva; o nome do botão vem do aria-label.
+        const xis = document.createElement('span');
+        xis.setAttribute('aria-hidden', 'true');
+        xis.textContent = '×';
+        fechar.append(xis);
         fechar.addEventListener('click', () => fecharNotificacao(aviso));
 
         aviso.append(texto, fechar);
         container.appendChild(aviso);
 
-        if (tipo !== 'error') {
+        if (tipo !== 'error' && !link) {
             setTimeout(() => {
                 if (aviso.isConnected) {
                     fecharNotificacao(aviso);
@@ -347,7 +366,9 @@
     // FORMULÁRIO DE CONTATO
     // Envia por fetch com o token CSRF. A view responde JSON com status e
     // message; todo status que não seja sucesso (400, 429, 500) vira aviso de
-    // erro com a frase que o servidor mandou (RF-03).
+    // erro com a frase que o servidor mandou (RF-03). O status "demo" (modo
+    // demonstração, spec 005) vira o aviso informativo, com o link que veio no
+    // JSON, e limpa os campos como o sucesso.
     // -----------------------------------------------------------------------
     function iniciarFormulario() {
         if (!contactForm) {
@@ -386,6 +407,9 @@
                     const dados = await resposta.json().catch(() => null);
                     if (resposta.ok && dados && dados.status === 'success') {
                         mostrarNotificacao(dados.message, 'success');
+                        contactForm.reset();
+                    } else if (resposta.ok && dados && dados.status === 'demo') {
+                        mostrarNotificacao(dados.message, 'info', dados.link);
                         contactForm.reset();
                     } else {
                         mostrarNotificacao(

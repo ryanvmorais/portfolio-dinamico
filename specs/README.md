@@ -68,6 +68,7 @@ Cada fase termina num portão de aprovação antes de a próxima começar.
 | 002 | [formulario-contato](002-formulario-contato/) | concluído | Honeypot, rate limit, sanitização XSS e notificação por e-mail |
 | 003 | [configuracao-seguranca](003-configuracao-seguranca/) | concluído | Settings, CSP, admin ofuscado, hardening de produção e CI de segurança |
 | 004 | [correcoes-de-interface](004-correcoes-de-interface/) | concluído | Correções da auditoria de interface: hero no celular, formulário com retorno, menu, contraste, avisos, fontes locais, páginas de erro e imagens novas |
+| 005 | [modo-demonstracao](005-modo-demonstracao/) | concluído | Modo demonstração do formulário de contato (valida sem gravar nem enviar, com aviso e link para o código) e e-mail no terminal em desenvolvimento |
 
 > As specs 001 a 003 foram reconstruídas por **engenharia reversa** do código
 > existente, na modernização de 2026-09-11, que também incluiu uma

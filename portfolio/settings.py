@@ -2,9 +2,9 @@
 Configurações do projeto Django.
 
 Um arquivo só para desenvolvimento e produção: o que muda entre os dois vem
-do ``.env`` (``SECRET_KEY``, ``DEBUG``, ``ALLOWED_HOSTS``, ``ADMIN_URL`` e as
-credenciais de e-mail). Com ``DEBUG=False`` liga o HTTPS obrigatório, os
-cookies seguros e o HSTS.
+do ``.env`` (``SECRET_KEY``, ``DEBUG``, ``ALLOWED_HOSTS``, ``ADMIN_URL``,
+``MODO_DEMONSTRACAO`` e as credenciais de e-mail). Com ``DEBUG=False`` liga o
+HTTPS obrigatório, os cookies seguros e o HSTS.
 """
 
 import os
@@ -39,6 +39,16 @@ if not SECRET_KEY:
 # Padrão False (seguro por padrão): só um DEBUG=true explícito no .env liga as
 # páginas de erro detalhadas, que nunca podem aparecer em produção.
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+
+# Modo demonstração do formulário de contato (spec 005): ligado, o envio valida
+# os campos mas não grava a mensagem nem envia o e-mail, e o visitante vê um
+# aviso de que o formulário é de demonstração. Padrão False: quem clona estuda
+# o fluxo completo; só a demo pública liga, para não guardar dado de visitante.
+MODO_DEMONSTRACAO = os.getenv("MODO_DEMONSTRACAO", "False").lower() == "true"
+
+# Repositório do código, para onde apontam os avisos do modo demonstração.
+# Num fork, troque pelo endereço do seu repositório.
+URL_REPOSITORIO = "https://github.com/ryanvmorais/portfolio-dinamico"
 
 # Caminho do painel administrativo. Em produção, troque no .env: /admin/ é o
 # primeiro caminho que robôs de força bruta testam.
@@ -173,6 +183,16 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv("EMAIL_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASS")
+
+# Em desenvolvimento sem conta Gmail, o e-mail do formulário sai impresso no
+# terminal do runserver, com um endereço do domínio reservado example.com (RFC
+# 2606) como remetente e destino. Só com DEBUG: em produção, EMAIL_USER vazio
+# segue falhando no envio, para um deploy sem e-mail não dizer "Mensagem
+# enviada!" sem enviar nada (spec 005, ADR-06).
+if DEBUG and not EMAIL_HOST_USER:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    EMAIL_HOST_USER = "contato@example.com"
+
 DEFAULT_FROM_EMAIL = f"Projeto Portfólio <{EMAIL_HOST_USER}>"
 
 # Cadeia de CAs do certifi: em alguns servidores o Python não acha os
