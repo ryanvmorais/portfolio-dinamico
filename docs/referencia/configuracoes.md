@@ -95,4 +95,25 @@ ADR-06).
 Ligado, o envio válido do formulário de contato para depois da validação: não
 grava, não envia e não cria a chave do rate limit, e o visitante vê o aviso com
 link para `URL_REPOSITORIO` (constante no `settings.py`; num fork, troque pelo
-endereço do fork). Ver `specs/005-modo-demonstracao/`.
+endereço do fork). Ver `specs/005-modo-demonstracao/`. Ligado, também troca o título, a
+description e a imagem do cartão das redes sociais pelos da demonstração do
+template e publica o `/.well-known/security.txt` com o contato de segurança do
+repositório (spec 007, decisões resolvidas 1 e 3).
+
+**Endereço público (`URL_PUBLICA`):** só esquema e domínio
+(`https://seu-dominio.com.br`); a barra final sai na leitura. É a única fonte do
+endereço absoluto do canonical, do `og:url`, do `sitemap.xml`, da linha
+`Sitemap:` do `robots.txt` e do `Canonical:` do `security.txt`: nenhum deles
+parte do `Host` do pedido. Vazia, a home sai sem canonical e o `/sitemap.xml`
+responde 404; com caminho, query, fragmento ou outro esquema, o servidor não
+sobe (`ValueError`, spec 007, ADR-04).
+
+**Arquivos de descoberta:** `app_portfolio/descoberta.py` monta em Python o
+`/robots.txt` (libera tudo e nunca cita o `ADMIN_URL`), o `/sitemap.xml` (só a
+home) e o `/.well-known/security.txt` (só com o modo demonstração), e decide os
+metadados do `<head>` da home na `montar_metadados`; o `base.html` só renderiza.
+O `Expires` do `security.txt` é a constante `EXPIRES_SECURITY_TXT`: a suíte falha
+30 dias antes de vencer, e a renovação é trocar a data por outra a menos de um
+ano. Um proxy que acrescenta um `robots.txt` gerenciado (como o da Cloudflare,
+com sinais de conteúdo e bloqueio de robôs de treino de IA) põe o bloco dele
+antes do conteúdo da origem, que segue valendo (spec 007).

@@ -89,7 +89,7 @@ As ferramentas de qualidade (Ruff, Black, Mypy e Pytest) estão em [Qualidade e 
     # Windows (PowerShell)
     Copy-Item .env.example .env
     ```
-    Sem conta Gmail? Com `DEBUG=True` e `EMAIL_USER` vazio, o e-mail do formulário de contato aparece no terminal do `runserver` em vez de ser enviado. Para publicar uma demonstração, `MODO_DEMONSTRACAO=True` faz o formulário validar os campos sem gravar nem enviar nada, e avisa o visitante.
+    Sem conta Gmail? Com `DEBUG=True` e `EMAIL_USER` vazio, o e-mail do formulário de contato aparece no terminal do `runserver` em vez de ser enviado. Para publicar uma demonstração, `MODO_DEMONSTRACAO=True` faz o formulário validar os campos sem gravar nem enviar nada, e avisa o visitante; o título, a descrição e o cartão das redes sociais passam a dizer que é a demonstração do template, e o site publica o `/.well-known/security.txt`. Ao publicar, `URL_PUBLICA` (ex.: `https://seu-dominio.com.br`) liga o endereço canônico, o `/sitemap.xml` e a linha `Sitemap:` do `/robots.txt`.
 3.  **Instale as dependências:**
     ```bash
     uv sync
