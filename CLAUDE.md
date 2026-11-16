@@ -198,7 +198,7 @@ estáticos, mídia (`servir_midia`), dados graváveis, banco, log e e-mail:
 - ⚠️ `<script>` inline num template exige revisar o `script-src` do `CONTENT_SECURITY_POLICY`: o navegador bloqueia em silêncio.
 - ⚠️ CSP só no dicionário `CONTENT_SECURITY_POLICY`: o django-csp 4 ignora os `CSP_*` antigos, e o cabeçalho some.
 - ⚠️ Rate limit no `CacheArquivoAtomico` (`app_portfolio/cache.py`), nunca `LocMemCache` nem o `FileBasedCache` puro, cujo `add()` não é atômico (`docs/referencia/dependencias-e-cache.md`).
-- ⚠️ `STORAGES["staticfiles"]`, nunca `STATICFILES_STORAGE`: o Django 6.1 o ignora (issue #38).
+- ⚠️ `STORAGES["staticfiles"]`, nunca `STATICFILES_STORAGE`: o Django 6.1 o ignora.
 - ⚠️ `SECURE_PROXY_SSL_HEADER` supõe um proxy na frente: com o Django direto na internet, remova a linha (o cliente forjaria o `X-Forwarded-Proto`).
 
 ## Convenções
