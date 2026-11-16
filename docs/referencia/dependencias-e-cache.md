@@ -9,7 +9,7 @@ O projeto é gerenciado pelo **uv** (substitui o antigo `pip` +
 `pyproject.toml`:
 
 - **`[project] dependencies`** — dependências **diretas** de runtime
-  (Django, Pillow, whitenoise, bleach, django-csp, python-dotenv, certifi).
+  (Django, Pillow, whitenoise, bleach, django-csp, python-dotenv).
 - **`[dependency-groups] dev`** — ferramentas de desenvolvimento (ruff,
   black, mypy, django-stubs, pytest, pip-audit…). `uv sync` instala por
   padrão; `uv sync --no-dev` exclui.

@@ -71,8 +71,8 @@ ordem:
    `base.html` mostra as `messages` no mesmo componente `.notification`.
 
 > ⚠️ **Não regredir:** os testes desta feature (`app_portfolio/tests.py`)
-> dependem da fixture autouse `disable_real_email`, que troca
-> `EMAIL_BACKEND` para `locmem` durante a suíte. Sem ela, `send_mail()`
+> dependem da fixture autouse `disable_real_email`, que troca o mailer
+> `default` do `MAILERS` para `locmem` durante a suíte. Sem ela, `send_mail()`
 > tentaria conectar ao SMTP real do Gmail configurado em `settings.py` a cada
 > teste: lento, dependente de rede, e capaz de enviar e-mail de verdade se o
 > `.env` local tiver credenciais reais.

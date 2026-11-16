@@ -71,12 +71,16 @@ envio de e-mail; o `django.request` fica em ERROR para o 404 de robôs não ench
 log. Sem isso, o padrão do Django só mandaria o 500 por e-mail aos `ADMINS`, que o
 projeto não define (spec 006, ADR-07).
 
-**E-mail:** SMTP do Gmail fixo (`smtp.gmail.com:587`); `EMAIL_SSL_CONTEXT`
-via `certifi` para funcionar em qualquer SO. Requer "Senha de App" do Google,
-não a senha normal da conta. Com `DEBUG=True` e `EMAIL_USER` vazio, o backend
-vira o de console (o e-mail sai no terminal do `runserver`) e `EMAIL_HOST_USER`
-recebe `contato@example.com`; em produção, `EMAIL_USER` vazio segue no SMTP e o
-envio falha à vista (spec 005, ADR-06).
+**E-mail:** o `MAILERS` do Django 6.1 (os `EMAIL_*` estão depreciados) define um
+mailer `default` com o SMTP do Gmail fixo (`smtp.gmail.com:587`, TLS); o TLS
+verifica o certificado do Gmail com os certificados do sistema. Requer "Senha de
+App" do Google, não a senha normal da conta. O endereço da conta fica no
+`ENDERECO_CONTATO`, remetente e destino da notificação do formulário: com o
+`MAILERS` definido, ler `settings.EMAIL_HOST_USER` levanta `AttributeError`. Com
+`DEBUG=True` e `EMAIL_USER` vazio, o mailer `default` vira o de console (o e-mail
+sai no terminal do `runserver`) e `ENDERECO_CONTATO` recebe `contato@example.com`;
+em produção, `EMAIL_USER` vazio segue no SMTP e o envio falha à vista (spec 005,
+ADR-06).
 
 **Modo demonstração:** `MODO_DEMONSTRACAO` (padrão `False`, lido como o `DEBUG`).
 Ligado, o envio válido do formulário de contato para depois da validação: não
