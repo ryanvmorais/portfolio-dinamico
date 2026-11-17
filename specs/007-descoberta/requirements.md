@@ -148,6 +148,8 @@ ou uma rede social lê dela hoje não diz que é uma demonstração:
 
 ### RF-05 — Ícone de tela inicial
 
+**Superseded by** 008-redesenho-da-home, RF-18.
+
 - **Given** qualquer página que estende o `base.html`
   **When** é servida
   **Then** o `<head>` declara um `<link rel="apple-touch-icon">` para um PNG de

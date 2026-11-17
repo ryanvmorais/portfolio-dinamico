@@ -1,26 +1,46 @@
 # Modelos, imagens e formulário de contato
 
 Mapa: vai mexer em `models.py`, `utils.py` ou na view `home` (o POST do contato)? Leia antes.
-Requisitos e ADRs: `specs/001-vitrine-portfolio/` e `specs/002-formulario-contato/`.
+Requisitos e ADRs: `specs/001-vitrine-portfolio/`, `specs/002-formulario-contato/` e, para os
+campos do redesenho (nível, estudo de caso, marca), `specs/008-redesenho-da-home/`.
 
 ## Modelos (em `models.py`)
 
-1. **Auxiliares**: `Tecnologia` (badge + ícone, `mostrar_no_home` filtra a
-   seção de ícones), `CategoriaProjeto` (agrupamento por `slug`)
-   e `CategoriaHabilidade`.
+1. **Auxiliares**: `Tecnologia` (nome e `ordem`; marca os projetos e, ligada a
+   uma `Habilidade`, conta os projetos que a provam), `CategoriaProjeto`
+   (agrupamento por `slug`) e `CategoriaHabilidade`.
 2. **Identidade**: `Perfil` (sem constraint de singleton: convenção de uso,
    não regra de negócio; um segundo registro faria `Perfil.objects.first()`
    retornar algo arbitrário). `foto`, `curriculo`, `link_linkedin` e
-   `link_github` são opcionais: o template guarda cada um com `{% if %}`. As
-   redes do rodapé não vêm do `Perfil`: são seis links fixos de exemplo no
-   `base.html` (spec 004, ADR-04).
+   `link_github` são opcionais: o template guarda cada um com `{% if %}`. O
+   rodapé lê a `bio_curta` e só o GitHub e o LinkedIn do `Perfil` (spec 008,
+   RF-15). `anos_experiencia` igual a zero esconde o número no hero e no selo
+   do Sobre.
 3. **Portfólio**: `Projeto` (ordenado por `ordem`, M2M com `Tecnologia`,
-   `categoria_projeto` opcional via `SET_NULL`, `link_github` opcional).
-4. **Habilidades**: `Habilidade` (FK `CategoriaHabilidade`, `progresso` 0-100
-   sem validação de range; confiança no preenchimento via Admin).
-5. **Estatísticas**: `Estatistica` (números de destaque na Hero;
-   `destaque_sobre` também exibe na seção Sobre).
-6. **Contato**: `MensagemContato` (`mensagem` com `MaxLengthValidator(5000)`).
+   `categoria_projeto` opcional via `SET_NULL`, `link_github` e `link_online`
+   opcionais). O estudo de caso são quatro `TextField` opcionais (`problema`,
+   `papel`, `decisao_tecnica`, `resultado`, até 600 caracteres no Admin); a
+   propriedade `tem_estudo_de_caso` diz se algum tem texto.
+4. **Habilidades**: `Habilidade` (FK `CategoriaHabilidade`; `nivel` do
+   `NivelHabilidade`, um `TextChoices` de três valores cuja ordem é a de
+   exibição; FK opcional `tecnologia`, `SET_NULL`). A view anota
+   `qtd_projetos` (projetos distintos da tecnologia ligada) e agrupa por nível
+   em `agrupar_habilidades()`.
+5. **Contato**: `MensagemContato` (`mensagem` com `MaxLengthValidator(5000)`).
+
+Os números do hero não são cadastrados: os anos vêm do `Perfil` e os projetos
+publicados são `len(projetos)` na view.
+
+## Marca gerada das iniciais (em `marca.py`)
+
+`calcular_iniciais()` junta a primeira letra da primeira e da última palavra do
+`Perfil.nome` (com acento; sem nome, "Seu Nome"). As iniciais vão para o
+monograma do logo (contexto `iniciais` da `home`), para o `/favicon.svg` (SVG
+montado em texto, com a fonte do sistema) e para o `/apple-touch-icon.png` (PNG
+opaco de 180 px desenhado pelo Pillow com a Inter de `static/fonts/`,
+memoizado por `lru_cache`). Sem `Perfil`, as duas rotas redirecionam (302)
+para o `favicon.webp` e o `apple-touch-icon.png` de `static/icons/`. O `?v=`
+com as iniciais no `<head>` fura o cache de um dia quando o nome muda.
 
 ## Tratamento de imagens
 

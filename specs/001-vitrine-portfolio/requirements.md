@@ -97,6 +97,8 @@ de destaque, todos editáveis via Django Admin sem precisar mexer em código.
 
 ### RF-06 — Habilidades agrupadas por categoria
 
+**Superseded by** 008-redesenho-da-home, RF-11, no percentual e na barra.
+
 - **Given** categorias de habilidade com habilidades associadas (FK)
   **When** a home é renderizada
   **Then** cada categoria lista suas habilidades; sem habilidades, exibe
@@ -106,6 +108,8 @@ de destaque, todos editáveis via Django Admin sem precisar mexer em código.
   (`aria-valuenow`); com `False`, nenhum dos dois aparece.
 
 ### RF-07 — Estatísticas de destaque
+
+**Superseded by** 008-redesenho-da-home, RF-05.
 
 - **Given** registros de `Estatistica` ordenados por `ordem`
   **When** a home é renderizada

@@ -1,9 +1,9 @@
 """
 Models do portfólio: o conteúdo da página e as mensagens de contato.
 
-Tecnologias e categorias classificam os projetos; perfil, estatísticas e
-habilidades formam a apresentação; ``MensagemContato`` guarda o que chega
-pelo formulário. As imagens enviadas são convertidas para WebP ao salvar
+Tecnologias e categorias classificam os projetos; perfil e habilidades formam
+a apresentação (os números da página são contados dos dados, spec 008);
+``MensagemContato`` guarda o que chega pelo formulário. As imagens enviadas são convertidas para WebP ao salvar
 (``utils.converter_para_webp``).
 """
 
@@ -22,12 +22,12 @@ from .utils import converter_para_webp
 class Tecnologia(models.Model):
     """
     Representa as ferramentas (Python, Django, etc).
-    Usada para exibir ícones e filtrar projetos.
+
+    Marca os projetos e, ligada a uma ``Habilidade``, conta os projetos que a
+    provam e alimenta o filtro por chip da home (spec 008).
     """
 
     nome = models.CharField(max_length=50)
-    icone = models.CharField(max_length=100, help_text="Ex: python.svg", blank=True)
-    mostrar_no_home = models.BooleanField(default=False)
     ordem = models.PositiveIntegerField(
         default=0, help_text="Quanto menor o número, primeiro ele aparece"
     )
@@ -94,7 +94,41 @@ class Projeto(models.Model):
     tecnologias = models.ManyToManyField(Tecnologia)
 
     link_github = models.URLField(blank=True, null=True)
+    link_online = models.URLField(
+        blank=True,
+        null=True,
+        verbose_name="Versão no ar",
+        help_text=(
+            "Endereço onde o projeto pode ser usado; vazio, o cartão não mostra o link."
+        ),
+    )
     ordem = models.IntegerField(default=0)
+
+    # Estudo de caso: quatro títulos fixos mantêm os cartões comparáveis
+    # (ADR-05 da spec 008). O max_length do TextField só limita o formulário
+    # do Admin, não o banco.
+    problema = models.TextField(
+        blank=True,
+        max_length=600,
+        help_text="Que problema o projeto resolve, e para quem.",
+    )
+    papel = models.TextField(
+        blank=True,
+        max_length=600,
+        verbose_name="Meu papel",
+        help_text="O que você fez: sozinho, em equipe, qual parte.",
+    )
+    decisao_tecnica = models.TextField(
+        blank=True,
+        max_length=600,
+        verbose_name="Decisão técnica",
+        help_text="A escolha que mais pesou e por quê.",
+    )
+    resultado = models.TextField(
+        blank=True,
+        max_length=600,
+        help_text="O que mudou depois: número, uso real ou o que você aprendeu.",
+    )
 
     class Meta:
         ordering = ["ordem"]
@@ -104,6 +138,24 @@ class Projeto(models.Model):
     def __str__(self) -> str:
         """Returns: str: O título do projeto."""
         return self.titulo
+
+    @property
+    def tem_estudo_de_caso(self) -> bool:
+        """
+        Diz se algum dos quatro campos do estudo de caso tem texto.
+
+        Returns:
+            bool: ``True`` quando o cartão deve mostrar o "Como foi feito".
+        """
+        return any(
+            campo.strip()
+            for campo in (
+                self.problema,
+                self.papel,
+                self.decisao_tecnica,
+                self.resultado,
+            )
+        )
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         """
@@ -125,7 +177,7 @@ class Projeto(models.Model):
 
 
 # ---------------------------------------------------------------------------
-# Perfil e estatísticas
+# Perfil
 # ---------------------------------------------------------------------------
 
 
@@ -145,11 +197,9 @@ class Perfil(models.Model):
     )
     bio = models.TextField(blank=True, null=True)
     bio_curta = models.CharField(max_length=255, blank=True, null=True)
-    anos_experiencia = models.IntegerField(default=0)
-    mostrar_progresso = models.BooleanField(
-        default=False,
-        verbose_name="Exibir barras de progresso",
-        help_text="Marque para exibir as porcentagens de domínio nas habilidades.",
+    anos_experiencia = models.IntegerField(
+        default=0,
+        help_text="Aparece no hero e no selo da foto do Sobre; zero esconde o número.",
     )
     email_contato = models.EmailField(max_length=255, blank=True, null=True)
     telefone = models.CharField(max_length=20, blank=True, null=True)
@@ -194,30 +244,6 @@ class Perfil(models.Model):
         super().save(*args, **kwargs)
 
 
-class Estatistica(models.Model):
-    """Dados rápidos para a Hero Section (ex: "50+ Projetos")."""
-
-    titulo = models.CharField(max_length=10, help_text="Ex: 5+ ou 50+")
-    legenda = models.TextField(
-        max_length=100, help_text="Dê um 'Enter' onde deseja quebrar a linha"
-    )
-    ordem = models.PositiveIntegerField(
-        default=0, help_text="Define a posição de exibição"
-    )
-    destaque_sobre = models.BooleanField(
-        default=False, verbose_name="Destaque na foto Sobre Mim"
-    )
-
-    class Meta:
-        verbose_name = "Estatística"
-        verbose_name_plural = "Estatísticas"
-        ordering = ["ordem"]
-
-    def __str__(self) -> str:
-        """Returns: str: A legenda da estatística."""
-        return self.legenda
-
-
 # ---------------------------------------------------------------------------
 # Habilidades
 # ---------------------------------------------------------------------------
@@ -227,9 +253,6 @@ class CategoriaHabilidade(models.Model):
     """Organiza habilidades em grupos (Backend, UI/UX, etc)."""
 
     nome = models.CharField(max_length=50)
-    icone = models.CharField(
-        max_length=50, help_text="Nome da classe ou arquivo do ícone", blank=True
-    )
 
     class Meta:
         verbose_name = "Categoria de Habilidade"
@@ -240,14 +263,52 @@ class CategoriaHabilidade(models.Model):
         return self.nome
 
 
+class NivelHabilidade(models.TextChoices):
+    """
+    Os três degraus de domínio de uma habilidade (ADR-02 da spec 008).
+
+    A ordem dos membros é a ordem de exibição na home.
+
+    Attributes:
+        DIA_A_DIA (str): O que a pessoa usa hoje.
+        JA_USEI (str): O que já usou em algum projeto.
+        ESTUDANDO (str): O que está aprendendo.
+    """
+
+    DIA_A_DIA = "dia_a_dia", "Uso no dia a dia"
+    JA_USEI = "ja_usei", "Já usei em projeto"
+    ESTUDANDO = "estudando", "Estudando"
+
+
 class Habilidade(models.Model):
-    """Habilidades individuais ligadas a uma categoria."""
+    """
+    Habilidades individuais ligadas a uma categoria.
+
+    A ligação opcional com uma ``Tecnologia`` conta os projetos que provam a
+    habilidade (ADR-01 da spec 008).
+    """
 
     categoria = models.ForeignKey(
         CategoriaHabilidade, on_delete=models.CASCADE, related_name="habilidades"
     )
     nome = models.CharField(max_length=50)
-    progresso = models.IntegerField(default=0, help_text="Nível de 0 a 100")
+    nivel = models.CharField(
+        max_length=10,
+        choices=NivelHabilidade,
+        default=NivelHabilidade.DIA_A_DIA,
+        help_text="Agrupa a habilidade na home; nível sem habilidade não aparece.",
+    )
+    tecnologia = models.ForeignKey(
+        Tecnologia,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="habilidades",
+        help_text=(
+            "A tecnologia dos projetos que provam esta habilidade; ligada, o chip "
+            "mostra quantos projetos a usam e filtra a lista."
+        ),
+    )
 
     def __str__(self) -> str:
         """Returns: str: Formato "nome (categoria)"."""

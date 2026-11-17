@@ -1,4 +1,4 @@
-![Portfólio Dinâmico com Django: página inicial em tema escuro, com nome, estatísticas e um bloco de código](assets/portfolio-django-home-desktop.png)
+![Portfólio Dinâmico com Django: página inicial em tema escuro, no navegador do desktop, com selo de disponibilidade, nome, cargo, botão "Ver projetos", números contados dos dados e a foto do perfil; ao lado, no celular, um cartão de projeto com o estudo de caso aberto](assets/portfolio-django-home-desktop.png)
 
 # 🌊 Portfólio Dinâmico com Django | Template Educativo para Portfólios
 
@@ -45,9 +45,11 @@ Para quem está começando, o maior desafio não é decorar comandos do Django, 
 4. **Controle de Fluxo (Rate Limiting):** para evitar ataques de spam (milhares de e-mails por segundo), implementamos uma trava no cache. O sistema monitora o IP do usuário e, após um envio com sucesso, bloqueia novas tentativas por 10 minutos, protegendo a integridade do seu servidor de e-mail.
 5. **Sanitização de Conteúdo:** nunca confiamos no que o usuário digita. Utilizamos a biblioteca `bleach` para "limpar" as mensagens recebidas, garantindo que qualquer tentativa de injetar scripts maliciosos (ataques XSS) seja neutralizada antes mesmo de chegar ao banco de dados.
 6. **Blindagem do Navegador (CSP):** configuramos o *Content Security Policy*. Isso é como um segurança na porta do site que diz ao navegador: "só execute scripts que venham deste próprio servidor". Isso impede que invasores injetem códigos externos no seu front-end.
-7. **Dinamismo das Habilidades:** o sistema permite total controle sobre a exibição da barra de progresso das habilidades. Através do Painel Administrativo, você define o percentual (0 a 100) de habilidade em cada tecnologia. Caso não queira exibir a barra de progresso, basta desmarcar a opção `Exibir barras de progresso` no seu Perfil do Painel Administrativo (*Admin*) e clicar em salvar.
-8. **Slugs nas Categorias:** cada `CategoriaProjeto` tem um *Slug* único (ex.: `web`, `api`), um identificador curto e legível. O filtro da seção de projetos usa esse valor para mostrar e esconder os cards sem recarregar a página.
-9. **Ambiente de Produção Real:** o projeto não roda apenas no seu computador. Ele foi estruturado com variáveis de ambiente (`.env`) e configurações específicas para servidores (como o `WhiteNoise` para arquivos estáticos), garantindo que o deploy em qualquer hospedagem com suporte a Python seja suave e seguro. O `railpack.json` traz a receita de build e start (dependências pelo `uv.lock`, `collectstatic`, `migrate` e gunicorn), e a variável `DIRETORIO_DADOS` leva o banco, a mídia e o cache para um volume persistente, que sobrevive a cada deploy.
+7. **Habilidades provadas pelos projetos:** em vez de uma porcentagem, cada habilidade tem um nível em palavras (`Uso no dia a dia`, `Já usei em projeto` ou `Estudando`) e pode ser ligada a uma `Tecnologia` no Painel Administrativo (*Admin*). O chip da habilidade mostra quantos projetos usam aquela tecnologia e, ao ser clicado, filtra a seção de projetos. Os números do topo da página também não são digitados: os anos de experiência vêm do Perfil, e os projetos publicados são contados do banco.
+8. **Estudo de caso no cartão:** cada projeto pode ter o endereço da versão no ar e quatro campos curtos (problema, papel, decisão técnica e resultado). Os campos preenchidos aparecem num "Como foi feito" que abre e fecha com o elemento nativo `<details>`, sem JavaScript.
+9. **Marca gerada do nome:** o logo, o favicon e o ícone de tela inicial do celular saem das iniciais do nome cadastrado no Perfil. O favicon é um SVG montado no servidor, e o ícone é um PNG desenhado pelo Pillow com a fonte do próprio projeto: quem clona o template tem uma marca própria sem editar imagem nenhuma.
+10. **Slugs nas Categorias:** cada `CategoriaProjeto` tem um *Slug* único (ex.: `web`, `api`), um identificador curto e legível. O filtro da seção de projetos usa esse valor para mostrar e esconder os cards sem recarregar a página.
+11. **Ambiente de Produção Real:** o projeto não roda apenas no seu computador. Ele foi estruturado com variáveis de ambiente (`.env`) e configurações específicas para servidores (como o `WhiteNoise` para arquivos estáticos), garantindo que o deploy em qualquer hospedagem com suporte a Python seja suave e seguro. O `railpack.json` traz a receita de build e start (dependências pelo `uv.lock`, `collectstatic`, `migrate` e gunicorn), e a variável `DIRETORIO_DADOS` leva o banco, a mídia e o cache para um volume persistente, que sobrevive a cada deploy.
 
 ---
 
@@ -106,7 +108,7 @@ As ferramentas de qualidade (Ruff, Black, Mypy e Pytest) estão em [Qualidade e 
     ```bash
     uv run python manage.py runserver
     ```
-7.  **Cadastre o conteúdo no Admin:** perfil, projetos, habilidades e estatísticas são cadastrados em `/admin/` (ou no caminho definido em `ADMIN_URL` no `.env`) com o superusuário criado acima. Sem isso, a home abre vazia. Prefere só ver a home preenchida? Com `DEBUG=True` no `.env`, `uv run python manage.py semear_dados_demo` cria perfil, projetos, habilidades e estatísticas fictícios (sem duplicar se rodar de novo).
+7.  **Cadastre o conteúdo no Admin:** perfil, projetos e habilidades são cadastrados em `/admin/` (ou no caminho definido em `ADMIN_URL` no `.env`) com o superusuário criado acima. Sem isso, a home abre vazia. Prefere só ver a home preenchida? Com `DEBUG=True` no `.env`, `uv run python manage.py semear_dados_demo` cria perfil, projetos (com estudo de caso) e habilidades fictícios (sem duplicar se rodar de novo).
 
 > ⚠️ **Nota sobre o Formulário de Contato:** para que o envio de e-mails funcione, você precisará de uma **"Senha de App"** do Google (caso use Gmail). Não utilize sua senha comum de login; o Google bloqueia essa conexão por segurança. Configure isso em *Segurança > Verificação em duas etapas > Senhas de App*.
 

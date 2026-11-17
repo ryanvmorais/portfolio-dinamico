@@ -1,4 +1,4 @@
-![Dynamic Portfolio with Django: home page in a dark theme, with a name, statistics and a code block](assets/portfolio-django-home-desktop.png)
+![Dynamic Portfolio with Django: home page in a dark theme, in a desktop browser, with an availability badge, name, role, a "Ver projetos" button, numbers counted from the data and the profile photo; next to it, on a phone, a project card with its case study open](assets/portfolio-django-home-desktop.png)
 
 # 🌊 Dynamic Portfolio with Django | Educational Portfolio Template
 
@@ -45,9 +45,11 @@ For beginners, the biggest challenge is not memorizing Django commands, but unde
 4. **Flow Control (Rate Limiting):** to stop spam attacks (thousands of e-mails per second), we put a lock in the cache. The system watches the user's IP and, after a successful submission, blocks new attempts for 10 minutes, protecting the integrity of your mail server.
 5. **Content Sanitization:** we never trust what the user types. We use the `bleach` library to "clean" incoming messages, so any attempt to inject malicious scripts (XSS attacks) is neutralized before it even reaches the database.
 6. **Browser Shielding (CSP):** we set up the *Content Security Policy*. It works like a guard at the site's door telling the browser: "only run scripts that come from this very server". That stops attackers from injecting external code into your front-end.
-7. **Dynamic Skills:** the system gives you full control over the skills progress bar. In the Admin Panel, you set the percentage (0 to 100) for each technology. If you prefer not to show the progress bar, just untick the `Exibir barras de progresso` option ("Show progress bars") in your Profile in the Admin Panel and save.
-8. **Slugs in Categories:** each `CategoriaProjeto` (project category) has a unique *Slug* (e.g. `web`, `api`), a short, readable identifier. The projects section filter uses that value to show and hide the cards without reloading the page.
-9. **Real Production Environment:** the project does not only run on your computer. It was structured with environment variables (`.env`) and server-specific settings (such as `WhiteNoise` for static files), so deploying to any host that supports Python is smooth and safe. The `railpack.json` file holds the build and start recipe (dependencies from `uv.lock`, `collectstatic`, `migrate` and gunicorn), and the `DIRETORIO_DADOS` variable moves the database, media and cache to a persistent volume that survives every deploy.
+7. **Skills Proven by Projects:** instead of a percentage, each skill has a level in words (`Uso no dia a dia`, "day-to-day use"; `Já usei em projeto`, "used in a project"; or `Estudando`, "learning") and can be linked to a `Tecnologia` (technology) in the Admin Panel. The skill chip shows how many projects use that technology and, when clicked, filters the projects section. The numbers at the top of the page are not typed in either: the years of experience come from the Profile, and the published projects are counted from the database.
+8. **Case Study on the Card:** each project can have the address of its live version and four short fields (problem, role, technical decision and result). The filled-in fields show up in a "Como foi feito" ("How it was built") panel that opens and closes with the native `<details>` element, without JavaScript.
+9. **Brand Generated from the Name:** the logo, the favicon and the phone home screen icon come from the initials of the name saved in the Profile. The favicon is an SVG built on the server, and the icon is a PNG drawn by Pillow with the project's own font: whoever clones the template gets their own brand without editing any image.
+10. **Slugs in Categories:** each `CategoriaProjeto` (project category) has a unique *Slug* (e.g. `web`, `api`), a short, readable identifier. The projects section filter uses that value to show and hide the cards without reloading the page.
+11. **Real Production Environment:** the project does not only run on your computer. It was structured with environment variables (`.env`) and server-specific settings (such as `WhiteNoise` for static files), so deploying to any host that supports Python is smooth and safe. The `railpack.json` file holds the build and start recipe (dependencies from `uv.lock`, `collectstatic`, `migrate` and gunicorn), and the `DIRETORIO_DADOS` variable moves the database, media and cache to a persistent volume that survives every deploy.
 
 ---
 
@@ -106,7 +108,7 @@ The quality tools (Ruff, Black, Mypy and Pytest) are in [Quality and tests](#qua
     ```bash
     uv run python manage.py runserver
     ```
-7.  **Add the content in the Admin:** profile, projects, skills and statistics are added at `/admin/` (or the path set in `ADMIN_URL` in `.env`) with the superuser created above. Without that, the home page opens empty. Just want to see the home page filled in? With `DEBUG=True` in `.env`, `uv run python manage.py semear_dados_demo` creates a fictional profile, projects, skills and statistics (without duplicates if you run it again).
+7.  **Add the content in the Admin:** profile, projects and skills are added at `/admin/` (or the path set in `ADMIN_URL` in `.env`) with the superuser created above. Without that, the home page opens empty. Just want to see the home page filled in? With `DEBUG=True` in `.env`, `uv run python manage.py semear_dados_demo` creates a fictional profile, projects (with a case study) and skills (without duplicates if you run it again).
 
 > ⚠️ **Note on the Contact Form:** for e-mail sending to work, you will need a Google **"App Password"** (if you use Gmail). Do not use your regular login password; Google blocks that connection for security. Set it up in *Security > 2-Step Verification > App passwords*.
 

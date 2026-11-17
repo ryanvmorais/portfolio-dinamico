@@ -70,6 +70,8 @@ Os principais:
 
 ### RF-02 — O hero cabe na primeira tela do celular
 
+**Superseded by** 008-redesenho-da-home, RF-04 e RF-06.
+
 - **Given** um celular em pé de 390 px de largura ou mais
   **When** a home abre
   **Then** título, descrição, os dois botões e as três estatísticas ficam
@@ -131,6 +133,8 @@ Os principais:
 
 ### RF-07 — Barras de habilidade com nome
 
+**Superseded by** 008-redesenho-da-home, RF-11.
+
 - **Given** o perfil com "Exibir barras de progresso" ligado
   **When** a home é lida por leitor de tela
   **Then** cada `role="progressbar"` tem `aria-label` com o nome da habilidade.
@@ -161,6 +165,8 @@ Os principais:
 
 ### RF-11 — Nome acessível começa pelo texto visível
 
+**Superseded by** 008-redesenho-da-home, RF-01, no indicador "Explorar", que saiu da página.
+
 - **Given** o logo ("<Nome />") e o indicador "Explorar"
   **When** um comando de voz diz o texto que aparece
   **Then** o `aria-label` de cada um começa por esse texto ("Nome, voltar ao
@@ -185,6 +191,8 @@ Os principais:
 
 ### RF-14 — Sem texto provisório: o contato sai do perfil; o rodapé é fixo
 
+**Superseded by** 008-redesenho-da-home, RF-15, no rodapé.
+
 - **Given** o perfil com LinkedIn e GitHub preenchidos
   **When** a home abre
   **Then** o cartão mostra o endereço do próprio perfil, sem `https://` nem
@@ -199,6 +207,8 @@ Os principais:
   **Then** vai para `#home` (antes `href="#"`).
 
 ### RF-15 — Transições listadas e altura dinâmica
+
+**Superseded by** 008-redesenho-da-home, RF-06 e ADR-10, na altura do hero.
 
 - **Given** qualquer regra de transição do CSS
   **When** o arquivo é lido
@@ -237,6 +247,8 @@ Os principais:
   `<main>`, um `h1`, `noindex` e um botão de volta, e o 500 não consulta o banco.
 
 ### RF-20 — Imagem de compartilhamento e ícone da aba
+
+**Superseded by** 008-redesenho-da-home, RF-17, no ícone da aba.
 
 - **Given** o perfil com foto
   **When** a página é compartilhada

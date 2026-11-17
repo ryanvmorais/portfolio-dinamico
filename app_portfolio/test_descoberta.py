@@ -309,10 +309,10 @@ class TestHeadDaHome:
         assert _meta(head, "property", "og:image:width") is None
 
     def test_icone_de_tela_inicial_declarado(self, client) -> None:
-        """O apple-touch-icon aponta para o PNG de 180 px."""
+        """O apple-touch-icon aponta para a rota do PNG gerado (spec 008, RF-18)."""
         head = _head(client)
         assert re.search(
-            r'rel="apple-touch-icon" href="[^"]*apple-touch-icon\.png"', head
+            r'rel="apple-touch-icon" href="/apple-touch-icon\.png\?v=SN"', head
         )
 
     def test_pagina_404_sem_canonical(self, client, settings) -> None:

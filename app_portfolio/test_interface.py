@@ -36,9 +36,7 @@ from django.views.defaults import permission_denied, server_error
 from PIL import Image
 
 from app_portfolio.models import (
-    CategoriaHabilidade,
     CategoriaProjeto,
-    Habilidade,
     Perfil,
     Projeto,
 )
@@ -230,29 +228,21 @@ class TestCurriculoOpcional:
 
 
 class TestHeroNoCelular:
-    def test_bloco_de_codigo_nao_vai_para_o_topo(self) -> None:
-        """O CSS não usa mais order: -1 no .hero__visual (empurrava o texto)."""
-        assert "order: -1" not in CSS
+    """Spec 008 (ADR-10, RF-04): o hero substituiu o bloco de código e a tela inteira."""
 
-    def test_bloco_de_codigo_some_no_celular(self) -> None:
-        """Até 640 px o bloco decorativo é escondido."""
-        bloco = _bloco(CSS, "@media (max-width: 640px) {\n    .hero__visual")
-        assert "display: none" in _regra(bloco, ".hero__visual")
+    def test_hero_tem_a_altura_do_conteudo(self) -> None:
+        """Sem min-height de tela inteira: o topo de Projetos aparece na primeira tela."""
+        hero = _regra(CSS, ".hero")
+        assert "min-height" not in hero
+        assert "100svh" not in hero and "100vh" not in hero
 
-    def test_bloco_de_codigo_some_no_celular_deitado(self) -> None:
-        """Em tela baixa e deitada (~340 px de altura) o bloco também sai."""
-        bloco = _bloco(CSS, "@media (max-height: 500px) and (orientation: landscape)")
-        assert "display: none" in _regra(bloco, ".hero__visual")
-
-    def test_estatisticas_ficam_numa_linha(self) -> None:
-        """As três estatísticas formam uma grade de 3 colunas, não 2 + 1."""
-        bloco = _bloco(CSS, "@media (max-width: 1024px) {\n    .hero__scroll")
-        regra = _regra(bloco, ".hero__stats")
-        assert "grid-template-columns: repeat(3, 1fr)" in regra
-
-    def test_altura_do_hero_usa_svh(self) -> None:
-        """O hero usa 100svh (altura com a barra do navegador visível)."""
-        assert "min-height: 100svh" in _regra(CSS, ".hero")
+    def test_foto_vai_para_o_topo_e_fica_redonda_no_celular(self) -> None:
+        """Até 768 px a foto sobe (order: -1), tem 112 px e é redonda."""
+        bloco = _bloco(CSS, "@media (max-width: 768px) {\n    .hero__container")
+        moldura = _regra(bloco, ".hero__foto-moldura")
+        assert "order: -1" in moldura and "width: 112px" in moldura
+        assert "border-radius: var(--radius-full)" in _regra(bloco, ".hero__foto")
+        assert "grid-template-columns: 1fr" in _regra(bloco, ".hero__container")
 
 
 # ---------------------------------------------------------------------------
@@ -452,23 +442,6 @@ class TestAvisos:
 
 
 # ---------------------------------------------------------------------------
-# RF-07 — Barras de habilidade com nome
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.django_db
-def test_barra_de_progresso_tem_nome(client) -> None:
-    """Cada role=progressbar leva aria-label com a habilidade."""
-    _perfil(mostrar_progresso=True)
-    categoria = CategoriaHabilidade.objects.create(nome="Backend")
-    Habilidade.objects.create(categoria=categoria, nome="Python", progresso=90)
-    html = _home(client)
-    barra = re.search(r'<div[^>]*role="progressbar"[^>]*>', html)
-    assert barra
-    assert 'aria-label="Python"' in barra.group(0)
-
-
-# ---------------------------------------------------------------------------
 # RF-08 — Movimento reduzido
 # ---------------------------------------------------------------------------
 
@@ -478,9 +451,7 @@ class TestMovimentoReduzido:
         """O bloco prefers-reduced-motion desliga rolagem suave e animações contínuas."""
         bloco = _bloco(CSS, "@media (prefers-reduced-motion: reduce)")
         assert "scroll-behavior: auto" in bloco
-        assert "animation: none" in _regra(
-            bloco, ".hero__visual,\n    .scroll-indicator"
-        )
+        assert "transition-duration: 0.01ms !important" in bloco
         assert "opacity: 1" in _regra(bloco, ".reveal")
 
     def test_bloco_de_movimento_reduzido_e_o_ultimo_do_arquivo(self) -> None:
@@ -490,6 +461,9 @@ class TestMovimentoReduzido:
         )
         assert CSS.rindex("@media (prefers-reduced-motion: reduce)") > CSS.rindex(
             "@media (pointer: coarse)"
+        )
+        assert CSS.rindex("@media (prefers-reduced-motion: reduce)") > CSS.rindex(
+            "@media (forced-colors: active)"
         )
 
     def test_rolagem_do_javascript_pergunta_o_criterio(self) -> None:
@@ -544,16 +518,16 @@ class TestLinkDoProjeto:
         Projeto.objects.create(titulo="Sem Repo", descricao="Descrição")
         html = _home(client)
         assert 'href="None"' not in html
-        assert "btn-github" not in html
+        assert "project-card__acoes" not in html
 
     def test_cada_link_tem_nome_proprio(self, client) -> None:
-        """O link ganha o nome do projeto para o leitor de tela."""
+        """O link do código ganha o nome do projeto para o leitor de tela (spec 008, RF-09)."""
         _perfil()
         Projeto.objects.create(
             titulo="Loja", descricao="Descrição", link_github="https://github.com/a/b"
         )
         html = _home(client)
-        assert 'Ver no GitHub<span class="sr-only"> do projeto Loja</span>' in html
+        assert 'Código<span class="sr-only">: Loja</span>' in html
 
 
 # ---------------------------------------------------------------------------
@@ -563,11 +537,10 @@ class TestLinkDoProjeto:
 
 @pytest.mark.django_db
 def test_nomes_acessiveis_comecam_pelo_texto_visivel(client) -> None:
-    """O logo e o "Explorar" têm aria-label que contém o texto que aparece."""
+    """O logo tem aria-label que começa pelo texto que aparece (o "Explorar" saiu na spec 008)."""
     _perfil(nome="Ana Dev")
     html = _home(client)
     assert 'aria-label="Ana Dev, voltar ao início"' in html
-    assert 'aria-label="Explorar: rolar para a seção Sobre"' in html
 
 
 # ---------------------------------------------------------------------------
@@ -580,7 +553,8 @@ def test_rodape_nao_usa_h4(client) -> None:
     """Os títulos do rodapé são h2 (antes h4 logo depois de h2)."""
     _perfil(link_github="https://github.com/ana")
     html = _home(client)
-    assert "<h4" not in html
+    rodape = html[html.index('<footer class="footer">') :]
+    assert "<h4" not in rodape
     assert html.count('<h2 class="footer__title">') == 2
 
 
@@ -614,7 +588,7 @@ class TestFiltrosECampos:
 
 
 # ---------------------------------------------------------------------------
-# RF-14 — Sem texto provisório: o contato sai do perfil; o rodapé é fixo
+# RF-14 — Sem texto provisório: o contato sai do perfil (o rodapé, spec 008)
 # ---------------------------------------------------------------------------
 
 
@@ -647,31 +621,6 @@ class TestContatoERodape:
         _perfil()
         assert 'contact__card-title">LinkedIn' not in _home(client)
 
-    def test_rodape_tem_as_seis_redes_fixas(self, client) -> None:
-        """O rodapé é fixo: as seis redes aparecem mesmo com o perfil vazio."""
-        _perfil()
-        html = _home(client)
-        for rede in ("Facebook", "Instagram", "LinkedIn", "X", "TikTok", "GitHub"):
-            assert f'aria-label="{rede}"' in html
-        assert "Redes Sociais" in html
-
-    def test_redes_do_rodape_nao_dependem_do_perfil(self, client) -> None:
-        """Preencher LinkedIn e GitHub no perfil não muda os links do rodapé."""
-        _perfil(
-            link_linkedin="https://www.linkedin.com/in/ana",
-            link_github="https://github.com/ana",
-        )
-        html = _home(client)
-        rodape = html[html.index('<div class="footer__social">') :]
-        assert 'href="https://www.linkedin.com/in/"' in rodape
-        assert 'href="https://github.com/"' in rodape
-        assert "linkedin.com/in/ana" not in rodape
-
-    def test_perfil_nao_tem_campos_de_rede_do_rodape(self) -> None:
-        """Os campos que o rodapé dinâmico usava não existem mais no modelo."""
-        nomes = {campo.name for campo in Perfil._meta.get_fields()}
-        assert not nomes & {"link_instagram", "link_facebook", "link_x", "link_tiktok"}
-
     def test_logo_do_rodape_leva_ao_topo(self, client) -> None:
         """O logo do rodapé aponta para #home, não para href="#"."""
         _perfil()
@@ -688,8 +637,8 @@ class TestTransicoesEAltura:
         """Toda transição lista as propriedades (antes: 12 transition: all)."""
         assert "transition: all" not in CSS
 
-    def test_menu_e_hero_usam_unidades_dinamicas(self) -> None:
-        """O painel do menu usa 100dvh e o hero 100svh, com 100vh de reserva."""
+    def test_menu_usa_unidade_dinamica(self) -> None:
+        """O painel do menu usa 100dvh, com 100vh de reserva (o hero, spec 008, ADR-10)."""
         menu = _bloco(CSS, "@media (max-width: 768px) {\n    .nav__menu")
         regra = _regra(menu, ".nav__menu")
         assert regra.index("height: 100vh") < regra.index("height: 100dvh")
@@ -945,13 +894,83 @@ class TestRodapeEIcone:
         """As três colunas do rodapé começam na mesma altura."""
         assert "align-items: start" in _regra(CSS, ".footer__content")
 
-    def test_icone_do_postgresql_aparece_sobre_o_chip_escuro(self) -> None:
-        """O SVG usa um azul com 4,5:1 sobre o chip (o oficial dava 2,65:1)."""
-        svg = (RAIZ / "static/icons/tech/postgresql.svg").read_text(encoding="utf-8")
-        cor = re.search(r'fill="(#[0-9a-fA-F]{6})"', svg)
-        assert cor
-        chip = _tokens()["color-bg-tertiary"]
-        assert _contraste(cor.group(1), chip) >= CONTRASTE_MINIMO
+
+# ---------------------------------------------------------------------------
+# Spec 008 — Filtro por chip e alto contraste (RF-13, RNF-02, ADR-07, ADR-08)
+# ---------------------------------------------------------------------------
+
+
+class TestFiltroPorChip:
+    def test_filtro_aceita_categoria_ou_tecnologia(self) -> None:
+        """FiltrarProjetos recebe os dois e lê o data-tecnologias dos cartões."""
+        assert (
+            "function filtrarProjetos({ categoria = 'all', tecnologia = null } = {})"
+            in JS
+        )
+        assert "card.getAttribute('data-tecnologias')" in JS
+
+    def test_chip_le_os_atributos_do_template(self) -> None:
+        """O chip informa o id e o nome da tecnologia pelos data-*."""
+        assert "chip.getAttribute('data-tecnologia')" in JS
+        assert "chip.getAttribute('data-nome')" in JS
+        assert "iniciarChips();" in JS
+
+    def test_chip_marca_o_estado_e_volta_a_categoria(self) -> None:
+        """Um filtro por vez: o chip marca aria-pressed e zera a categoria."""
+        aplicar = JS[
+            JS.index("function aplicarChip(") : JS.index("function iniciarChips(")
+        ]
+        assert "chip.setAttribute('aria-pressed', 'true')" in aplicar
+        assert "marcarCategoria(todos)" in aplicar
+
+    def test_foco_e_rolagem_seguem_o_filtro(self) -> None:
+        """Rola com comportamentoDeRolagem() e foca a linha de estado (ADR-08)."""
+        aplicar = JS[
+            JS.index("function aplicarChip(") : JS.index("function iniciarChips(")
+        ]
+        assert "behavior: comportamentoDeRolagem()" in aplicar
+        assert "linhaDeEstado.focus({ preventScroll: true })" in aplicar
+        assert "linhaDeEstado.hidden = false" in aplicar
+
+    def test_regiao_viva_nao_repete_o_anuncio(self) -> None:
+        """No filtro por chip quem anuncia é a linha; a região fica vazia."""
+        aplicar = JS[
+            JS.index("function aplicarChip(") : JS.index("function iniciarChips(")
+        ]
+        assert "projectsStatus.textContent = ''" in aplicar
+
+    def test_categoria_desfaz_o_chip(self) -> None:
+        """O clique numa categoria desmarca os chips antes de filtrar."""
+        filtros = JS[
+            JS.index("function iniciarFiltros(") : JS.index("// CHIPS DE HABILIDADE")
+        ]
+        assert "desmarcarChips();" in filtros
+
+    def test_limpar_filtro_devolve_o_foco_ao_todos(self) -> None:
+        """O botão some com a linha: o foco vai para o filtro "Todos"."""
+        chips = JS[JS.index("function iniciarChips(") : JS.index("// REVELAR AO ROLAR")]
+        assert "querySelector('.projects__limpar')" in chips
+        assert "todos.focus()" in chips
+
+    def test_linha_escondida_nao_aparece(self) -> None:
+        """O [hidden] vence o display: flex da linha de estado."""
+        assert "display: none" in _regra(CSS, ".projects__estado[hidden]")
+
+
+def test_alto_contraste_mantem_as_bordas() -> None:
+    """Em forced-colors, chips, selo, filtros e ícones têm borda; o marcado, Highlight."""
+    bloco = _bloco(CSS, "@media (forced-colors: active)")
+    seletores = ".chip,\n    .hero__selo,\n    .filter-btn,\n    .icone-link,\n    .logo__monograma"
+    assert "border: 1px solid CanvasText" in _regra(bloco, seletores)
+    marcado = _regra(bloco, ".chip[aria-pressed='true'],\n    .filter-btn.active")
+    assert "background: Highlight" in marcado
+
+
+def test_chip_tem_40_px_e_borda() -> None:
+    """O chip tem 40 px de altura (o vão completa 44) e borda visível (RNF-02)."""
+    chip = _regra(CSS, ".chip")
+    assert "min-height: 2.5rem" in chip
+    assert "border: 1px solid var(--color-gray-500)" in chip
 
 
 # ---------------------------------------------------------------------------

@@ -2,8 +2,9 @@
 Views do portfólio: a página única e a entrega da mídia enviada pelo Admin.
 
 A ``home`` monta a página com os dados do banco e recebe o formulário de
-contato. O envio passa por honeypot, limite por IP e sanitização antes de
-gravar e notificar por e-mail, e responde em HTML ou em JSON (AJAX). Com o
+contato. As habilidades chegam agrupadas por categoria e por nível, cada uma com
+a contagem dos projetos que a provam (spec 008). O envio passa por honeypot,
+limite por IP e sanitização antes de gravar e notificar por e-mail, e responde em HTML ou em JSON (AJAX). Com o
 ``MODO_DEMONSTRACAO`` ligado, o envio válido para depois da validação: nada é
 gravado nem enviado, e o visitante recebe o aviso de demonstração.
 
@@ -14,6 +15,8 @@ do Django (spec 006).
 
 import logging
 import mimetypes
+from collections.abc import Iterable
+from typing import Any
 
 import bleach
 from django.conf import settings
@@ -21,6 +24,7 @@ from django.contrib import messages
 from django.core.cache import cache
 from django.core.exceptions import SuspiciousFileOperation
 from django.core.mail import send_mail
+from django.db.models import Count, Prefetch
 from django.http import (
     Http404,
     HttpRequest,
@@ -35,13 +39,14 @@ from django.views.static import serve
 
 from .descoberta import montar_metadados
 from .forms import MensagemContatoForm
+from .marca import calcular_iniciais
 from .models import (
     CategoriaHabilidade,
     CategoriaProjeto,
-    Estatistica,
+    Habilidade,
+    NivelHabilidade,
     Perfil,
     Projeto,
-    Tecnologia,
 )
 
 # Frases mostradas ao visitante quando o envio não vai adiante (spec 004,
@@ -71,6 +76,43 @@ logger = logging.getLogger(__name__)
 # um contêiner enxuto pode não ter. Sem o tipo, a servir_midia responderia
 # application/octet-stream, e com o nosniff o navegador não mostraria a foto.
 mimetypes.add_type("image/webp", ".webp")
+
+
+def agrupar_habilidades(
+    categorias: Iterable[CategoriaHabilidade],
+) -> list[dict[str, Any]]:
+    """
+    Agrupa as habilidades de cada categoria pelos níveis do ``NivelHabilidade``.
+
+    Os níveis saem na ordem da classe ("Uso no dia a dia", "Já usei em
+    projeto", "Estudando"), e nível sem habilidade não aparece (RF-11). Dentro
+    de cada nível, as habilidades seguem a ordem em que vieram do prefetch.
+
+    Args:
+        categorias (Iterable[CategoriaHabilidade]): Categorias com o prefetch
+            de ``habilidades`` já feito (senão cada uma faz uma consulta).
+
+    Returns:
+        list[dict[str, Any]]: Uma entrada por categoria, com ``categoria`` e
+            ``niveis`` (lista de ``{"rotulo": str, "habilidades": list}``).
+    """
+    agrupadas = []
+    for categoria in categorias:
+        habilidades = list(categoria.habilidades.all())
+        niveis = [
+            {
+                "rotulo": nivel.label,
+                "habilidades": [h for h in habilidades if h.nivel == nivel.value],
+            }
+            for nivel in NivelHabilidade
+        ]
+        agrupadas.append(
+            {
+                "categoria": categoria,
+                "niveis": [nivel for nivel in niveis if nivel["habilidades"]],
+            }
+        )
+    return agrupadas
 
 
 def home(request: HttpRequest) -> HttpResponse:
@@ -105,14 +147,18 @@ def home(request: HttpRequest) -> HttpResponse:
         .all()
     )
 
-    tech_icons = Tecnologia.objects.filter(mostrar_no_home=True).order_by(
-        "ordem", "nome"
-    )
-    estatisticas = Estatistica.objects.all()
     categorias_projetos = CategoriaProjeto.objects.all()
+
+    # Cada habilidade vem com a tecnologia ligada e quantos projetos distintos
+    # a usam: o chip mostra o número e só vira botão com projeto (RF-12).
+    habilidades = (
+        Habilidade.objects.select_related("tecnologia")
+        .annotate(qtd_projetos=Count("tecnologia__projeto", distinct=True))
+        .order_by("pk")
+    )
     categorias_habilidades = CategoriaHabilidade.objects.prefetch_related(
-        "habilidades"
-    ).all()
+        Prefetch("habilidades", queryset=habilidades)
+    )
 
     form = MensagemContatoForm()
 
@@ -227,11 +273,14 @@ def home(request: HttpRequest) -> HttpResponse:
     # --- 3. CONTEXTO PARA O TEMPLATE ---
     context = {
         "perfil": perfil,
+        # Monograma do logo e versão dos ícones gerados (spec 008, RF-16).
+        "iniciais": calcular_iniciais(perfil.nome if perfil else None),
         "form": form,
         "projetos": projetos,
-        "categorias_habilidades": categorias_habilidades,
-        "tech_icons": tech_icons,
-        "estatisticas": estatisticas,
+        # len() avalia a consulta uma vez; o laço do template reaproveita o
+        # resultado. O número do hero é contado, nunca digitado (RF-05).
+        "total_projetos": len(projetos),
+        "habilidades_por_categoria": agrupar_habilidades(categorias_habilidades),
         "categorias_projetos": categorias_projetos,
         # O aviso fixo do formulário e o link do aviso do envio (spec 005).
         "modo_demonstracao": settings.MODO_DEMONSTRACAO,

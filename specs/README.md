@@ -71,6 +71,7 @@ Cada fase termina num portão de aprovação antes de a próxima começar.
 | 005 | [modo-demonstracao](005-modo-demonstracao/) | concluído | Modo demonstração do formulário de contato (valida sem gravar nem enviar, com aviso e link para o código) e e-mail no terminal em desenvolvimento |
 | 006 | [hospedagem](006-hospedagem/) | concluído | Demo na Railway: receita de build, HTTPS atrás do proxy, dados num volume, mídia servida em produção e erros no log |
 | 007 | [descoberta](007-descoberta/) | concluído | Demo identificada como demonstração para buscadores e redes sociais: `URL_PUBLICA`, canonical, `og:*`, `twitter:card`, ícone de tela inicial, `robots.txt`, `sitemap.xml` e `security.txt` |
+| 008 | [redesenho-da-home](008-redesenho-da-home/) | concluído | Home para quem avalia: hero com foto e disponibilidade, projetos logo depois, estudo de caso, habilidades provadas pelos projetos, rodapé lido do perfil e marca gerada das iniciais |
 
 > As specs 001 a 003 foram reconstruídas por **engenharia reversa** do código
 > existente, na modernização de 2026-09-11, que também incluiu uma
@@ -119,3 +120,13 @@ problema já corrigido. Leia antes de mexer nos arquivos citados.
   RF-01 e RF-10): `{{ perfil.curriculo.url }}` levanta `ValueError` sem arquivo e
   derruba a home com erro 500; `{{ projeto.link_github }}` vazio vira `href="None"`.
   Campo com `blank=True` pede a guarda no template e um teste com o campo vazio.
+- **Marca gerada das iniciais** (spec [008](008-redesenho-da-home/), ADR-09): o
+  `app_portfolio/marca.py` desenha o ícone de tela inicial com a
+  `static/fonts/inter-latin-variavel.woff2`; renomear ou trocar essa fonte quebra a
+  rota `/apple-touch-icon.png`. O `?v=` com as iniciais no `<head>` é o que faz o
+  navegador buscar o ícone novo quando o nome muda (o cache é de um dia), e os
+  arquivos `favicon.webp` e `apple-touch-icon.png` de `static/icons/` seguem como
+  reserva sem perfil: não os apague.
+- **Hero sem altura de tela** (spec [008](008-redesenho-da-home/), ADR-10): o
+  `.hero` não tem `min-height` de `100vh`/`100svh`; com ele, o topo de Projetos sai
+  da primeira tela do desktop. A spec 004, RF-15, vale só para o painel do menu.

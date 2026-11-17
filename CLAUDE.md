@@ -95,18 +95,20 @@ portfolio/           # Configuração do projeto Django (settings, urls raiz, ws
 app_portfolio/        # A única aplicação
   apps.py              # AppConfig da aplicação
   models.py           # Todos os modelos de dados
-  views.py             # home (GET da vitrine + POST do formulário de contato) e servir_midia (/media/ com e sem DEBUG)
+  views.py             # home (GET da vitrine, habilidades agrupadas por nível + POST do contato) e servir_midia (/media/ com e sem DEBUG)
   forms.py             # MensagemContatoForm (ModelForm)
   admin.py             # Admin customizado para cada modelo
   utils.py             # converter_para_webp() — conversor universal de imagem
   middleware.py        # PermissionsPolicyMiddleware: cabeçalho Permissions-Policy (o Django não tem configuração para ele)
   cache.py             # CacheArquivoAtomico: FileBasedCache com add() atômico (trava de arquivo), usado pelo rate limit
-  urls.py              # URLs da aplicação: a home, robots.txt, sitemap.xml e .well-known/security.txt
+  urls.py              # URLs da aplicação: a home, robots.txt, sitemap.xml, .well-known/security.txt, favicon.svg e apple-touch-icon.png
+  marca.py             # Marca gerada das iniciais do Perfil: monograma, favicon SVG e ícone de tela inicial PNG (spec 008)
   descoberta.py        # Metadados do <head> (montar_metadados) e as views de robots.txt, sitemap.xml e security.txt (spec 007)
   tests.py             # Suíte de testes (pytest): modelos, view e segurança do contato, ver "Qualidade" abaixo
   test_interface.py    # Testes das correções da auditoria de interface (spec 004): HTML, view, páginas de erro, CSS e JS lidos como texto
   test_semear_dados_demo.py # Testes do comando de demonstração e do Lighthouse CI
   test_descoberta.py   # URL_PUBLICA, metadados do <head>, imagens do cartão e os arquivos de descoberta, inclusive o prazo do Expires
+  test_redesenho.py    # Redesenho da home (spec 008): hero, ordem, cartão, chips, rodapé, marca e a migração de ida e volta
   test_readme_en.py    # Compara o README.en.md com o README.md (títulos, tabela, selos, blocos, links)
   test_comentarios_templates.py # Guarda a regra dos comentários dos templates ({# #}, nunca <!-- -->)
   test_impessoalidade.py # Falha se o nome do mantenedor aparecer em arquivo versionado ou se este arquivo citar skill pessoal
@@ -126,7 +128,7 @@ static/
   css/fontes.css       # @font-face de Inter e JetBrains Mono (hospedadas em static/fonts/)
   fonts/               # woff2 variáveis (latin) + licenças OFL
   js/main.js           # JavaScript vanilla (menu mobile com inert, filtros, avisos, formulário AJAX)
-  icons/                # SVGs de UI, tecnologias e redes sociais; default_perfil/default_projeto.webp (reserva), favicon.webp e apple-touch-icon.png (180 px, reduzido do favicon)
+  icons/                # SVGs de UI, social/ só com GitHub e LinkedIn; default_perfil/default_projeto.webp, favicon.webp e apple-touch-icon.png (reservas sem perfil)
   img/portfolio-django-divulgacao.jpg # Cartão da demo nas redes sociais e social preview do repositório (1280×640; o envio ao GitHub é manual, em Settings)
 railpack.json          # Receita de build e start da Railway (uv sync --locked, collectstatic; migrate && gunicorn)
 pyproject.toml         # Gerenciado com uv. [project]=runtime, [dependency-groups].dev, [project.optional-dependencies].prod + config das ferramentas (ruff, black, mypy, pytest)
@@ -160,10 +162,10 @@ docs/
 
 ### Modelos, imagens e formulário de contato
 
-Os seis grupos de modelos (`models.py`), a conversão para WebP no `save()` (`utils.py`) e o fluxo
+Os cinco grupos de modelos (`models.py`), a marca gerada das iniciais (`marca.py`), a conversão para WebP no `save()` (`utils.py`) e o fluxo
 do POST do contato (`views.py`): `docs/referencia/arquitetura.md`: **leia antes de mexer em
-`models.py`, `utils.py` ou na view `home`**. Requisitos e ADRs: `specs/001-vitrine-portfolio/` e
-`specs/002-formulario-contato/`.
+`models.py`, `utils.py`, `marca.py` ou na view `home`**. Requisitos e ADRs: `specs/001-vitrine-portfolio/`,
+`specs/002-formulario-contato/` e `specs/008-redesenho-da-home/`.
 
 - ⚠️ `ImageField` novo: sobrescreva `save()`, chame `converter_para_webp()`, cheque `if novo_conteudo and novo_nome:` e grave com `save=False` (sem isso, recursão infinita).
 - ⚠️ Ordem do POST: honeypot → validação → modo demonstração → rate limit (`cache.add`, atômico pela trava do `CacheArquivoAtomico`) → sanitização → gravação → e-mail.

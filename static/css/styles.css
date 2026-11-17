@@ -297,14 +297,36 @@ textarea {
 }
 
 .nav__logo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
     font-size: var(--fs-xl);
     font-weight: 700;
     color: var(--color-white);
-    font-family: var(--font-mono);
 }
 
-.logo-bracket {
+/* Monograma das iniciais (spec 008, RF-16): o mesmo desenho do favicon e do
+   ícone de tela inicial gerados pelo marca.py. A borda o mantém visível em
+   alto contraste. As letras vêm do data-iniciais pelo ::before, fora do texto
+   do link: o texto visível do logo é só o nome, que começa o aria-label. */
+.logo__monograma {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: var(--fs-sm);
+    font-weight: 800;
+    letter-spacing: 0.02em;
     color: var(--color-accent);
+    background: var(--color-bg-primary);
+    border: 2px solid var(--color-accent);
+    border-radius: var(--radius-md);
+}
+
+.logo__monograma::before {
+    content: attr(data-iniciais);
 }
 
 .nav__list {
@@ -406,261 +428,210 @@ textarea {
 /* ========================================
    Hero Section
    ======================================== */
+/* Spec 008, ADR-10: o hero tem a altura do conteúdo, com respiro, para o topo
+   de Projetos aparecer na primeira tela do desktop (RF-06). Sem animação de
+   entrada: o texto e a foto são o que a página mostra primeiro (RNF-04). */
 .hero {
-    min-height: 100vh;
-    /* svh é a altura com a barra do navegador do celular visível (RF-02, RF-15) */
-    min-height: 100svh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
     padding-top: var(--header-height);
     position: relative;
     overflow: hidden;
-    background: 
+    background:
         radial-gradient(ellipse at 20% 50%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
         radial-gradient(ellipse at 80% 20%, rgba(0, 153, 204, 0.05) 0%, transparent 40%),
         var(--color-bg-primary);
 }
 
+/* 1. Grade: texto à esquerda, foto 4:5 de 340px à direita (RF-04) */
 .hero__container {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) 340px;
     gap: var(--spacing-3xl);
     align-items: center;
-    padding: var(--spacing-3xl) var(--spacing-lg);
+    padding-block: var(--spacing-3xl);
 }
 
-.hero__greeting {
-    font-size: var(--fs-lg);
-    color: var(--color-accent);
-    font-weight: 500;
-    margin-bottom: var(--spacing-sm);
-    display: block;
-}
-
-.hero__title {
+/* 2. Selo de disponibilidade (RF-02): a borda o mantém em alto contraste */
+.hero__selo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-md);
     margin-bottom: var(--spacing-lg);
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--color-gray-200);
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-gray-500);
+    border-radius: var(--radius-full);
 }
 
-.hero__name {
-    display: block;
+.hero__selo-ponto {
+    width: 0.5rem;
+    height: 0.5rem;
+    flex-shrink: 0;
+    background: var(--color-accent);
+    border-radius: var(--radius-full);
+}
+
+/* 3. Nome, cargo e bio curta */
+.hero__title {
     font-size: var(--fs-5xl);
     font-weight: 700;
     color: var(--color-white);
     line-height: 1.1;
     margin-bottom: var(--spacing-sm);
-    animation: fadeInUp 0.8s ease forwards;
 }
 
 .hero__role {
-    display: block;
-    font-size: var(--fs-3xl);
+    font-size: var(--fs-2xl);
     font-weight: 500;
-    color: var(--color-gray-300);
-    animation: fadeInUp 0.8s ease 0.2s forwards;
-    opacity: 0;
+    color: var(--color-gray-200);
+    margin-bottom: var(--spacing-md);
 }
 
 .hero__description {
     font-size: var(--fs-lg);
     color: var(--color-gray-300);
-    margin-bottom: var(--spacing-xl);
-    max-width: 500px;
+    max-width: 34rem;
     line-height: 1.7;
-    animation: fadeInUp 0.8s ease 0.4s forwards;
-    opacity: 0;
+    margin-bottom: var(--spacing-xl);
 }
 
-.hero__buttons {
+/* 4. Ações: "Ver projetos", os ícones de 48px e o link do contato (RF-03) */
+.hero__acoes {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: var(--spacing-md);
-    margin-bottom: var(--spacing-3xl);
-    animation: fadeInUp 0.8s ease 0.6s forwards;
-    opacity: 0;
+    margin-bottom: var(--spacing-xl);
 }
 
-.hero__stats {
+.hero__links {
     display: flex;
-    gap: var(--spacing-2xl);
-    animation: fadeInUp 0.8s ease 0.8s forwards;
-    opacity: 0;
+    gap: var(--spacing-sm);
 }
 
-.hero__stat {
-    text-align: center;
+.icone-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    background: var(--color-bg-tertiary);
+    border: 1px solid var(--color-gray-500);
+    border-radius: var(--radius-lg);
+    transition: border-color var(--transition-base), background var(--transition-base);
 }
 
-.hero__stat-number {
-    display: block;
-    font-size: var(--fs-3xl);
+/* Os SVGs vêm em ciano ou em currentColor (preto dentro de <img>): o filtro os
+   deixa brancos sobre o fundo escuro */
+.icone-link img {
+    filter: brightness(0) invert(1);
+    opacity: 0.85;
+}
+
+.icone-link:hover {
+    border-color: var(--color-accent);
+    background: rgba(0, 212, 255, 0.1);
+}
+
+/* padding-block: o link de texto chega aos 44px de alvo de toque */
+.hero__contato {
+    padding-block: 0.75rem;
+    color: var(--color-gray-300);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    transition: color var(--transition-fast);
+}
+
+.hero__contato:hover {
+    color: var(--color-accent);
+}
+
+/* 5. Números contados dos dados (RF-05) */
+.hero__numeros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm) var(--spacing-xl);
+    font-size: var(--fs-sm);
+    color: var(--color-gray-300);
+}
+
+.hero__numero {
+    margin-right: var(--spacing-xs);
+    font-size: var(--fs-2xl);
     font-weight: 700;
     color: var(--color-accent);
-    line-height: 1;
 }
 
-.hero__stat-label {
-    font-size: var(--fs-sm);
-    color: var(--color-gray-400);
-}
-
-/* Hero Code Block */
-.hero__visual {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    animation: floatAnimation 6s ease-in-out infinite;
-}
-
-.hero__code-block {
-    background: var(--color-bg-card);
-    border-radius: var(--radius-xl);
-    overflow: hidden;
-    box-shadow: var(--shadow-xl);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    max-width: 450px;
+/* 6. Foto: 4:5 no desktop, redonda no celular */
+.hero__foto {
     width: 100%;
-}
-
-.code-header {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-md) var(--spacing-lg);
-    background: var(--color-bg-tertiary);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.code-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: var(--radius-full);
-}
-
-.code-dot--red { background: #ff5f57; }
-.code-dot--yellow { background: #febc2e; }
-.code-dot--green { background: #28c840; }
-
-.code-filename {
-    margin-left: auto;
-    font-size: var(--fs-xs);
-    color: var(--color-gray-400);
-    font-family: var(--font-mono);
-}
-
-.code-content {
-    padding: var(--spacing-lg);
-    font-family: var(--font-mono);
-    font-size: var(--fs-sm);
-    line-height: 1.8;
-    overflow-x: auto;
-}
-
-.code-keyword { color: #c678dd; }
-.code-variable { color: #e06c75; }
-.code-property { color: #e5c07b; }
-.code-string { color: #98c379; }
-.code-method { color: #61afef; }
-
-/* Scroll Indicator */
-.hero__scroll {
-    position: absolute;
-    bottom: var(--spacing-xl);
-    left: 50%;
-    transform: translateX(-50%);
-    display: block;
-}
-
-.scroll-indicator {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-sm);
-    color: var(--color-gray-400);
-    font-size: var(--fs-sm);
-    animation: bounce 2s infinite;
-}
-
-.scroll-line {
-    width: 1px;
-    height: 30px;
-    background: linear-gradient(to bottom, var(--color-accent), transparent);
+    aspect-ratio: 4/5;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-xl);
 }
 
 /* Hero Responsive */
-/* Spec 004, RF-02: título, botões e números precisam caber na primeira tela do
-   celular. O bloco de código é decorativo (aria-hidden): vem depois do texto e
-   some no celular, onde antes empurrava o nome para além da metade da tela. */
-@media (max-width: 1024px) {
-    .hero__scroll {
-        display: none;
-    }
-
+/* Spec 008, RF-04 e RF-06: até 768px uma coluna centralizada, com a foto
+   redonda de 112px acima do selo; nome, selo e "Ver projetos" cabem na
+   primeira tela de 390 x 844. */
+@media (max-width: 768px) {
     .hero__container {
         grid-template-columns: 1fr;
-        gap: var(--spacing-xl);
+        gap: var(--spacing-lg);
         padding-block: var(--spacing-xl) var(--spacing-2xl);
         text-align: center;
     }
 
-    .hero__title {
-        margin-bottom: var(--spacing-md);
-    }
-
-    .hero__description {
-        margin-left: auto;
-        margin-right: auto;
-        margin-bottom: var(--spacing-lg);
-    }
-
-    .hero__buttons {
-        justify-content: center;
-        margin-bottom: var(--spacing-xl);
-    }
-
-    /* As três estatísticas ficam numa linha em vez de quebrar em 2 + 1 */
-    .hero__stats {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: var(--spacing-md);
-        max-width: 520px;
+    .hero__foto-moldura {
+        order: -1;
+        width: 112px;
         margin-inline: auto;
     }
-}
 
-@media (max-width: 640px) {
-    .hero__visual {
-        display: none;
+    .hero__foto {
+        aspect-ratio: 1;
+        border: 2px solid var(--color-accent);
+        border-radius: var(--radius-full);
     }
 
-    .hero__name {
+    .hero__title {
         font-size: var(--fs-4xl);
     }
 
     .hero__role {
-        font-size: var(--fs-2xl);
+        font-size: var(--fs-xl);
     }
 
-    .hero__buttons {
+    .hero__description {
+        margin-inline: auto;
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .hero__acoes {
         flex-direction: column;
+        gap: var(--spacing-sm);
     }
 
-    .hero__stat-label {
-        font-size: var(--fs-xs);
+    .hero__acoes .btn--primary {
+        width: 100%;
     }
-}
 
-/* Celular deitado: a tela tem ~340px de altura, nada decorativo cabe */
-@media (max-height: 500px) and (orientation: landscape) {
-    .hero__visual {
-        display: none;
+    .hero__numeros {
+        justify-content: center;
     }
 }
 
 /* ========================================
    About Section
    ======================================== */
+/* Fundo primário: com Projetos logo depois do hero (spec 008, RF-07), as
+   seções seguem alternando primário e secundário */
 .about {
-    background: var(--color-bg-secondary);
+    background: var(--color-bg-primary);
 }
 
 .about__container {
@@ -785,7 +756,7 @@ textarea {
    Projects Section
    ======================================== */
 .projects {
-    background: var(--color-bg-primary);
+    background: var(--color-bg-secondary);
 }
 
 .projects__filters {
@@ -812,6 +783,35 @@ textarea {
     color: var(--color-primary);
     background: var(--color-accent);
     border-color: var(--color-accent);
+}
+
+/* Linha de estado do filtro por chip (spec 008, ADR-08): iniciarChips() no
+   main.js a mostra e põe o foco nela. O [hidden] precisa vencer o display:
+   flex, senão a linha vazia apareceria. */
+.projects__estado {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 var(--spacing-md);
+    margin: calc(-1 * var(--spacing-lg)) 0 var(--spacing-lg);
+    font-size: var(--fs-sm);
+    color: var(--color-gray-200);
+}
+
+.projects__estado[hidden] {
+    display: none;
+}
+
+.projects__estado:focus-visible {
+    outline-offset: 4px;
+}
+
+.projects__limpar {
+    padding-block: 0.75rem;
+    font-size: inherit;
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
 }
 
 .projects__grid {
@@ -893,10 +893,73 @@ textarea {
     border-radius: var(--radius-sm);
 }
 
+/* Estudo de caso (spec 008, RF-10): <details> nativo, que abre sem script */
+.project-card__caso {
+    margin-top: var(--spacing-md);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.project-card__caso-titulo {
+    padding-block: 0.75rem;
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--color-gray-100);
+    cursor: pointer;
+}
+
+.project-card__caso-titulo:hover {
+    color: var(--color-accent);
+}
+
+.project-card__caso-lista dt {
+    margin-top: var(--spacing-sm);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.project-card__caso-lista dd {
+    font-size: var(--fs-sm);
+    color: var(--color-gray-300);
+    line-height: 1.6;
+}
+
+/* Ações do cartão (spec 008, RF-09): "Ver online" e "Código" */
+.project-card__acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-lg);
+}
+
+/* position: relative contém o .sr-only do título (spec 004, RF-10): sem
+   ancestral posicionado, o texto escondido ficava solto no cartão */
+.project-card__acao {
+    position: relative;
+    padding: 0.625rem var(--spacing-lg);
+    font-size: var(--fs-sm);
+}
+
+/* O github.svg usa currentColor, que dentro de <img> vira preto */
+.project-card__acao.btn--secondary img {
+    filter: brightness(0) invert(1);
+}
+
+.project-card__acao.btn--secondary:hover img {
+    filter: none;
+}
+
 /* Projects Responsive */
 @media (max-width: 640px) {
     .projects__grid {
         grid-template-columns: 1fr;
+    }
+
+    /* No celular as duas ações empilham, da mesma largura */
+    .project-card__acoes {
+        flex-direction: column;
     }
 }
 
@@ -907,43 +970,19 @@ textarea {
     background: var(--color-bg-secondary);
 }
 
+/* Um bloco por categoria; dentro, um título por nível e os chips */
 .skills__container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(17.5rem, 1fr));
     gap: var(--spacing-xl);
-    align-items: stretch;
-    margin-bottom: var(--spacing-3xl);
+    align-items: start;
 }
 
 .skills__category {
-    background-color: var(--color-bg-secondary);
     background: var(--color-bg-card);
     padding: var(--spacing-xl);
-    border-radius: var(--radius-xl);
-    flex: 1 1 300px;           /* Base de 300px, mas cresce se houver espaço */
-    max-width: 400px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;       /* CENTRALIZAÇÃO: Mantém tudo no meio do card */
-    text-align: center;
-    transition: transform 0.3s ease;
     border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.skills__category-header {
-    width: 100%;
-    display: flex;
-    align-items: center; 
-    justify-content: center;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
-    padding-bottom: var(--spacing-md);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.skills__category-header img {
-    opacity: 0.8;
+    border-radius: var(--radius-xl);
 }
 
 /* Mesmo tamanho do outro h3 da página (.project-card__title) */
@@ -951,96 +990,59 @@ textarea {
     font-size: var(--fs-xl);
     font-weight: 600;
     color: var(--color-white);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.skills__category:hover {
-    transform: translateY(-5px);
+.skills__nivel {
+    margin: var(--spacing-lg) 0 var(--spacing-sm);
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    color: var(--color-gray-300);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
-.skills__list {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-lg);
-}
-
-.skill-item {
-    width: 100%;            /* Ocupa a largura para permitir alinhamento interno */
-    display: flex;
-    flex-direction: column;
-    align-items: center;    /* Centraliza o nome e a barra (se houver) */
-}
-
-.skill-item__info {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center; /* Padrão centralizado */
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    text-align: center;
-}
-
-.skill-item__info:has(.skill-item__level) {
-    justify-content: space-between;
-    text-align: left; /* No modo barra, o nome volta para a esquerda */
-}
-
-.skill-item__name {
-    font-size: var(--fs-sm);
-    color: var(--color-gray-200);
-}
-
-.skill-item__level {
-    font-size: var(--fs-sm);
-    color: var(--color-accent);
-    font-weight: 500;
-}
-
-.skill-item__bar {
-    width: 100%;
-    height: 6px;
-    background-color: var(--color-bg-tertiary);
-    border-radius: var(--radius-full);
-    overflow: hidden;
-}
-
-.skill-item__progress {
-    height: 100%;
-    background: linear-gradient(90deg, var(--color-accent), #0099cc);
-    border-radius: var(--radius-full);
-    width: 0;
-    transition: width 1s ease;
-}
-
-/* Skills Icons */
-.skills__icons {
+/* 40px de chip + 4px de vão = os 44px de alvo de toque (spec 008, RNF-02) */
+.skills__chips {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--spacing-lg);
-    padding: var(--spacing-xl);
-    background: var(--color-bg-card);
-    border-radius: var(--radius-xl);
+    gap: var(--spacing-xs);
 }
 
-.skills__icon {
-    display: flex;
+.chip {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 70px;
-    height: 70px;
+    gap: var(--spacing-xs);
+    min-height: 2.5rem;
+    padding: 0 var(--spacing-md);
+    font-size: var(--fs-sm);
+    color: var(--color-gray-100);
     background: var(--color-bg-tertiary);
-    border-radius: var(--radius-lg);
-    transition: transform var(--transition-base), background var(--transition-base),
-        box-shadow var(--transition-base);
+    border: 1px solid var(--color-gray-500);
+    border-radius: var(--radius-full);
 }
 
-.skills__icon:hover {
-    transform: translateY(-5px);
-    background: rgba(0, 212, 255, 0.1);
-    box-shadow: var(--shadow-glow);
+.chip__contagem {
+    color: var(--color-gray-300);
+}
+
+/* Só o chip com projetos é botão; aria-pressed é alternado por iniciarChips()
+   em main.js (spec 008, RF-13) */
+button.chip {
+    transition: border-color var(--transition-base), background var(--transition-base),
+        color var(--transition-base);
+}
+
+button.chip:hover {
+    border-color: var(--color-accent);
+}
+
+.chip[aria-pressed='true'],
+.chip[aria-pressed='true'] .chip__contagem {
+    color: var(--color-primary);
+    background: var(--color-accent);
+    border-color: var(--color-accent);
 }
 
 /* ========================================
@@ -1219,11 +1221,12 @@ textarea {
 }
 
 .footer__logo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
     font-size: var(--fs-xl);
     font-weight: 700;
     color: var(--color-white);
-    font-family: var(--font-mono);
-    display: inline-block;
     margin-bottom: var(--spacing-md);
 }
 
@@ -1311,23 +1314,12 @@ textarea {
 }
 
 /* Footer Responsive */
+/* As colunas empilham alinhadas à esquerda; a linha de direitos autorais
+   segue centralizada: ela marca o fim da página (spec 008, seção 2.6) */
 @media (max-width: 768px) {
     .footer__content {
         grid-template-columns: 1fr;
         gap: var(--spacing-xl);
-        text-align: center;
-    }
-
-    .footer__description {
-        margin: 0 auto;
-    }
-
-    .footer__list {
-        align-items: center;
-    }
-
-    .social__links {
-        justify-content: center;
     }
 
     .footer__bottom {
@@ -1493,27 +1485,6 @@ textarea {
     }
 }
 
-@keyframes floatAnimation {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-15px);
-    }
-}
-
-@keyframes bounce {
-    0%, 20%, 50%, 80%, 100% {
-        transform: translateY(0);
-    }
-    40% {
-        transform: translateY(-10px);
-    }
-    60% {
-        transform: translateY(-5px);
-    }
-}
-
 /* Animation classes for scroll reveal */
 .reveal {
     opacity: 0;
@@ -1531,8 +1502,7 @@ textarea {
    ======================================== */
 @media print {
     .header,
-    .back-to-top,
-    .hero__scroll {
+    .back-to-top {
         display: none;
     }
 
@@ -1545,48 +1515,6 @@ textarea {
         page-break-inside: avoid;
     }
 }
-
-/* ========================================
-   Botão Ver no GitHub
-   ======================================== */
-.btn-github {
-    /* Contém o .sr-only do nome do projeto (spec 004, RF-10): sem ancestral
-       posicionado, o texto escondido ficava solto no cartão */
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-top: 20px;
-    padding: 10px 16px;
-    background: var(--color-bg-secondary);
-    color: var(--color-white);
-    text-decoration: none;
-    font-size: var(--fs-sm);
-    font-weight: 500;
-    border-radius: var(--radius-md);
-    border: 1px solid rgba(0, 212, 255, 0.3); /* Borda sutil com seu ciano */
-    transition: background var(--transition-base), color var(--transition-base),
-        transform var(--transition-base), border-color var(--transition-base);
-}
-
-.btn-github img {
-    /* Isso garante que o ícone do GitHub fique branco/ciano */
-    filter: brightness(0) invert(1);
-}
-
-.btn-github:hover {
-    background: var(--color-accent); /* Seu Ciano Neon no hover */
-    color: var(--color-bg-primary);
-    transform: translateY(-2px);
-    border-color: var(--color-accent);
-}
-
-.btn-github:hover img {
-    /* Ícone fica preto no hover para contrastar com o fundo ciano */
-    filter: brightness(0);
-}
-
 
 /* ========================================
    Páginas de erro
@@ -1660,6 +1588,31 @@ textarea {
 
 
 /* ========================================
+   Alto contraste
+   ======================================== */
+/* Spec 008, RNF-02: no alto contraste do Windows os fundos somem; a borda
+   mantém chip, selo, filtros, botões de ícone e monograma visíveis, e o que
+   está marcado ganha a cor de seleção do sistema. */
+@media (forced-colors: active) {
+    .chip,
+    .hero__selo,
+    .filter-btn,
+    .icone-link,
+    .logo__monograma {
+        border: 1px solid CanvasText;
+    }
+
+    .chip[aria-pressed='true'],
+    .filter-btn.active {
+        forced-color-adjust: none;
+        color: HighlightText;
+        background: Highlight;
+        border-color: Highlight;
+    }
+}
+
+
+/* ========================================
    Movimento reduzido
    ======================================== */
 /* Spec 004, RF-08: quem pede "reduzir movimento" no sistema não vê animação
@@ -1679,11 +1632,6 @@ textarea {
         transition-duration: 0.01ms !important;
     }
 
-    .hero__visual,
-    .scroll-indicator {
-        animation: none;
-    }
-
     /* .reveal nasce com opacity 0 e só ganha .active ao entrar na tela */
     .reveal {
         opacity: 1;
@@ -1691,10 +1639,7 @@ textarea {
     }
 
     .btn:hover,
-    .btn-github:hover,
     .project-card:hover,
-    .skills__category:hover,
-    .skills__icon:hover,
     .contact__card:hover,
     .social__link:hover,
     .back-to-top:hover,

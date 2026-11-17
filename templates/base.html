@@ -43,9 +43,14 @@
     <link rel="stylesheet" href="{% static 'css/fontes.css' %}">
 
     {# ARQUIVOS ESTÁTICOS: O Django gerencia o versionamento de CSS e imagens via {% static %} #}
+    {% if perfil %}
+    {# FAVICON GERADO: as iniciais do perfil num SVG (spec 008, RF-17); o ?v= muda com elas e fura o cache do navegador. #}
+    <link rel="icon" type="image/svg+xml" href="{% url 'favicon_svg' %}?v={{ iniciais|urlencode }}">
+    {% endif %}
+    {# Reserva para navegador sem SVG no favicon, e o único ícone enquanto não há perfil. #}
     <link rel="icon" type="image/webp" href="{% static 'icons/favicon.webp' %}">
-    {# Ícone ao salvar na tela inicial do celular: PNG opaco de 180 px, reduzido do favicon (spec 007, ADR-06). #}
-    <link rel="apple-touch-icon" href="{% static 'icons/apple-touch-icon.png' %}">
+    {# Ícone de tela inicial: PNG opaco de 180 px com o monograma; sem perfil, a rota redireciona para o arquivo de static/icons/ (spec 008, RF-18). #}
+    <link rel="apple-touch-icon" href="{% url 'icone_tela_inicial' %}?v={{ iniciais|urlencode }}">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
@@ -53,18 +58,18 @@
     <header class="header" id="header">
         <nav class="nav container">
             {# LOGO: o aria-label começa pelo texto visível, para o comando de voz "clicar Seu Nome" funcionar (spec 004, RF-11) #}
+            {# O monograma repete as iniciais do nome ao lado: decorativo para o leitor de tela (spec 008, RF-16). As letras vêm do CSS (::before), fora do texto do link: assim o texto visível é só o nome, e o aria-label começa por ele (WCAG 2.5.3) #}
             <a href="/" class="nav__logo" aria-label="{{ perfil.nome|default:'Seu Nome' }}, voltar ao início">
-                <span class="logo-bracket" aria-hidden="true">&lt;</span>
+                <span class="logo__monograma" data-iniciais="{{ iniciais }}" aria-hidden="true"></span>
                 {{ perfil.nome|default:"Seu Nome" }}
-                <span class="logo-bracket" aria-hidden="true">/&gt;</span>
             </a>
 
             <div class="nav__menu" id="nav-menu">
                 <ul class="nav__list">
                     {# LINKS DE NAVEGAÇÃO: Devem coincidir com as IDs das seções no home.html #}
                     <li class="nav__item"><a href="#home" class="nav__link active">Início</a></li>
-                    <li class="nav__item"><a href="#about" class="nav__link">Sobre</a></li>
                     <li class="nav__item"><a href="#projects" class="nav__link">Projetos</a></li>
+                    <li class="nav__item"><a href="#about" class="nav__link">Sobre</a></li>
                     <li class="nav__item"><a href="#skills" class="nav__link">Habilidades</a></li>
                     <li class="nav__item"><a href="#contact" class="nav__link">Contato</a></li>
                 </ul>
@@ -90,13 +95,13 @@
             <div class="footer__content">
                 <div class="footer__brand">
                     <a href="#home" class="footer__logo">
-                        <span class="logo-bracket" aria-hidden="true">&lt;</span>
+                        <span class="logo__monograma" data-iniciais="{{ iniciais }}" aria-hidden="true"></span>
                         {{ perfil.nome|default:"Seu Nome" }}
-                        <span class="logo-bracket" aria-hidden="true">/&gt;</span>
                     </a>
-                    <p class="footer__description">
-                        Desenvolvedor Full-Stack focado em transformar ideias em aplicações robustas, escaláveis e de alto impacto.
-                    </p>
+                    {# A frase é a bio curta do perfil, nunca texto fixo aqui (spec 008, RF-15) #}
+                    {% if perfil.bio_curta %}
+                    <p class="footer__description">{{ perfil.bio_curta }}</p>
+                    {% endif %}
                 </div>
                 
                 <div class="footer__links">
@@ -104,38 +109,31 @@
                     <h2 class="footer__title">Links Rápidos</h2>
                     <ul class="footer__list">
                         <li><a href="#home" class="footer__link">Início</a></li>
-                        <li><a href="#about" class="footer__link">Sobre</a></li>
                         <li><a href="#projects" class="footer__link">Projetos</a></li>
+                        <li><a href="#about" class="footer__link">Sobre</a></li>
                         <li><a href="#skills" class="footer__link">Habilidades</a></li>
                         <li><a href="#contact" class="footer__link">Contato</a></li>
                     </ul>
                 </div>
                 
-                {# REDES: links fixos de exemplo, iguais para todo perfil; quem usa o template troca os endereços aqui (spec 004, RF-14) #}
+                {# REDES: só o GitHub e o LinkedIn do perfil; sem nenhum dos dois, o bloco some (spec 008, RF-15) #}
+                {% if perfil.link_github or perfil.link_linkedin %}
                 <div class="footer__social">
                     <h2 class="footer__title">Redes Sociais</h2>
                     <div class="social__links">
-                        {# SEGURANÇA: rel="noopener" é essencial ao usar target="_blank" para evitar vulnerabilidades #}
-                        <a href="https://www.facebook.com/" class="social__link" target="_blank" rel="noopener" aria-label="Facebook">
-                            <img src="{% static 'icons/social/facebook.svg' %}" alt="" aria-hidden="true" width="24" height="24">
-                        </a>
-                        <a href="https://www.instagram.com/" class="social__link" target="_blank" rel="noopener" aria-label="Instagram">
-                            <img src="{% static 'icons/social/instagram.svg' %}" alt="" aria-hidden="true" width="24" height="24">
-                        </a>
-                        <a href="https://www.linkedin.com/in/" class="social__link" target="_blank" rel="noopener" aria-label="LinkedIn">
-                            <img src="{% static 'icons/social/linkedin.svg' %}" alt="" aria-hidden="true" width="24" height="24">
-                        </a>
-                        <a href="https://x.com/" class="social__link" target="_blank" rel="noopener" aria-label="X">
-                            <img src="{% static 'icons/social/x.svg' %}" alt="" aria-hidden="true" width="24" height="24">
-                        </a>
-                        <a href="https://www.tiktok.com/" class="social__link" target="_blank" rel="noopener" aria-label="TikTok">
-                            <img src="{% static 'icons/social/tiktok.svg' %}" alt="" aria-hidden="true" width="24" height="24">
-                        </a>
-                        <a href="https://github.com/" class="social__link" target="_blank" rel="noopener" aria-label="GitHub">
+                        {% if perfil.link_github %}
+                        <a href="{{ perfil.link_github }}" class="social__link" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
                             <img src="{% static 'icons/social/github.svg' %}" alt="" aria-hidden="true" width="24" height="24">
                         </a>
+                        {% endif %}
+                        {% if perfil.link_linkedin %}
+                        <a href="{{ perfil.link_linkedin }}" class="social__link" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                            <img src="{% static 'icons/social/linkedin.svg' %}" alt="" aria-hidden="true" width="24" height="24">
+                        </a>
+                        {% endif %}
                     </div>
                 </div>
+                {% endif %}
             </div>
             
             <div class="footer__bottom">
