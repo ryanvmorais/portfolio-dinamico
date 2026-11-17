@@ -173,7 +173,6 @@ class Command(BaseCommand):
             bio_curta="Aplicações web do banco de dados à interface.",
             anos_experiencia=5,
             email_contato="maria@example.com",
-            telefone="+55 11 90000-0000",
             localizacao="São Paulo, Brasil",
             status_trabalho="Disponível para projetos",
             formacao="Análise e Desenvolvimento de Sistemas",

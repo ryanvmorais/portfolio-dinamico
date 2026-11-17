@@ -206,7 +206,6 @@ class Perfil(models.Model):
         help_text="Aparece no hero e no selo da foto do Sobre; zero esconde o número.",
     )
     email_contato = models.EmailField(max_length=255, blank=True, null=True)
-    telefone = models.CharField(max_length=20, blank=True, null=True)
     localizacao = models.CharField(max_length=100, blank=True, null=True)
     status_trabalho = models.CharField(max_length=100, blank=True, null=True)
     formacao = models.CharField(max_length=100, blank=True, null=True)
