@@ -234,7 +234,7 @@ class TestPortfolioCore:
         assert diretivas["default-src"] == ["'self'"]
         assert diretivas["script-src"] == ["'self'"]
         assert diretivas["font-src"] == ["'self'"]
-        assert diretivas["style-src"] == ["'self'", "'unsafe-inline'"]
+        assert diretivas["style-src"] == ["'self'"]
         assert diretivas["img-src"] == ["'self'", "data:", "https:"]
         # As que não herdam o default-src, e o object-src fechado.
         assert diretivas["base-uri"] == ["'none'"]

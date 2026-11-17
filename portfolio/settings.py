@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from csp.constants import NONE, SELF, UNSAFE_INLINE
+from csp.constants import NONE, SELF
 from dotenv import load_dotenv
 
 # ---------------------------------------------------------------------------
@@ -232,9 +232,10 @@ X_FRAME_OPTIONS = "DENY"  # nenhuma página pode ser enquadrada (clickjacking)
 CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
         "default-src": [SELF],
-        # 'unsafe-inline' só em estilo: o honeypot do formulário de contato usa
-        # style="" inline. Script nunca: nenhum template tem <script> inline.
-        "style-src": [SELF, UNSAFE_INLINE],
+        # Sem 'unsafe-inline': nenhum template tem estilo nem script inline (o
+        # honeypot do contato se esconde por uma classe do styles.css, adendo da
+        # spec 003). Um style="" ou <style> novo seria bloqueado em silêncio.
+        "style-src": [SELF],
         "script-src": [SELF],
         "img-src": [SELF, "data:", "https:"],
         # As fontes vêm de static/fonts/ (spec 004, RF-17): o Google Fonts saiu

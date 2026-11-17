@@ -342,8 +342,8 @@
                     <form class="contact__form" id="contact-form" action="" method="POST">
                         {% csrf_token %} {# Proteção obrigatória do Django contra ataques maliciosos #}
                         
-                        {# HONEYPOT: Campo invisível. Se um robô preencher, o Django ignora o envio #}
-                        <div style="display:none;" aria-hidden="true">
+                        {# HONEYPOT: campo invisível, escondido pela classe do styles.css (a CSP não aceita style=). Se um robô preencher, o Django ignora o envio #}
+                        <div class="contact__honeypot" aria-hidden="true">
                             <input type="text" name="honeypot" tabindex="-1" autocomplete="off">
                         </div>
 
