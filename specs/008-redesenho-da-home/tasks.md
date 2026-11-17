@@ -276,3 +276,40 @@ Admin, depois do deploy.
   `uv run mypy app_portfolio portfolio`, `uv run pytest`,
   `uv run python manage.py makemigrations --check`. — 334 passed; ruff/black/mypy
   verdes; `makemigrations --check` sem mudança.
+
+## Adendo (2026-11-17): vitrine completa e proporcional
+
+> Status do adendo: concluído (2026-11-17). Quebra os RF-30 a RF-33 e os ADR-14 e ADR-15
+> do adendo. O texto acima fica como está; as etapas continuam a numeração.
+
+## Etapa 13 — Dados de demonstração
+
+- [x] `app_portfolio/management/commands/semear_dados_demo.py`: três categorias de
+  projeto, seis projetos com cinco tecnologias, estudo de caso e as duas ações, e três
+  categorias de habilidade com 3, 2 e 1 habilidades por nível. — RF-30, RF-31, ADR-14
+- [x] `app_portfolio/test_semear_dados_demo.py`: quantidades por projeto, por categoria
+  e por nível, contagem descendo de nível para nível e dois cards por filtro. — RF-33
+- [x] Portão de qualidade: `uv run ruff check --fix .`, `uv run black .`,
+  `uv run mypy app_portfolio portfolio`, `uv run pytest`. — rodado junto com o da
+  Etapa 14: 355 passed; ruff/black/mypy verdes.
+
+## Etapa 14 — Cards do mesmo tamanho
+
+- [x] `static/css/styles.css`: cards de habilidade esticados, ações no pé do card de
+  projeto e duas linhas reservadas para as tags. — RF-32, ADR-15
+- [x] `app_portfolio/test_interface.py`: as regras do RF-32 no `styles.css`. — RF-33
+- [x] Navegador de 360 a 1440 px com os dados do `semear_dados_demo`: tags em no máximo
+  duas linhas, cards de habilidade da mesma altura, estudo de caso e botões alinhados por
+  fileira. — RF-32
+- [x] Portão de qualidade: `uv run ruff check --fix .`, `uv run black .`,
+  `uv run mypy app_portfolio portfolio`, `uv run pytest`. — 355 passed; ruff/black/mypy
+  verdes.
+
+## Etapa 15 — Fechamento
+
+- [x] `design.md`: "Notas de implementação do adendo". — RF-33
+- [x] Status do adendo `concluído` nos três arquivos e a linha do índice do
+  `specs/README.md`. — RF-33
+- [x] Portão de qualidade: `uv run ruff check .`, `uv run black --check .`,
+  `uv run mypy app_portfolio portfolio`, `uv run pytest`. — 355 passed; ruff/black/mypy
+  verdes.
