@@ -872,6 +872,13 @@ textarea {
         box-shadow var(--transition-base);
 }
 
+/* Os filtros (filtrarProjetos() no main.js) escondem o card com o atributo
+   hidden; o display: flex acima venceria o display: none do navegador, e o
+   card filtrado continuaria na tela */
+.project-card[hidden] {
+    display: none;
+}
+
 .project-card:hover {
     transform: translateY(-8px);
     border-color: rgba(0, 212, 255, 0.3);
