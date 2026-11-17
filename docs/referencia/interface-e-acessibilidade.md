@@ -12,10 +12,14 @@ que ficaram, e que um ajuste "inofensivo" desfaria:
   `#skills`, `#contact`) não mudam.
 - **Hero:** tem a altura do conteúdo, sem `min-height` de tela inteira (o topo de
   Projetos aparece na primeira tela a 1280 x 800). Todo texto vem do `Perfil` ou é
-  contado dos dados; cada link (GitHub, LinkedIn, currículo) e cada número tem o
-  seu `{% if %}`. Até 768 px vira uma coluna centralizada, com a foto redonda de
-  112 px acima do selo (`order: -1`). A foto é a maior imagem da primeira tela:
-  `fetchpriority="high"`, medidas declaradas e **sem** `loading="lazy"`.
+  contado dos dados, e cada número tem o seu `{% if %}`. Duas ações só: "Ver
+  projetos" (`btn--primary`) e "Entre em contato" (`btn--secondary`), da mesma
+  altura; GitHub, LinkedIn e currículo ficam no Contato, no rodapé e em Sobre
+  (adendo da spec 008). Até 768 px vira uma coluna centralizada, com a foto redonda
+  de 160 px acima do selo (`order: -1`) e os dois botões em largura total, na
+  primeira tela de 390 x 844. A foto é recortada pelo alto (`object-position:
+  center top`), para o círculo não cortar a cabeça, e é a maior imagem da primeira
+  tela: `fetchpriority="high"`, medidas declaradas e **sem** `loading="lazy"`.
 - **Chips e filtro:** só a habilidade com projeto é `<button class="chip">`
   (`aria-pressed`, `data-tecnologia`, `data-nome`); sem projeto, é `<span>`. Um
   filtro por vez: o chip volta a categoria para "Todos", e a categoria desmarca o
@@ -25,7 +29,7 @@ que ficaram, e que um ajuste "inofensivo" desfaria:
   `#projects-status` fica vazia para não repetir a frase. "Limpar filtro" devolve
   o foco ao filtro "Todos". Sem JavaScript, todos os projetos aparecem.
 - **Estudo de caso:** `<details>` nativo, fechado, só com os campos preenchidos.
-- **Alto contraste:** chips, selo, filtros, botões de ícone e monograma têm
+- **Alto contraste:** chips, selo, filtros e monograma têm
   borda, reforçada no bloco `forced-colors: active`; o que está marcado usa
   `Highlight`.
 - **Rodapé:** frase da `bio_curta` e só GitHub e LinkedIn do perfil; sem os dois,
