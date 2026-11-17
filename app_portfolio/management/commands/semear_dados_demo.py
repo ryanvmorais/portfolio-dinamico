@@ -17,7 +17,7 @@ Uso::
 from __future__ import annotations
 
 import io
-from typing import Any
+from typing import Any, NamedTuple
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -44,41 +44,195 @@ CORES = [
     ("#9333ea", "#1e1b4b"),
 ]
 
-# Na ordem em que os projetos as recebem: o primeiro projeto fica com as duas
-# primeiras, o segundo com três, e assim por diante.
-TECNOLOGIAS = ["Python", "Django", "PostgreSQL", "Docker"]
-
-# (nome, slug): o slug é o que os projetos abaixo usam para escolher a categoria.
-CATEGORIAS_PROJETO = [("Web", "web"), ("API", "api")]
-
-# (título, slug da categoria, endereço no ar): a descrição é a mesma para todos. O
-# endereço usa o example.com, domínio reservado para exemplos (RFC 2606).
-PROJETOS = [
-    ("Loja virtual", "web", "https://example.com/loja"),
-    ("API de pedidos", "api", "https://example.com/api-de-pedidos"),
-    ("Painel de métricas", "web", "https://example.com/painel"),
+# A ordem da lista vira o campo ``ordem``: é a ordem das tags dentro de cada card.
+TECNOLOGIAS = [
+    "Python",
+    "Django",
+    "FastAPI",
+    "PostgreSQL",
+    "Redis",
+    "TypeScript",
+    "React",
+    "React Native",
+    "Vue.js",
+    "Tailwind CSS",
+    "Firebase",
+    "Docker",
+    "Nginx",
+    "GitHub Actions",
+    "AWS",
 ]
 
-# Estudo de caso de exemplo, o mesmo para todos os projetos (spec 008, RF-10).
-ESTUDO_DE_CASO = {
-    "problema": "Pedidos anotados em planilha se perdiam entre a venda e a entrega.",
-    "papel": "Projeto individual: modelagem, back-end, interface e deploy.",
-    "decisao_tecnica": "Django com PostgreSQL: o Admin pronto cobriu o painel interno.",
-    "resultado": "Exemplo de demonstração: os números de um projeto real entram aqui.",
-}
+# (nome, slug): o slug é o que os projetos abaixo usam para escolher a categoria.
+# Dois projetos por categoria, para cada filtro mostrar o mesmo número (RF-30).
+CATEGORIAS_PROJETO = [("Web App", "web-app"), ("API", "api"), ("Mobile", "mobile")]
 
-# Categoria de habilidade -> (habilidade, nível). A habilidade se liga à
-# tecnologia de mesmo nome, quando houver (spec 008, RF-12); as outras ficam
-# como chips sem contagem.
+
+class ProjetoDemo(NamedTuple):
+    """
+    Um projeto fictício, com tudo o que o card da home mostra (spec 008, RF-30).
+
+    Attributes:
+        titulo (str): Título do card.
+        categoria (str): Slug de uma das ``CATEGORIAS_PROJETO``.
+        endereco (str): Trecho final do link "Ver online" (no example.com) e do
+            repositório.
+        descricao (str): Resumo de cerca de 165 caracteres, para os cards empatarem.
+        tecnologias (tuple[str, ...]): Cinco nomes de ``TECNOLOGIAS``.
+        problema (str): Campo "Problema" do estudo de caso.
+        papel (str): Campo "Meu papel" do estudo de caso.
+        decisao_tecnica (str): Campo "Decisão técnica" do estudo de caso.
+        resultado (str): Campo "Resultado" do estudo de caso.
+    """
+
+    titulo: str
+    categoria: str
+    endereco: str
+    descricao: str
+    tecnologias: tuple[str, ...]
+    problema: str
+    papel: str
+    decisao_tecnica: str
+    resultado: str
+
+
+# Cinco tecnologias por projeto, distribuídas para a contagem dos chips descer de
+# nível para nível (quatro a dois no dia a dia, um em "já usei") e as tags caberem
+# em duas linhas a partir de 360 px (ADR-14). Cada estudo de caso cita só as
+# tecnologias do próprio projeto. Os endereços usam o example.com, domínio
+# reservado para exemplos (RFC 2606).
+PROJETOS = [
+    ProjetoDemo(
+        titulo="Plataforma de E-commerce",
+        categoria="web-app",
+        endereco="plataforma-de-e-commerce",
+        descricao="Sistema de vendas online com pagamentos integrados, controle de "
+        "estoque e painel de controle interno. Solução escalável focada em "
+        "conversão e segurança dos usuários.",
+        tecnologias=("Python", "Django", "PostgreSQL", "TypeScript", "React"),
+        problema="Lojistas pequenos vendiam pelo Instagram e perdiam pedidos por "
+        "não ter estoque nem pagamento integrados.",
+        papel="Projeto solo: modelagem do banco, carrinho, integração de pagamento "
+        "e o painel do lojista.",
+        decisao_tecnica="Django com PostgreSQL e o Admin como painel interno, para "
+        "entregar o MVP sem escrever um back-office.",
+        resultado="Loja-piloto no ar em seis semanas, com checkout em três passos e "
+        "estoque baixado a cada venda.",
+    ),
+    ProjetoDemo(
+        titulo="API de Gestão Financeira",
+        categoria="api",
+        endereco="api-de-gestao-financeira",
+        descricao="Interface RESTful para controle financeiro com login JWT e "
+        "Swagger. Estrutura robusta para processamento de transações e relatórios "
+        "detalhados com máxima segurança.",
+        tecnologias=("Python", "PostgreSQL", "Redis", "Nginx", "GitHub Actions"),
+        problema="Um app de finanças pessoais precisava de um back-end seguro para "
+        "contas, lançamentos e relatórios.",
+        papel="Projeto solo: desenho da API REST, autenticação por token, testes "
+        "automatizados e documentação.",
+        decisao_tecnica="Redis guarda os relatórios já calculados; o PostgreSQL só "
+        "refaz a conta quando entra um lançamento.",
+        resultado="Documentação interativa no Swagger, e cada pull request passa por "
+        "testes e lint no CI antes do merge.",
+    ),
+    ProjetoDemo(
+        titulo="Dashboard de Analytics",
+        categoria="web-app",
+        endereco="dashboard-de-analytics",
+        descricao="Painel de análise de dados em tempo real com gráficos interativos "
+        "e relatórios automatizados. Construído com foco em UX para garantir "
+        "clareza e agilidade operacional.",
+        tecnologias=("Django", "PostgreSQL", "TypeScript", "Vue.js", "Docker"),
+        problema="A equipe de vendas montava relatórios à mão em planilhas e só via "
+        "os números no fim do mês.",
+        papel="Em dupla: fiquei com o back-end, a agregação dos dados e o deploy; a "
+        "outra pessoa fez a interface.",
+        decisao_tecnica="Agregar os dados em tabelas-resumo de hora em hora, para os "
+        "gráficos abrirem sem pesar no banco.",
+        resultado="O relatório mensal virou um painel diário, que se atualiza "
+        "sozinho, sem planilha no meio.",
+    ),
+    ProjetoDemo(
+        titulo="App de Gestão de Tarefas",
+        categoria="mobile",
+        endereco="app-de-gestao-de-tarefas",
+        descricao="Aplicativo completo para organização de tarefas com nuvem e modo "
+        "offline. Interface intuitiva com alertas inteligentes para otimizar a "
+        "produtividade no dia a dia.",
+        tecnologias=("TypeScript", "React Native", "Tailwind CSS", "Firebase", "AWS"),
+        problema="Quem trabalha em campo perdia tarefas anotadas no papel e ficava "
+        "sem a lista quando o sinal caía.",
+        papel="Projeto solo: telas, sincronização com a nuvem, notificações e a "
+        "publicação nas lojas de apps.",
+        decisao_tecnica="Firebase com cache local: o app funciona sem internet e "
+        "sincroniza sozinho quando a conexão volta.",
+        resultado="A lista fica disponível offline, e os lembretes chegam na hora "
+        "certa mesmo com o app fechado.",
+    ),
+    ProjetoDemo(
+        titulo="Rede Social para Devs",
+        categoria="mobile",
+        endereco="rede-social-para-devs",
+        descricao="Aplicativo de interação para programadores com foco em networking "
+        "e artigos. Espaço ideal para divulgar portfólios e colaborar em projetos "
+        "de código aberto ativos.",
+        tecnologias=("Python", "Django", "React Native", "Tailwind CSS", "Docker"),
+        problema="Devs iniciantes não tinham onde mostrar projetos e trocar revisão "
+        "de código com gente mais experiente.",
+        papel="Equipe de três: fiz a API em Django e o feed do app; design e "
+        "moderação ficaram com os colegas.",
+        decisao_tecnica="Feed paginado por cursor, para a rolagem seguir leve mesmo "
+        "com milhares de publicações.",
+        resultado="Testado com uma turma de bootcamp, que trocou revisões de código "
+        "já na primeira semana.",
+    ),
+    ProjetoDemo(
+        titulo="Serviço de Chatbot com IA",
+        categoria="api",
+        endereco="servico-de-chatbot-com-ia",
+        descricao="Chatbot inteligente com processamento de linguagem natural e "
+        "múltiplas integrações. Atendimento automatizado eficiente para otimizar o "
+        "suporte e a experiência final.",
+        tecnologias=("Python", "FastAPI", "Docker", "Nginx", "GitHub Actions"),
+        problema="O suporte respondia as mesmas dúvidas o dia inteiro, e o cliente "
+        "esperava horas por uma resposta simples.",
+        papel="Projeto solo: API de conversa, integração com o modelo de linguagem e "
+        "histórico de atendimentos.",
+        decisao_tecnica="FastAPI, por ser assíncrono: o serviço espera a resposta do "
+        "modelo sem travar as outras conversas.",
+        resultado="As dúvidas repetidas passaram a ter resposta na hora; o time "
+        "ficou com os casos que pedem uma pessoa.",
+    ),
+]
+
+# Categoria de habilidade -> (habilidade, nível): seis por categoria, na proporção
+# 3, 2 e 1 (RF-31), e no dia a dia da mais usada para a menos usada. A habilidade
+# se liga à tecnologia de mesmo nome (spec 008, RF-12); as de "estudando" não têm
+# tecnologia nos projetos e ficam como chips sem contagem.
 HABILIDADES = {
     "Back-end": [
         ("Python", NivelHabilidade.DIA_A_DIA),
         ("Django", NivelHabilidade.DIA_A_DIA),
-        ("PostgreSQL", NivelHabilidade.JA_USEI),
+        ("PostgreSQL", NivelHabilidade.DIA_A_DIA),
+        ("FastAPI", NivelHabilidade.JA_USEI),
+        ("Redis", NivelHabilidade.JA_USEI),
+        ("Go", NivelHabilidade.ESTUDANDO),
     ],
-    "Infraestrutura": [
-        ("Docker", NivelHabilidade.JA_USEI),
-        ("Linux", NivelHabilidade.JA_USEI),
+    "Front-end": [
+        ("TypeScript", NivelHabilidade.DIA_A_DIA),
+        ("React Native", NivelHabilidade.DIA_A_DIA),
+        ("Tailwind CSS", NivelHabilidade.DIA_A_DIA),
+        ("React", NivelHabilidade.JA_USEI),
+        ("Vue.js", NivelHabilidade.JA_USEI),
+        ("Svelte", NivelHabilidade.ESTUDANDO),
+    ],
+    "DevOps e ferramentas": [
+        ("Docker", NivelHabilidade.DIA_A_DIA),
+        ("GitHub Actions", NivelHabilidade.DIA_A_DIA),
+        ("Nginx", NivelHabilidade.DIA_A_DIA),
+        ("AWS", NivelHabilidade.JA_USEI),
+        ("Firebase", NivelHabilidade.JA_USEI),
         ("Kubernetes", NivelHabilidade.ESTUDANDO),
     ],
 }
@@ -202,25 +356,29 @@ class Command(BaseCommand):
         endereço no ar e estudo de caso.
 
         Args:
-            tecnologias (list[Tecnologia]): Tecnologias associadas a cada projeto.
+            tecnologias (list[Tecnologia]): As tecnologias criadas; cada projeto
+                recebe as de mesmo nome que as de ``ProjetoDemo.tecnologias``.
         """
+        por_nome = {tecnologia.nome: tecnologia for tecnologia in tecnologias}
         categorias = {
             slug: CategoriaProjeto.objects.get_or_create(
                 slug=slug, defaults={"nome": nome}
             )[0]
             for nome, slug in CATEGORIAS_PROJETO
         }
-        for ordem, (titulo, slug, link_online) in enumerate(PROJETOS):
+        for ordem, demo in enumerate(PROJETOS):
             projeto, novo = Projeto.objects.get_or_create(
-                titulo=titulo,
+                titulo=demo.titulo,
                 defaults={
-                    "categoria_projeto": categorias[slug],
-                    "descricao": "Projeto de demonstração com autenticação, "
-                    "testes automatizados e deploy contínuo.",
-                    "link_github": "https://github.com/maria-souza-demo/demo",
-                    "link_online": link_online,
+                    "categoria_projeto": categorias[demo.categoria],
+                    "descricao": demo.descricao,
+                    "link_github": f"https://github.com/maria-souza-demo/{demo.endereco}",
+                    "link_online": f"https://example.com/{demo.endereco}",
                     "ordem": ordem,
-                    **ESTUDO_DE_CASO,
+                    "problema": demo.problema,
+                    "papel": demo.papel,
+                    "decisao_tecnica": demo.decisao_tecnica,
+                    "resultado": demo.resultado,
                 },
             )
             if novo:
@@ -228,7 +386,7 @@ class Command(BaseCommand):
                 projeto.imagem.save(
                     nome_arquivo, self._imagem(nome_arquivo, 1200, 800, ordem)
                 )
-                projeto.tecnologias.set(tecnologias[: 2 + ordem])
+                projeto.tecnologias.set([por_nome[nome] for nome in demo.tecnologias])
 
     @staticmethod
     def _habilidades(tecnologias: list[Tecnologia]) -> None:

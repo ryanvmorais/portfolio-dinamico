@@ -5,6 +5,10 @@ Cobre:
 - o comando recusa rodar com ``DEBUG=False`` e é idempotente;
 - as habilidades saem com nível e tecnologia ligada, e os projetos com a versão no
   ar e o estudo de caso, sem estatísticas (spec 008, RF-21);
+- a proporção do adendo da spec 008 (RF-30, RF-31): seis projetos, dois por
+  categoria, com cinco tecnologias e tudo o que o card mostra; três categorias de
+  habilidade com 3, 2 e 1 habilidades por nível e a contagem descendo de nível para
+  nível;
 - toda URL da configuração do Lighthouse (``.github/lighthouse/``) responde 200 com os
   dados semeados, e o mobile e o desktop auditam as mesmas páginas com as mesmas
   checagens;
@@ -27,7 +31,14 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import Client
 
-from app_portfolio.models import Habilidade, NivelHabilidade, Perfil, Projeto
+from app_portfolio.models import (
+    CategoriaHabilidade,
+    CategoriaProjeto,
+    Habilidade,
+    NivelHabilidade,
+    Perfil,
+    Projeto,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -140,6 +151,68 @@ def test_projetos_com_versao_no_ar_e_estudo_de_caso() -> None:
         assert projeto.link_online
         assert projeto.link_online.startswith("https://example.com/")
         assert projeto.tem_estudo_de_caso
+
+
+@pytest.mark.usefixtures("_demo")
+def test_projetos_equilibrados() -> None:
+    """Seis projetos, dois por categoria, com as mesmas peças no card (RF-30)."""
+    call_command("semear_dados_demo")
+
+    assert Projeto.objects.count() == 6
+    for categoria in CategoriaProjeto.objects.all():
+        assert categoria.projetos.count() == 2, categoria.nome
+    for projeto in Projeto.objects.all():
+        assert projeto.tecnologias.count() == 5, projeto.titulo
+        assert projeto.link_github
+        assert all(
+            campo.strip()
+            for campo in (
+                projeto.problema,
+                projeto.papel,
+                projeto.decisao_tecnica,
+                projeto.resultado,
+            )
+        ), projeto.titulo
+
+
+@pytest.mark.usefixtures("_demo")
+def test_habilidades_na_proporcao_e_com_contagem_descendo() -> None:
+    """
+    Cada categoria tem 3, 2 e 1 habilidades por nível; no dia a dia a contagem varia
+    e fica acima da de "já usei", e "estudando" não tem projeto (RF-31).
+    """
+    call_command("semear_dados_demo")
+
+    assert CategoriaHabilidade.objects.count() == 3
+    contagens_do_dia_a_dia: set[int] = set()
+    for categoria in CategoriaHabilidade.objects.all():
+        por_nivel: dict[str, list[int]] = {
+            nivel: [] for nivel in NivelHabilidade.values
+        }
+        for habilidade in categoria.habilidades.select_related("tecnologia"):
+            tecnologia = habilidade.tecnologia
+            por_nivel[habilidade.nivel].append(
+                tecnologia.projeto_set.count() if tecnologia else 0
+            )
+        assert [len(por_nivel[nivel]) for nivel in NivelHabilidade.values] == [3, 2, 1]
+        assert min(por_nivel[NivelHabilidade.DIA_A_DIA]) > max(
+            por_nivel[NivelHabilidade.JA_USEI]
+        )
+        assert por_nivel[NivelHabilidade.JA_USEI] == [1, 1]
+        assert por_nivel[NivelHabilidade.ESTUDANDO] == [0]
+        contagens_do_dia_a_dia.update(por_nivel[NivelHabilidade.DIA_A_DIA])
+    assert len(contagens_do_dia_a_dia) > 1
+
+
+@pytest.mark.usefixtures("_demo")
+def test_cada_filtro_mostra_dois_projetos(client: Client) -> None:
+    """Na home semeada, cada categoria marca dois cards para o filtro (RF-30)."""
+    call_command("semear_dados_demo")
+
+    html = client.get("/").content.decode()
+
+    for slug in ("web-app", "api", "mobile"):
+        assert html.count(f'data-category="{slug}"') == 2, slug
 
 
 def test_nenhuma_estatistica() -> None:

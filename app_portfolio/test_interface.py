@@ -1106,6 +1106,31 @@ class TestRodapeEIcone:
 
 
 # ---------------------------------------------------------------------------
+# Spec 008, adendo — Cards do mesmo tamanho (RF-32, RF-33, ADR-15)
+# ---------------------------------------------------------------------------
+
+
+class TestCardsDoMesmoTamanho:
+    def test_cards_de_habilidade_esticam_ate_a_fileira(self) -> None:
+        """Os blocos de categoria da mesma linha ficam com a mesma altura."""
+        assert "align-items: stretch" in _regra(CSS, ".skills__container")
+
+    def test_acoes_do_projeto_ficam_no_pe_do_card(self) -> None:
+        """Card e conteúdo em coluna flexível; as ações descem com margin-top: auto."""
+        card = _regra(CSS, ".project-card")
+        assert "display: flex" in card
+        assert "flex-direction: column" in card
+        assert "flex: 1" in _regra(CSS, ".project-card__content")
+        assert "margin-top: auto" in _regra(CSS, ".project-card__acoes")
+
+    def test_tags_reservam_duas_linhas(self) -> None:
+        """Com uma linha de tags num card e duas no vizinho, o resto segue alinhado."""
+        tags = _regra(CSS, ".project-card__tech")
+        assert "align-content: flex-start" in tags
+        assert "min-height: calc(2 * (var(--fs-xs) * 1.6" in tags
+
+
+# ---------------------------------------------------------------------------
 # Spec 008 — Filtro por chip e alto contraste (RF-13, RNF-02, ADR-07, ADR-08)
 # ---------------------------------------------------------------------------
 

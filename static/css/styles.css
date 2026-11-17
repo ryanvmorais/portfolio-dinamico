@@ -859,8 +859,11 @@ textarea {
     gap: var(--spacing-xl);
 }
 
-/* Project Card */
+/* Project Card: coluna flexível para as ações ficarem no pé do card, na
+   mesma linha nos cards da fileira (spec 008, ADR-15) */
 .project-card {
+    display: flex;
+    flex-direction: column;
     background: var(--color-bg-card);
     border-radius: var(--radius-xl);
     overflow: hidden;
@@ -893,6 +896,9 @@ textarea {
 }
 
 .project-card__content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
     padding: var(--spacing-lg);
 }
 
@@ -918,10 +924,15 @@ textarea {
     line-height: 1.6;
 }
 
+/* Reserva duas linhas de tags (a tag tem a fonte xs com a altura de linha 1.6
+   do body, mais o respiro xs em cima e embaixo): com uma linha num card e duas
+   no vizinho, o estudo de caso e as ações seguem alinhados (spec 008, ADR-15) */
 .project-card__tech {
     display: flex;
     flex-wrap: wrap;
+    align-content: flex-start;
     gap: var(--spacing-xs);
+    min-height: calc(2 * (var(--fs-xs) * 1.6 + 2 * var(--spacing-xs)) + var(--spacing-xs));
 }
 
 .tech-tag {
@@ -965,12 +976,15 @@ textarea {
     line-height: 1.6;
 }
 
-/* Ações do cartão (spec 008, RF-09): "Ver online" e "Código" */
+/* Ações do cartão (spec 008, RF-09): "Ver online" e "Código". O margin-top
+   automático as empurra para o pé do card; o padding guarda o espaço mínimo
+   que antes era margem (ADR-15) */
 .project-card__acoes {
     display: flex;
     flex-wrap: wrap;
     gap: var(--spacing-sm);
-    margin-top: var(--spacing-lg);
+    margin-top: auto;
+    padding-top: var(--spacing-lg);
 }
 
 /* position: relative contém o .sr-only do título (spec 004, RF-10): sem
@@ -1009,12 +1023,13 @@ textarea {
     background: var(--color-bg-secondary);
 }
 
-/* Um bloco por categoria; dentro, um título por nível e os chips */
+/* Um bloco por categoria; dentro, um título por nível e os chips. O stretch
+   deixa os blocos da mesma linha com a mesma altura (spec 008, ADR-15) */
 .skills__container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(17.5rem, 1fr));
     gap: var(--spacing-xl);
-    align-items: start;
+    align-items: stretch;
 }
 
 .skills__category {
