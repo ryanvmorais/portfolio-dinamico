@@ -1,6 +1,6 @@
 ---
 feature: Correções da auditoria de interface
-status: concluído
+status: em andamento
 date: 2026-10-18
 related:
   - 001-vitrine-portfolio
@@ -207,3 +207,154 @@ conferidos por regra (contraste calculado dos tokens, blocos `@media`, marcadore
 de comportamento); o e-mail e a mídia seguem isolados como nas specs 001 e 002.
 Cada teste foi provado desfazendo a correção (43 mutações, todas pegas). A
 verificação em navegador real não entra no pytest.
+
+## Adendo (2026-11-17): menu do celular com redes e currículo
+
+> Status do adendo: aprovado (2026-11-17). Desenha os RF-25 a RF-28 do adendo do `requirements.md`.
+> O texto acima fica como está; os ADRs continuam a numeração.
+
+### Visão geral da abordagem do adendo
+
+O painel continua dentro do `<nav>` da barra fixa, mas passa a começar abaixo dela
+(`top: var(--header-height)`) e a deslizar por `transform`. Um véu, irmão do painel na
+mesma barra, escurece a página abaixo da barra só no celular. O botão da barra passa a
+abrir e fechar: o ícone segue o `aria-expanded` pelo CSS, e o JavaScript troca o nome.
+O pé do painel ganha dois grupos lidos do `Perfil`, como o rodapé: "Redes Sociais"
+(GitHub e LinkedIn) e "Currículo" ("Download CV").
+
+```text
+390 px, menu aberto
+┌──────────────────────────────────────┐
+│ [SN] Seu Nome                    [X] │  barra do site (visível e clicável)
+├────────┬─────────────────────────────┤
+│ véu    │ Início                      │
+│ sobre  │ Projetos                    │
+│ a      │ Sobre                       │
+│ página │ Habilidades                 │
+│        │ Contato                     │
+│        │                             │
+│        │ ─────────────────────────── │
+│        │ REDES SOCIAIS               │
+│        │ (gh) GitHub                 │
+│        │ (in) LinkedIn               │
+│        │ CURRÍCULO                   │
+│        │ (↓) Download CV             │
+└────────┴─────────────────────────────┘
+```
+
+### Componentes do adendo
+
+#### `templates/base.html`
+
+- Sai o `<button class="nav__close">` de dentro do painel.
+- O `nav__toggle` leva as duas imagens (`menu.svg` com a classe `nav__icone-abrir` e
+  `close.svg` com `nav__icone-fechar`), ambas `aria-hidden`; continua com
+  `aria-controls="nav-menu"`.
+- Depois da lista de links, dentro do painel, o bloco `nav__extras`, só se algum dos três
+  campos estiver preenchido. Cada grupo é um `<p class="nav__grupo" id="…">` seguido de
+  `<ul aria-labelledby="…">`, e só existe se tiver link:
+  - "Redes Sociais": `link_github` e `link_linkedin`, cada um com o seu `{% if %}`,
+    `target="_blank"` e `rel="noopener noreferrer"`;
+  - "Currículo": `curriculo`, com `download` e o texto "Download CV".
+
+  Cada link (`nav__extra`) tem a imagem do ícone (`icons/social/github.svg`,
+  `icons/social/linkedin.svg`, `icons/download.svg`, `alt=""`) e o nome visível.
+- Depois do painel, `<div class="nav__veu" aria-hidden="true">`.
+
+#### `static/css/styles.css`
+
+- `.nav__veu` e `.nav__extras` com `display: none` fora do celular.
+- No `@media (max-width: 768px)`:
+  - `.nav__menu`: `top: var(--header-height)`, `right: 0`, altura
+    `calc(100vh - var(--header-height))` com a versão em `dvh` depois, `display: flex`
+    em coluna, `overflow-y: auto`, `transform: translateX(100%)` e
+    `transition: transform`; o padding de cima cai de `--spacing-4xl` para
+    `--spacing-xl`, porque o botão de fechar saiu do painel. A sombra só existe em
+    `.show`, para não aparecer na borda da tela com o painel fechado.
+  - `.nav__menu.show`: `transform: none`.
+  - `.nav__veu`: `position: fixed`, `top: var(--header-height)`, `left: 0`,
+    `width: 100%` e a mesma altura do painel, fundo `rgba(4, 10, 20, 0.7)`,
+    `opacity: 0` e `visibility: hidden`, com transição de `opacity` e `visibility`;
+    `.nav__menu.show ~ .nav__veu` mostra o véu.
+  - `.nav__extras`: `margin-top: auto`, borda e respiro em cima; `.nav__grupo` com um
+    tamanho, peso, caixa e cor só (`--fs-xs`, 600, caixa alta, `--color-gray-400`), e o
+    segundo grupo com espaço acima; `.nav__extra` com `min-height: 2.75rem`,
+    `--color-gray-400` e o ícone pelo mesmo filtro dos ícones sociais.
+  - O ícone do botão segue o estado: com `aria-expanded` verdadeiro some o
+    `.nav__icone-abrir`, e com falso some o `.nav__icone-fechar`.
+- Saem as regras do `.nav__close`, e o seletor `.nav__toggle, .nav__close` fica só
+  `.nav__toggle`.
+
+#### `static/js/main.js`
+
+- `abrirMenu()` troca o `aria-label` do botão para "Fechar menu"; `fecharMenu()`, para
+  "Abrir menu".
+- O clique no botão alterna: com o menu aberto, `fecharMenu({ devolverFoco: true })`;
+  fechado, `abrirMenu()`.
+- Saem a constante e o ouvinte do `navClose`. O véu fica fora do painel e do botão,
+  então o ouvinte de "clique fora" já o cobre.
+
+### Interfaces do adendo
+
+Sem rota, contexto ou campo novo: o bloco lê `perfil.link_github`, `perfil.link_linkedin`
+e `perfil.curriculo`, que o `base.html` já recebe para o rodapé. Some o `id="nav-close"`.
+
+### ADR-12 — O botão da barra abre e fecha
+
+**Supersedes** o botão de fechar do RF-04 (seção 2).
+
+- **Decisão:** um botão só, na barra, com os dois ícones; o CSS mostra um ou outro pelo
+  `aria-expanded`, e o JavaScript troca o nome.
+- **Alternativas:** manter o botão de fechar dentro do painel, alinhado ao hambúrguer;
+  trocar o `src` da imagem pelo JavaScript.
+- **Porquê:** com o painel abaixo da barra, o hambúrguer continua à vista e é o lugar
+  natural para fechar; o ícone guiado pelo atributo não fica fora de sincronia com o
+  estado lido pelo leitor de tela.
+- **Trade-off:** o foco, ao abrir, vai para o primeiro link do painel; para fechar pelo
+  teclado sem o Esc, o Tab passa pelos links até o botão.
+
+### ADR-13 — Rótulos dos grupos sem nível de título
+
+- **Decisão:** "Redes Sociais" e "Currículo" são `<p>` que dão nome às listas por
+  `aria-labelledby`.
+- **Alternativas:** `<h2>`, como no rodapé.
+- **Porquê:** o painel vem antes do `<h1>` no HTML; títulos ali abririam a hierarquia
+  da página antes do nome (RF-12), e um painel fechado e inerte não deve contar como
+  seção.
+- **Trade-off:** quem navega por títulos no leitor de tela não pula para os grupos; a
+  lista anuncia o nome do grupo ao entrar nela.
+
+### ADR-14 — Véu com altura declarada
+
+- **Decisão:** o véu tem `top` e altura declarados (`calc(100dvh -
+  var(--header-height))`), não `bottom: 0`.
+- **Alternativas:** `inset: var(--header-height) 0 0`.
+- **Porquê:** a barra tem `backdrop-filter`, e um elemento `position: fixed` dentro dela
+  se posiciona pela barra, não pela tela: com `bottom: 0`, o véu terminaria no fim da
+  barra. O painel já declara a altura pelo mesmo motivo.
+- **Trade-off:** o véu e o painel repetem a mesma conta de altura.
+
+### Impacto no código existente do adendo
+
+- RF-04 (botão de fechar e área do painel) passa a valer com o RF-25; o foco ao abrir, o
+  Esc, o `inert` e o anel de foco não mudam.
+- `docs/referencia/interface-e-acessibilidade.md`: o menu inerte ganha o painel abaixo
+  da barra, o botão único, o véu e o bloco de redes e currículo.
+- O README não descreve o menu; não muda.
+
+### Estratégia de testes do adendo
+
+- **Suíte (RF-28)**, no `app_portfolio/test_interface.py`:
+  - HTML: o bloco com os três campos, cada campo vazio, nenhum campo; os rótulos com a
+    mesma classe e as listas com `aria-labelledby`; sem `nav-close`; o botão com os dois
+    ícones e `aria-controls`.
+  - CSS lido como texto: o painel abaixo da barra, `overflow-y: auto`, `transform` sem
+    `transition` de `right`, o véu só no celular e com altura declarada, o bloco
+    escondido no desktop, `.nav__grupo` com um tamanho só, alvos de 44 px e o contraste
+    de `--color-gray-400` sobre `--color-bg-secondary` acima de 4,5:1.
+  - JavaScript lido como texto: os dois nomes do botão e o alternar no clique.
+  - Os testes do menu que citam o `.nav__close` passam a citar só o `.nav__toggle`.
+- **Navegador:** a 390 x 844 e a 360 x 640, menu aberto e fechado: a barra visível e
+  clicável, o véu, o X no lugar do hambúrguer, o bloco no pé do painel, a rolagem no
+  celular baixo, Tab e Esc, o leitor de tela anunciando "Abrir menu" e "Fechar menu"
+  pela árvore de acessibilidade, nenhuma violação de CSP e nenhum achado do axe-core.
