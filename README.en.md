@@ -15,7 +15,7 @@
 
 🔗 **[See the live demo](https://portfolio-dinamico.ryanmorais.com.br/)** (the site itself is in Portuguese)
 
-This repository holds a **Dynamic Portfolio with Django**, a professional portfolio built as an educational template. Although it looks like a *SPA* (Single Page Application), the project was built as a robust system, focused on **advanced security**, **database optimization** and **clean architecture**.
+This repository holds a **Dynamic Portfolio with Django**: a professional portfolio template in Django 6.1 for anyone who wants to learn how to put a site online securely. It comes with a contact form with a honeypot, rate limiting and HTML sanitization, CSP and HSTS, queries without N+1 and tests with pytest. On the outside it looks like a *SPA* (Single Page Application); on the inside, it is a server-rendered page.
 
 ### 🎯 Project Goal:
 
@@ -27,8 +27,8 @@ To show **professional good practices** in web development, going beyond the "ba
 
 This project was structured to consolidate core pillars of software engineering:
 
-- **Offensive and Defensive Security:** a *Honeypot* (a trap for bots), a *Rate Limit* (a cap on submissions per IP) and `bleach` to sanitize HTML.
-- **Performance & Scale:** `select_related` and `prefetch_related` to avoid the N+1 query problem, so pages load instantly.
+- **Defensive Security:** a *Honeypot* (a trap for bots), a *Rate Limit* (a cap on submissions per IP) and `bleach` to sanitize HTML.
+- **Performance & Scale:** `select_related` and `prefetch_related` to avoid the N+1 query problem, which adds one more database round trip for every project shown.
 - **DevOps Mindset:** dependencies locked in a `uv.lock` (runtime, `dev` group and `prod` extra) with a 7-day quarantine against freshly published versions, `pip-audit` in CI and every Monday, Dependabot, plus strict CSP (Content Security Policy) and HSTS settings.
 - **Audited Interface:** the home page was checked in a real Chrome (10 phone sizes, axe-core, keyboard, form) and fixed with one test per requirement: a hero that fits the first phone screen, a form that tells the visitor about any server response, an accessible menu, contrast, "reduce motion", fonts hosted in the project and custom error pages (spec 004).
 - **Code Quality:** an automated `pytest` suite covering success flows and attack attempts.
