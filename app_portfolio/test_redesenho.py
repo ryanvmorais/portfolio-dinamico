@@ -354,40 +354,45 @@ class TestHero:
         assert "hero__selo" not in _home(client)
 
     def test_acoes_levam_a_projetos_e_ao_contato(self, client) -> None:
-        """O "Ver projetos" vai a #projects; o "ou entre em contato", a #contact."""
+        """Duas ações: "Ver projetos" a #projects e "Entre em contato" a #contact."""
         _perfil()
         hero = _hero(_home(client))
         assert re.search(
             r'<a href="#projects" class="btn btn--primary">\s*Ver projetos', hero
         )
         assert (
-            '<a href="#contact" class="hero__contato">ou entre em contato</a>' in hero
+            '<a href="#contact" class="btn btn--secondary">Entre em contato</a>' in hero
         )
+        assert len(re.findall(r"<a ", hero)) == 2
 
-    def test_links_de_icone_com_cada_campo(self, client) -> None:
-        """GitHub e LinkedIn em nova aba, currículo como download, com nome."""
+    def test_links_do_perfil_saem_do_hero(self, client) -> None:
+        """Com GitHub, LinkedIn e currículo, o hero não os mostra; o resto da home sim."""
         arquivo = SimpleUploadedFile("cv.pdf", b"%PDF-1.4", "application/pdf")
         _perfil(
             link_github="https://github.com/ana",
             link_linkedin="https://www.linkedin.com/in/ana",
             curriculo=arquivo,
         )
-        hero = _hero(_home(client))
-        assert re.search(
-            r'href="https://github\.com/ana"[^>]*target="_blank"[^>]*'
-            r'rel="noopener noreferrer"[^>]*aria-label="GitHub"',
-            hero,
-        )
-        assert 'aria-label="LinkedIn"' in hero
-        assert re.search(r'href="/media/curriculo/cv[^"]*"[^>]*download', hero)
-        assert 'aria-label="Baixar currículo"' in hero
+        html = _home(client)
+        hero = _hero(html)
+        for fora in ("icone-link", "github.com/ana", "linkedin.com/in/ana", "cv"):
+            assert fora not in hero
+        # Contato e rodapé seguem com GitHub e LinkedIn; Sobre, com o currículo.
+        assert html.count('href="https://github.com/ana"') >= 2
+        assert html.count('href="https://www.linkedin.com/in/ana"') >= 2
+        assert re.search(r'href="/media/curriculo/cv[^"]*"[^>]*download', html)
 
-    def test_sem_links_nao_ha_icones(self, client) -> None:
+    def test_sem_links_nao_ha_href_none(self, client) -> None:
         """Campos vazios não geram link nenhum, nem href="None"."""
         _perfil()
-        html = _home(client)
-        assert "hero__links" not in html
-        assert 'href="None"' not in html
+        assert 'href="None"' not in _home(client)
+
+    def test_ajuda_da_foto_pede_retrato_com_espaco(self) -> None:
+        """O Admin orienta o formato da foto que o hero recorta (adendo, RF-26)."""
+        ajuda = str(Perfil._meta.get_field("foto").help_text)
+        assert "4:5" in ajuda
+        assert "espaço acima da cabeça" in ajuda
+        assert "círculo" in ajuda
 
     def test_numeros_no_plural(self, client) -> None:
         """Anos do perfil e projetos contados, no plural."""

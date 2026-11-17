@@ -497,55 +497,14 @@ textarea {
     margin-bottom: var(--spacing-xl);
 }
 
-/* 4. Ações: "Ver projetos", os ícones de 48px e o link do contato (RF-03) */
+/* 4. Ações: "Ver projetos" e "Entre em contato", btn--primary e btn--secondary
+   da mesma altura (adendo da spec 008, RF-24) */
 .hero__acoes {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--spacing-md);
     margin-bottom: var(--spacing-xl);
-}
-
-.hero__links {
-    display: flex;
-    gap: var(--spacing-sm);
-}
-
-.icone-link {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 3rem;
-    height: 3rem;
-    background: var(--color-bg-tertiary);
-    border: 1px solid var(--color-gray-500);
-    border-radius: var(--radius-lg);
-    transition: border-color var(--transition-base), background var(--transition-base);
-}
-
-/* Os SVGs vêm em ciano ou em currentColor (preto dentro de <img>): o filtro os
-   deixa brancos sobre o fundo escuro */
-.icone-link img {
-    filter: brightness(0) invert(1);
-    opacity: 0.85;
-}
-
-.icone-link:hover {
-    border-color: var(--color-accent);
-    background: rgba(0, 212, 255, 0.1);
-}
-
-/* padding-block: o link de texto chega aos 44px de alvo de toque */
-.hero__contato {
-    padding-block: 0.75rem;
-    color: var(--color-gray-300);
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
-    transition: color var(--transition-fast);
-}
-
-.hero__contato:hover {
-    color: var(--color-accent);
 }
 
 /* 5. Números contados dos dados (RF-05) */
@@ -564,20 +523,23 @@ textarea {
     color: var(--color-accent);
 }
 
-/* 6. Foto: 4:5 no desktop, redonda no celular */
+/* 6. Foto: 4:5 no desktop, redonda no celular. O recorte parte do alto: num
+   retrato a cabeça fica em cima, e o círculo do celular corta a sobra de baixo
+   (adendo da spec 008, ADR-12) */
 .hero__foto {
     width: 100%;
     aspect-ratio: 4/5;
     object-fit: cover;
+    object-position: center top;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-2xl);
     box-shadow: var(--shadow-xl);
 }
 
 /* Hero Responsive */
-/* Spec 008, RF-04 e RF-06: até 768px uma coluna centralizada, com a foto
-   redonda de 112px acima do selo; nome, selo e "Ver projetos" cabem na
-   primeira tela de 390 x 844. */
+/* Spec 008, RF-04 e RF-06, e o adendo (RF-25): até 768px uma coluna
+   centralizada, com a foto redonda de 160px acima do selo; nome, selo, "Ver
+   projetos" e "Entre em contato" cabem na primeira tela de 390 x 844. */
 @media (max-width: 768px) {
     .hero__container {
         grid-template-columns: 1fr;
@@ -588,7 +550,7 @@ textarea {
 
     .hero__foto-moldura {
         order: -1;
-        width: 112px;
+        width: 160px;
         margin-inline: auto;
     }
 
@@ -616,7 +578,7 @@ textarea {
         gap: var(--spacing-sm);
     }
 
-    .hero__acoes .btn--primary {
+    .hero__acoes .btn {
         width: 100%;
     }
 
@@ -1598,13 +1560,12 @@ button.chip:hover {
    Alto contraste
    ======================================== */
 /* Spec 008, RNF-02: no alto contraste do Windows os fundos somem; a borda
-   mantém chip, selo, filtros, botões de ícone e monograma visíveis, e o que
+   mantém chip, selo, filtros e monograma visíveis, e o que
    está marcado ganha a cor de seleção do sistema. */
 @media (forced-colors: active) {
     .chip,
     .hero__selo,
     .filter-btn,
-    .icone-link,
     .logo__monograma {
         border: 1px solid CanvasText;
     }

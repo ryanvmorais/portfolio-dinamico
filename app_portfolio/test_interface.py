@@ -237,12 +237,17 @@ class TestHeroNoCelular:
         assert "100svh" not in hero and "100vh" not in hero
 
     def test_foto_vai_para_o_topo_e_fica_redonda_no_celular(self) -> None:
-        """Até 768 px a foto sobe (order: -1), tem 112 px e é redonda."""
+        """Até 768 px a foto sobe (order: -1), tem 160 px e é redonda (adendo, RF-25)."""
         bloco = _bloco(CSS, "@media (max-width: 768px) {\n    .hero__container")
         moldura = _regra(bloco, ".hero__foto-moldura")
-        assert "order: -1" in moldura and "width: 112px" in moldura
+        assert "order: -1" in moldura and "width: 160px" in moldura
         assert "border-radius: var(--radius-full)" in _regra(bloco, ".hero__foto")
         assert "grid-template-columns: 1fr" in _regra(bloco, ".hero__container")
+        assert "width: 100%" in _regra(bloco, ".hero__acoes .btn")
+
+    def test_foto_recortada_pelo_alto(self) -> None:
+        """O recorte parte do alto: o círculo não corta a cabeça (adendo, ADR-12)."""
+        assert "object-position: center top" in _regra(CSS, ".hero__foto")
 
 
 # ---------------------------------------------------------------------------
@@ -958,9 +963,9 @@ class TestFiltroPorChip:
 
 
 def test_alto_contraste_mantem_as_bordas() -> None:
-    """Em forced-colors, chips, selo, filtros e ícones têm borda; o marcado, Highlight."""
+    """Em forced-colors, chips, selo, filtros e monograma têm borda; o marcado, Highlight."""
     bloco = _bloco(CSS, "@media (forced-colors: active)")
-    seletores = ".chip,\n    .hero__selo,\n    .filter-btn,\n    .icone-link,\n    .logo__monograma"
+    seletores = ".chip,\n    .hero__selo,\n    .filter-btn,\n    .logo__monograma"
     assert "border: 1px solid CanvasText" in _regra(bloco, seletores)
     marcado = _regra(bloco, ".chip[aria-pressed='true'],\n    .filter-btn.active")
     assert "background: Highlight" in marcado

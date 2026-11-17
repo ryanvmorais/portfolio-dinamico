@@ -30,27 +30,8 @@
                             Ver projetos
                             <img src="{% static 'icons/arrow-right.svg' %}" alt="" aria-hidden="true" width="20" height="20">
                         </a>
-                        {# Um link por campo preenchido: campo opcional vazio não vira href="None" nem erro 500 (spec 004, RF-01) #}
-                        {% if perfil.link_github or perfil.link_linkedin or perfil.curriculo %}
-                        <ul class="hero__links" role="list">
-                            {% if perfil.link_github %}
-                            <li><a href="{{ perfil.link_github }}" class="icone-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
-                                <img src="{% static 'icons/social/github.svg' %}" alt="" aria-hidden="true" width="22" height="22">
-                            </a></li>
-                            {% endif %}
-                            {% if perfil.link_linkedin %}
-                            <li><a href="{{ perfil.link_linkedin }}" class="icone-link" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-                                <img src="{% static 'icons/social/linkedin.svg' %}" alt="" aria-hidden="true" width="22" height="22">
-                            </a></li>
-                            {% endif %}
-                            {% if perfil.curriculo %}
-                            <li><a href="{{ perfil.curriculo.url }}" class="icone-link" download aria-label="Baixar currículo">
-                                <img src="{% static 'icons/download.svg' %}" alt="" aria-hidden="true" width="22" height="22">
-                            </a></li>
-                            {% endif %}
-                        </ul>
-                        {% endif %}
-                        <a href="#contact" class="hero__contato">ou entre em contato</a>
+                        {# Duas ações (adendo da spec 008, ADR-11): GitHub, LinkedIn e currículo ficam no Contato, no rodapé e em Sobre, fora do hero #}
+                        <a href="#contact" class="btn btn--secondary">Entre em contato</a>
                     </div>
 
                     {# Só números que os dados comprovam: os anos do perfil e os projetos contados (spec 008, RF-05) #}
