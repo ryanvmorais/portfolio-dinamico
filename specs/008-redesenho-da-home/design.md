@@ -519,3 +519,146 @@ A spec 004, RF-15, passa a valer só para o painel do menu.
   uma rodada): celular 99 de desempenho e 100 nas outras três categorias, LCP de
   2,2 s, CLS 0 e 180 KiB; desktop 100 nas quatro, LCP de 0,5 s. Todas as
   asserções passam.
+
+## Adendo (2026-11-17): hero com duas ações e foto maior no celular
+
+> Status do adendo: concluído (2026-11-17). Desenha os RF-24 a RF-27 do adendo do `requirements.md`.
+> O texto acima fica como está; os ADRs continuam a numeração.
+
+### Visão geral da abordagem do adendo
+
+O hero troca a fileira de ações (botão, três ícones e um link de texto) por dois botões
+que já existem no sistema: `btn--primary` para "Ver projetos" e `btn--secondary` para
+"Entre em contato". Sem os ícones, o celular ganha espaço, e a foto redonda passa de
+112 px para 160 px. A foto é recortada a partir do alto (`object-position: center
+top`), no desktop e no celular, e o texto de ajuda do campo de foto orienta o formato.
+
+O hero do adendo, a 1280 px e a 390 px:
+
+```text
+1280 px                                               390 px
+┌──────────────────────────────────────────┬───────┐  ┌──────────────────────┐
+│ (•) Disponível para Projetos · Estado, UF│       │  │      ╭────────╮      │
+│ Seu Nome                                 │ foto  │  │      │  foto  │      │
+│ Desenvolvedor Full-Stack                 │ 4:5   │  │      │ 160 px │      │
+│ Bio curta                                │ 340px │  │      ╰────────╯      │
+│ [Ver projetos →] [Entre em contato]      │       │  │       (•) selo       │
+│ 5+ anos de experiência  6 projetos       │       │  │       Seu Nome       │
+└──────────────────────────────────────────┴───────┘  │     cargo · bio      │
+                                                      │  [ Ver projetos → ]  │
+                                                      │ [Entre em contato ]  │
+                                                      └──────────────────────┘
+```
+
+### Componentes do adendo
+
+#### `templates/home.html`
+
+- O bloco `hero__acoes` fica com dois links: `<a href="#projects" class="btn
+  btn--primary">` ("Ver projetos" e a seta) e `<a href="#contact" class="btn
+  btn--secondary">Entre em contato</a>`.
+- Saem a lista `hero__links` (os três `icone-link` e o `if` dos campos) e o link
+  `hero__contato`. O comentário do bloco diz por que os links ficam só no Contato, no
+  rodapé e em Sobre.
+
+#### `static/css/styles.css`
+
+- `.hero__foto` ganha `object-position: center top`.
+- No `@media (max-width: 768px)`: `.hero__foto-moldura` passa a `width: 160px`, e a regra
+  de largura total vale para os dois botões (`.hero__acoes .btn`), não só para o
+  primário.
+- Saem as regras sem uso: `.hero__links`, `.icone-link` (com o `img` e o `:hover`),
+  `.hero__contato` (com o `:hover`) e o `.icone-link` da lista do `forced-colors`.
+- O comentário do bloco responsivo passa a citar 160 px e as duas ações na primeira
+  tela.
+
+#### `app_portfolio/models.py` e a migração `0026`
+
+- O `help_text` do `Perfil.foto` pede um retrato vertical 4:5 (por exemplo, 960 x 1200)
+  com espaço acima da cabeça e avisa que o celular mostra a foto num círculo. A
+  migração `0026` é o `AlterField` que o Django gera para o texto novo, sem mudança no
+  banco.
+
+#### Testes
+
+- `app_portfolio/test_redesenho.py`: o teste das ações passa a esperar "Ver projetos"
+  para `#projects` e "Entre em contato" (`btn--secondary`) para `#contact`; o dos links
+  de ícone passa a conferir que, com os três campos preenchidos, o hero não tem
+  `icone-link` nem os endereços, e que GitHub e LinkedIn seguem no Contato e no rodapé;
+  um teste novo confere o `help_text` da foto.
+- `app_portfolio/test_interface.py`: o teste da foto do celular espera `width: 160px` e
+  o `object-position: center top` na `.hero__foto`; a lista do `forced-colors` perde o
+  `.icone-link`.
+
+### Interfaces do adendo
+
+Sem rota, contexto de view ou variável nova. O HTML do hero perde `hero__links`,
+`icone-link` e `hero__contato`; os campos `link_github`, `link_linkedin` e `curriculo`
+continuam lidos pelo Contato, pelo rodapé e por Sobre.
+
+### ADR-11 — Contato como segunda ação
+
+**Supersedes** a ação de ícones do RF-03 (seção 2 acima).
+
+**Decisão.** A segunda ação do hero é "Entre em contato", um `btn--secondary` para a
+seção de contato.
+**Alternativas.** "Baixar currículo" como segundo botão; GitHub, LinkedIn e currículo
+como links com rótulo ao lado do botão.
+**Porquê.** O selo do hero anuncia a disponibilidade, e a ação que responde a ela é o
+contato; o currículo já tem botão em Sobre, e os links com rótulo mantinham quatro
+ações e não liberavam espaço para a foto.
+**Trade-off.** O GitHub, que quem avalia código costuma abrir, fica a um clique a mais
+(no Contato e no rodapé).
+
+### ADR-12 — Recorte da foto pelo alto, sem ponto focal
+
+**Decisão.** `object-position: center top` na `.hero__foto`, para a moldura 4:5 do
+desktop e o círculo do celular.
+**Alternativas.** Um campo de ponto focal no `Perfil`; uma posição intermediária
+(`center 20%`).
+**Porquê.** Num retrato, a cabeça fica na parte de cima; recortar pelo alto nunca corta
+a cabeça, qualquer que seja a foto, e não pede campo nem migração de dados. Com a
+posição intermediária, a foto da demonstração, cujo cabelo encosta na borda de cima do
+arquivo, ainda perderia o alto da cabeça no círculo.
+**Trade-off.** Uma foto com muito espaço acima da cabeça mostra esse espaço no círculo e
+perde o queixo mais cedo; o texto de ajuda orienta o enquadramento.
+
+### Impacto no código existente do adendo
+
+- RF-03 e o desenho da seção 2 (ações do hero) deixam de valer, e o RF-04 e o RF-06
+  ganham a foto de 160 px e as duas ações na primeira tela do celular.
+- `docs/referencia/interface-e-acessibilidade.md`: a foto do celular passa a 160 px,
+  recortada pelo alto, e o hero tem duas ações.
+- O README não descreve as ações do hero; não muda.
+
+### Estratégia de testes do adendo
+
+- **Suíte (RF-27):** os testes alterados e o novo listados em "Testes", acima.
+- **Navegador:** a home a 390 x 844 e a 1280 x 800 com os dados do `semear_dados_demo`
+  e uma foto 4:5: o nome, o selo e os dois botões na primeira tela do celular, o topo
+  de Projetos na primeira tela do desktop (RF-06), os botões com a mesma altura, o
+  rótulo centrado, e nenhuma violação de CSP nem achado do axe-core.
+
+### Desvios do adendo
+
+1. A migração do `help_text` é a `0027`, não a `0026`: a `0026` já existia, da própria
+   spec (remoção dos campos sem uso). — RF-26
+2. O teste das ações também conta os links do hero (exatamente dois), para acusar um
+   link que volte; o do celular confere a largura total dos dois botões. — RF-27
+
+### Notas de implementação do adendo
+
+- Suíte: 333 testes; `makemigrations --check` sem mudança.
+- Navegador (Chrome sem interface, servidor de desenvolvimento, dados do
+  `semear_dados_demo`, foto 4:5 de 960 x 1200 e GitHub e LinkedIn preenchidos):
+  - 390 x 844: foto de 160 px com `object-position: 50% 0%`, selo a 280 px, nome a
+    336 px, "Ver projetos" até 575 px e "Entre em contato" até 640 px, abaixo dos
+    ~704 px que um celular comum mostra sob a barra do navegador; sem rolagem
+    horizontal.
+  - 1280 x 800: Projetos começa a 617 px; os dois botões lado a lado, com 58 px.
+  - Nas duas larguras: dois links no hero, botões da mesma altura, rótulo centrado
+    (desvio de 0 px), fonte Inter, nenhuma violação de CSP e nenhum achado do
+    axe-core. O axe-core entrou pelo protocolo de depuração do navegador: a CSP do
+    site bloqueia um `<script>` injetado na página.
+  - Com uma foto cujo cabelo encosta na borda de cima do arquivo, o círculo mostra a
+    cabeça inteira, e o cabelo encosta no alto do círculo (decisão resolvida 3).

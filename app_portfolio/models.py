@@ -193,7 +193,11 @@ class Perfil(models.Model):
         upload_to="perfil/",
         null=True,
         blank=True,
-        help_text="Sua foto de apresentação. Será convertida para WebP para agilizar o carregamento da Home.",
+        help_text=(
+            "Sua foto de apresentação: retrato vertical 4:5 (ex.: 960 x 1200) com "
+            "espaço acima da cabeça, porque o celular a mostra num círculo. Será "
+            "convertida para WebP para agilizar o carregamento da Home."
+        ),
     )
     bio = models.TextField(blank=True, null=True)
     bio_curta = models.CharField(max_length=255, blank=True, null=True)

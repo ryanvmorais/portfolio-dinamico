@@ -191,3 +191,57 @@ Admin, depois do deploy.
   `uv run pip-audit`, `DEBUG=False uv run python manage.py check --deploy`. —
   309 passed; ruff/black/mypy verdes; pip-audit sem vulnerabilidade conhecida;
   `check --deploy` sem problema; `makemigrations --check` sem mudança
+
+## Adendo (2026-11-17): hero com duas ações e foto maior no celular
+
+> Status do adendo: concluído (2026-11-17). Quebra os RF-24 a RF-27 e os ADR-11 e ADR-12 do adendo.
+> O texto acima fica como está; as etapas continuam a numeração.
+
+## Etapa 8 — Hero com duas ações, foto de 160 px e recorte pelo alto
+
+- [x] `templates/home.html`: o `hero__acoes` com "Ver projetos" (`btn--primary`, para
+  `#projects`) e "Entre em contato" (`btn--secondary`, para `#contact`); saem a lista
+  `hero__links` e o `hero__contato`, e o comentário diz onde os links ficam. — RF-24,
+  ADR-11
+- [x] `static/css/styles.css`: `object-position: center top` na `.hero__foto`; no
+  celular, `.hero__foto-moldura` com `width: 160px` e largura total para os dois
+  botões; saem `.hero__links`, `.icone-link`, `.hero__contato` e o `.icone-link` do
+  `forced-colors`; comentários com 160 px e as duas ações. — RF-24, RF-25, RF-26,
+  ADR-12
+- [x] `app_portfolio/models.py`: `help_text` do `Perfil.foto` com o retrato 4:5 e o
+  espaço acima da cabeça; `uv run python manage.py makemigrations` gera a `0026`. —
+  RF-26
+- [x] `app_portfolio/test_redesenho.py` e `app_portfolio/test_interface.py`: as ações e
+  a ausência dos links de ícone com os campos preenchidos, os links ainda no Contato e
+  no rodapé, a foto de 160 px com recorte pelo alto, o `forced-colors` sem
+  `.icone-link` e o `help_text` da foto. — RF-27
+- [x] Portão de qualidade: `uv run ruff check --fix .`, `uv run black .`,
+  `uv run mypy app_portfolio portfolio`, `uv run pytest`,
+  `uv run python manage.py makemigrations --check`. — 333 passed; ruff/black/mypy
+  verdes; `makemigrations --check` sem mudança.
+
+## Etapa 9 — Conferência no navegador
+
+- [x] Ambiente local com `semear_dados_demo` e uma foto 4:5 no perfil, a 390 x 844 e a
+  1280 x 800: nome, selo e os dois botões na primeira tela do celular; topo de Projetos
+  na primeira tela do desktop; botões com a mesma altura e o rótulo centrado; foto
+  redonda sem corte no alto da cabeça. — RF-24, RF-25, RF-26 — 390 x 844: botões até
+  640 px, foto de 160 px com `object-position: 50% 0%`; 1280 x 800: Projetos a 617 px;
+  botões de 58 px, rótulo centrado, Inter.
+- [x] axe-core sem violação e nenhuma violação de CSP na home, nas duas larguras. —
+  RF-24, RF-25 — nenhuma violação nas duas larguras.
+- [x] Portão da etapa: servidor, navegador e banco temporário encerrados; resultados em
+  "Notas de implementação do adendo". — encerrados e apagados.
+
+## Etapa 10 — Documentação e fechamento
+
+- [x] `docs/referencia/interface-e-acessibilidade.md`: hero com duas ações e foto de
+  160 px recortada pelo alto. — RF-24, RF-25, RF-26
+- [x] `design.md`: "Desvios do adendo" e "Notas de implementação do adendo", se houver.
+  — RF-27
+- [x] Status do adendo `concluído` nos três arquivos, frontmatter de volta a
+  `concluído` e a linha do índice do `specs/README.md`. — RF-27
+- [x] Portão de qualidade: `uv run ruff check .`, `uv run black --check .`,
+  `uv run mypy app_portfolio portfolio`, `uv run pytest`,
+  `uv run python manage.py makemigrations --check`. — 333 passed;
+  ruff/black/mypy verdes; `makemigrations --check` sem mudança.

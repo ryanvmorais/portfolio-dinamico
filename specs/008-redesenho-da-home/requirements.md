@@ -123,6 +123,8 @@ de tela inicial).
 
 ### RF-03 — Ações do hero
 
+**Superseded by** adendo, RF-24.
+
 - **Given** a home aberta
   **When** o visitante ativa "Ver projetos"
   **Then** a página vai à seção Projetos.
@@ -137,6 +139,8 @@ de tela inicial).
   **Then** a página vai à seção de contato.
 
 ### RF-04 — Foto no hero
+
+**Superseded by** adendo, RF-25, no tamanho da foto no celular, e RF-26, no recorte.
 
 - **Given** a home em tela larga (acima de 768 px)
   **When** a página abre
@@ -169,6 +173,8 @@ de tela inicial).
   **Then** ele não existe mais: o modelo `Estatistica` sai do projeto.
 
 ### RF-06 — Hero da altura do conteúdo
+
+**Superseded by** adendo, RF-25, na primeira tela do celular.
 
 - **Given** a home a 1280 x 800 px
   **When** a página abre
@@ -456,3 +462,102 @@ sem perfil, e a troca de iniciais (RF-17, RF-18); a migração dos níveis e da
 ligação com a tecnologia (RF-20); e o comando de demonstração (RF-21). O filtro
 por chip (RF-13) é conferido no `main.js` lido como texto, como os demais
 comportamentos do `test_interface.py`.
+
+## Adendo (2026-11-17): hero com duas ações e foto maior no celular
+
+> Status do adendo: concluído (2026-11-17). O texto acima é o aprovado em 2026-11-17 e fica como
+> está; o adendo acrescenta requisitos, com a numeração continuando a dele.
+
+**Contexto.** O hero do RF-03 tem cinco ações: "Ver projetos", três links de ícone
+(GitHub, LinkedIn e currículo) e "ou entre em contato". Três delas repetem o que vem
+mais abaixo: GitHub e LinkedIn estão nos cartões de Contato e no rodapé, o currículo
+tem botão em Sobre, e Contato está no menu. O ícone de download, sem texto, não diz que
+baixa o currículo. No celular as ações ocupam três linhas (botão, ícones e link), e a
+foto ficou com 112 px para o nome, o selo e "Ver projetos" caberem na primeira tela
+(RF-06). O círculo do celular recorta o centro da foto 4:5 e corta a parte de cima, onde
+fica a cabeça. No desktop a foto 4:5 aparece inteira na moldura 4:5: o espaço acima da
+cabeça é o da própria foto.
+
+**Objetivos do adendo.**
+
+- Uma escolha clara no hero: ver os projetos ou entrar em contato.
+- Foto maior no celular, com o nome, o selo e as duas ações na primeira tela.
+- Recorte da foto que preserve o alto da cabeça.
+- Orientar no Admin o formato da foto que o hero espera.
+
+**Não-objetivos do adendo.**
+
+- Tirar GitHub, LinkedIn ou o currículo do site: eles seguem no Contato, no rodapé e
+  em Sobre.
+- Ponto focal por foto, recorte no servidor ou edição de imagem no Admin.
+- Mudar o desktop além das ações: a foto segue com 340 px, em 4:5, à direita.
+
+**Personas do adendo.**
+
+- Como **quem avalia o portfólio**, quero ver os projetos ou falar com a pessoa sem
+  escolher entre cinco ícones.
+- Como **um visitante no celular**, quero ver o rosto de quem fez o site, sem a cabeça
+  cortada.
+- Como **quem clona o projeto**, quero saber que formato de foto enviar no Admin.
+
+### RF-24 — Duas ações no hero
+
+- **Given** a home aberta
+  **When** o visitante ativa "Ver projetos"
+  **Then** a página vai à seção Projetos.
+- **Given** a home aberta
+  **When** o visitante ativa "Entre em contato"
+  **Then** a página vai à seção de contato. O link é um botão de contorno, da mesma
+  altura de "Ver projetos": ao lado dele no desktop e embaixo, em largura total, no
+  celular.
+- **Given** `link_github`, `link_linkedin` e `curriculo` do `Perfil` preenchidos
+  **When** a home abre
+  **Then** o hero não tem link para eles; GitHub e LinkedIn seguem nos cartões de
+  Contato e no rodapé, e o currículo no botão de Sobre.
+
+### RF-25 — Foto de 160 px no celular
+
+- **Given** a home no celular (até 768 px)
+  **When** a página abre
+  **Then** a foto aparece redonda, com 160 px, acima do selo, e o texto fica
+  centralizado.
+- **Given** a home a 390 x 844 px
+  **When** a página abre
+  **Then** o nome, o selo, "Ver projetos" e "Entre em contato" ficam na primeira tela,
+  sem rolagem horizontal.
+
+### RF-26 — Recorte que preserva a cabeça
+
+- **Given** uma foto 4:5 no celular
+  **When** o círculo a recorta
+  **Then** o recorte parte do alto da foto: o que sobra sai de baixo, nunca do alto da
+  cabeça.
+- **Given** uma foto de outra proporção, no desktop ou no celular
+  **When** a moldura a recorta
+  **Then** o recorte também parte do alto.
+- **Given** o campo de foto do `Perfil` no Admin
+  **When** a equipe o edita
+  **Then** o texto de ajuda pede um retrato vertical 4:5 com espaço acima da cabeça e
+  avisa que o celular mostra a foto num círculo.
+
+**Decisões resolvidas do adendo.**
+
+1. **Duas ações com texto** (2026-11-17). Ficaram as duas ações, em vez das cinco do
+   RF-03 e de "Ver projetos" com GitHub, LinkedIn e Currículo como links com rótulo:
+   uma escolha clara e espaço para a foto no celular. O GitHub passa a ficar a um
+   clique a mais, no Contato e no rodapé.
+2. **160 px, não 200 px** (2026-11-17). Com 200 px, "Entre em contato" sai da primeira
+   tela de um celular comum, que mostra uns 704 px de página abaixo da barra do
+   navegador; com 160 px, as duas ações ficam nela.
+3. **O espaço acima da cabeça no desktop vem da foto** (2026-11-17). A foto 4:5 aparece
+   inteira na moldura 4:5, então nenhuma regra de CSS cria respiro acima da cabeça sem
+   uma faixa vazia ou um corte. O texto de ajuda do Admin orienta o envio de um retrato
+   com esse espaço.
+
+### RF-27 — A suíte cobre o adendo
+
+- Com GitHub, LinkedIn e currículo preenchidos, o hero tem só "Ver projetos" (para
+  `#projects`) e "Entre em contato" (para `#contact`), e nenhum link de ícone; os links
+  seguem no Contato e no rodapé.
+- No `styles.css`, a foto do celular tem 160 px, e o recorte da foto parte do alto.
+- O texto de ajuda do campo de foto cita a proporção 4:5 e o espaço acima da cabeça.
