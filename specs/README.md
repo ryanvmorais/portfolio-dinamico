@@ -71,7 +71,7 @@ Cada fase termina num portão de aprovação antes de a próxima começar.
 | 005 | [modo-demonstracao](005-modo-demonstracao/) | concluído | Modo demonstração do formulário de contato (valida sem gravar nem enviar, com aviso e link para o código) e e-mail no terminal em desenvolvimento |
 | 006 | [hospedagem](006-hospedagem/) | concluído | Demo na Railway: receita de build, HTTPS atrás do proxy, dados num volume, mídia servida em produção e erros no log |
 | 007 | [descoberta](007-descoberta/) | concluído | Demo identificada como demonstração para buscadores e redes sociais: `URL_PUBLICA`, canonical, `og:*`, `twitter:card`, ícone de tela inicial, `robots.txt`, `sitemap.xml` e `security.txt` |
-| 008 | [redesenho-da-home](008-redesenho-da-home/) | concluído | Home para quem avalia: hero com foto e disponibilidade, projetos logo depois, estudo de caso, habilidades provadas pelos projetos, rodapé lido do perfil e marca gerada das iniciais; adendo: hero com duas ações e foto maior no celular |
+| 008 | [redesenho-da-home](008-redesenho-da-home/) | concluído | Home para quem avalia: hero com foto e disponibilidade, projetos logo depois, estudo de caso, habilidades provadas pelos projetos, rodapé lido do perfil e marca gerada das iniciais; adendos: hero com duas ações e foto maior no celular; telefone do perfil sem uso |
 
 > As specs 001 a 003 foram reconstruídas por **engenharia reversa** do código
 > existente, na modernização de 2026-09-11, que também incluiu uma
