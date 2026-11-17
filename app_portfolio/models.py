@@ -253,7 +253,7 @@ class Perfil(models.Model):
 
 
 class CategoriaHabilidade(models.Model):
-    """Organiza habilidades em grupos (Backend, UI/UX, etc)."""
+    """Organiza habilidades em grupos (Back-end, UI/UX, etc)."""
 
     nome = models.CharField(max_length=50)
 

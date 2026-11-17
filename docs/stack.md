@@ -26,7 +26,7 @@ Django Admin (escrita)  ──►  SQLite (db.sqlite3)  ──►  view home()  
 
 ### Python 3.12+
 
-O runtime de todo o backend. O piso é o 3.12, o mínimo que o Django 6.1
+O runtime de todo o back-end. O piso é o 3.12, o mínimo que o Django 6.1
 aceita. O CI roda o projeto do 3.12 ao 3.15 (a versão estável mais
 atual), e o `ruff`, o `black` e o `mypy` apontam para o 3.12, para o próprio lint
 barrar sintaxe que o piso não tem.
@@ -355,9 +355,9 @@ provider, e `"..."` os estende); por que o `migrate` roda no start, e não no bu
 - **Celery / fila assíncrona** — o envio de e-mail é síncrono, dentro do
   ciclo de request; o volume de mensagens de contato de um portfólio pessoal
   não justifica a complexidade operacional de um worker separado.
-- **Node.js / bundler de frontend** — `static/js/main.js` é JavaScript
+- **Node.js / bundler de front-end** — `static/js/main.js` é JavaScript
   vanilla servido diretamente pelo `whitenoise`; não há build step de
-  frontend.
+  front-end.
 - **Google Fonts** — saiu na spec 004: as fontes ficam em `static/fonts/`.
 - **Prettier no `styles.css` e no `main.js`** — os dois arquivos mantêm 4
   espaços e aspas simples; um formatador automático reescreveria o arquivo inteiro

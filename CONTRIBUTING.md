@@ -5,7 +5,7 @@ Este repositório não é apenas um site pessoal, mas um laboratório de boas pr
 ## 🚀 O que você pode aprimorar?
 
 1.  **Novas Camadas de Segurança:** Implementar logs de tentativas de invasão ou integração com serviços de verificação de e-mail.
-2.  **Performance Frontend:** Sugerir melhorias no `main.js` para otimização de renderização ou novos efeitos de UI.
+2.  **Performance Front-end:** Sugerir melhorias no `main.js` para otimização de renderização ou novos efeitos de UI.
 3.  **Expansão de Testes:** Aumentar a cobertura de testes para os modelos de dados e sinais do Django.
 4.  **Documentação:** Melhorar os comentários técnicos ou traduzir a documentação para outros idiomas.
 
