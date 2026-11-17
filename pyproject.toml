@@ -118,6 +118,7 @@ module = [
     "app_portfolio.test_interface",
     "app_portfolio.test_descoberta",
     "app_portfolio.test_redesenho",
+    "app_portfolio.test_estilo_inline",
 ]
 disallow_untyped_defs = false
 disallow_incomplete_defs = false

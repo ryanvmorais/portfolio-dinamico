@@ -66,7 +66,7 @@ Cada fase termina num portão de aprovação antes de a próxima começar.
 |---|---|---|---|
 | 001 | [vitrine-portfolio](001-vitrine-portfolio/) | concluído | Perfil, projetos, tecnologias, habilidades e estatísticas na home |
 | 002 | [formulario-contato](002-formulario-contato/) | concluído | Honeypot, rate limit, sanitização XSS e notificação por e-mail |
-| 003 | [configuracao-seguranca](003-configuracao-seguranca/) | concluído | Settings, CSP, admin ofuscado, hardening de produção e CI de segurança |
+| 003 | [configuracao-seguranca](003-configuracao-seguranca/) | concluído | Settings, CSP, admin ofuscado, hardening de produção e CI de segurança; adendo: CSP sem estilo inline |
 | 004 | [correcoes-de-interface](004-correcoes-de-interface/) | concluído | Correções da auditoria de interface: hero no celular, formulário com retorno, menu, contraste, avisos, fontes locais, páginas de erro e imagens novas |
 | 005 | [modo-demonstracao](005-modo-demonstracao/) | concluído | Modo demonstração do formulário de contato (valida sem gravar nem enviar, com aviso e link para o código) e e-mail no terminal em desenvolvimento |
 | 006 | [hospedagem](006-hospedagem/) | concluído | Demo na Railway: receita de build, HTTPS atrás do proxy, dados num volume, mídia servida em produção e erros no log |
@@ -83,12 +83,13 @@ Configurações sutis em que uma alteração "inofensiva" pode reintroduzir um
 problema já corrigido. Leia antes de mexer nos arquivos citados.
 
 - **CSP e scripts/estilos inline** (spec [003](003-configuracao-seguranca/)):
-  o `script-src` do `CONTENT_SECURITY_POLICY` em `portfolio/settings.py` **não** tem `'unsafe-inline'` —
-  foi removido de propósito porque nenhum template usa `<script>` inline.
-  Adicionar um `<script>` inline em qualquer template quebra silenciosamente
-  (o navegador só bloqueia no console, o servidor não acusa erro). Se
-  precisar de script inline, use nonce (ver ADR-02 da spec 003) em vez de
-  reintroduzir `'unsafe-inline'`.
+  o `script-src` e o `style-src` do `CONTENT_SECURITY_POLICY` em `portfolio/settings.py` **não** têm
+  `'unsafe-inline'` — removido de propósito porque nenhum template usa `<script>`,
+  `<style>` nem atributo `style=`. Adicionar um deles em qualquer template quebra
+  silenciosamente (o navegador só bloqueia no console, o servidor não acusa erro);
+  o `app_portfolio/test_estilo_inline.py` acusa o estilo inline antes. Estilo vai
+  numa classe do `styles.css` (como o honeypot, ADR-05 da spec 003); se precisar
+  de script inline, use nonce em vez de reintroduzir `'unsafe-inline'`.
 - **`disable_real_email` em `app_portfolio/tests.py`** (spec
   [002](002-formulario-contato/)): é `autouse=True` de propósito. Removê-la
   (ou criar um novo teste em outro módulo sem essa fixture) faz o teste tentar

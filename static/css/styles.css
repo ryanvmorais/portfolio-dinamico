@@ -1123,6 +1123,13 @@ button.chip:hover {
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Honeypot do formulário (spec 002, RF-01): escondido pela folha, não por
+   style="" no template, porque a CSP não aceita estilo inline (adendo da
+   spec 003, ADR-05). O display: none o tira também do Tab e do leitor de tela. */
+.contact__honeypot {
+    display: none;
+}
+
 /* Aviso fixo do modo demonstração (spec 005, RF-04): só existe no HTML com
    MODO_DEMONSTRACAO ligado. Fundo ciano translúcido sobre o card, para ler
    como informação e não como erro; o texto claro e o link ciano passam do
