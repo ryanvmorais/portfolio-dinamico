@@ -15,7 +15,7 @@
 
 🔗 **[Ver demo ao vivo](https://portfolio-dinamico.ryanmorais.com.br/)**
 
-Este repositório contém um **Portfólio Dinâmico com Django**, um portfólio profissional criado como template educativo. Embora se apresente visualmente como uma *SPA* (Single Page Application), o projeto foi construído como um sistema robusto, focando em **segurança avançada**, **otimização de banco de dados** e **arquitetura limpa**.
+Este repositório contém um **Portfólio Dinâmico com Django**: um template de portfólio profissional em Django 6.1 para quem quer aprender a colocar um site no ar com segurança. Ele traz formulário de contato com honeypot, rate limit e sanitização de HTML, CSP e HSTS, consultas sem N+1 e testes com pytest. Por fora parece uma *SPA* (Single Page Application); por dentro, é uma página renderizada no servidor.
 
 ### 🎯 Objetivo do Projeto:
 
@@ -27,8 +27,8 @@ Demonstrar a aplicação de **boas práticas profissionais** de desenvolvimento 
 
 Este projeto foi estruturado para consolidar pilares fundamentais de engenharia de software:
 
-- **Segurança Ofensiva e Defensiva:** implementação de *Honeypot* (armadilha para bots), *Rate Limit* (limitação de envios por IP) e integração com `bleach` para sanitização de HTML.
-- **Performance & Escala:** uso de `select_related` e `prefetch_related` para mitigar o problema de consultas N+1, garantindo carregamento instantâneo.
+- **Segurança Defensiva:** implementação de *Honeypot* (armadilha para bots), *Rate Limit* (limitação de envios por IP) e integração com `bleach` para sanitização de HTML.
+- **Performance & Escala:** uso de `select_related` e `prefetch_related` para mitigar o problema de consultas N+1, que soma uma ida a mais ao banco para cada projeto exibido.
 - **DevOps Mindset:** dependências travadas num `uv.lock` (runtime, grupo `dev` e extra `prod`) com quarentena de 7 dias contra versões recém-publicadas, `pip-audit` no CI e toda segunda-feira, Dependabot, além de configurações rigorosas de CSP (Content Security Policy) e HSTS.
 - **Interface Auditada:** a home foi conferida em Chrome real (10 tamanhos de celular, axe-core, teclado, formulário) e corrigida com um teste por requisito: hero que cabe na primeira tela do celular, formulário que avisa o visitante em qualquer resposta do servidor, menu acessível, contraste, "reduzir movimento", fontes hospedadas no projeto e páginas de erro próprias (spec 004).
 - **Qualidade de Código:** suíte de testes automatizados com `pytest` cobrindo fluxos de sucesso e tentativas de ataque.

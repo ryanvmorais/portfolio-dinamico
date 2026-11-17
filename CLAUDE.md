@@ -140,6 +140,7 @@ assets/                # Capa dos READMEs (portfolio-django-home-desktop.png)
 README.en.md           # README em inglês (repo público é bilíngue): mesmas seções do README.md, na mesma ordem
 CONTRIBUTING.md        # Guia de contribuição
 SECURITY.md            # Política de segurança: relato privado pelos avisos do GitHub, prazos e escopo
+CODE_OF_CONDUCT.md     # Contributor Covenant 3.0 (original em inglês); denúncia pelo relato privado do GitHub
 LICENSE                # MIT
 .github/                # Serviços do GitHub (commitado)
   workflows/ci.yml       # CI: job "qualidade" (ruff/black/mypy/pytest) + job "seguranca" (pip-audit + check --deploy); em push na main e em PR
