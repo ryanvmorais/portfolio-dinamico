@@ -100,6 +100,8 @@ Os principais:
 
 ### RF-04 — Menu do celular e foco por teclado
 
+**Superseded by** adendo, RF-25, no botão de fechar e na área do painel.
+
 - **Given** o menu do celular fechado
   **When** o visitante percorre a página com Tab
   **Then** nenhum link do painel recebe foco (o painel é `inert`); no desktop o
@@ -332,3 +334,111 @@ Um arquivo, `app_portfolio/test_interface.py`, com um grupo por requisito:
 
 Cada correção foi provada desfazendo-a: 43 mutações, todas pegas por algum teste.
 O navegador real (axe-core, Tab, medidas do hero) fica fora do pytest.
+
+## Adendo (2026-11-17): menu do celular com redes e currículo
+
+> Status do adendo: concluído (2026-11-17). O texto acima fica como está; o adendo acrescenta
+> requisitos, com a numeração continuando a dele.
+
+**Contexto.** O painel do menu do celular (RF-04) cobre a tela inteira, da barra do site
+para baixo, em 80% da largura. A faixa que sobra à esquerda mostra a página sem véu, com
+o logo, o selo e os botões cortados. O botão de fechar fica dentro do painel, 14 px
+abaixo do hambúrguer (centros a 46 px e a 32 px do topo), e o painel desliza animando a
+propriedade `right`. Abaixo dos cinco links, mais da metade do painel fica vazia. Depois
+do adendo da spec 008, o hero não tem mais GitHub, LinkedIn nem o currículo: no celular,
+eles só aparecem no fim da página (Contato, rodapé e Sobre).
+
+**Objetivos do adendo.**
+
+- Deixar claro que o menu está por cima da página, sem esconder a barra do site.
+- Abrir e fechar o menu no mesmo ponto da tela.
+- Dar acesso a GitHub, LinkedIn e currículo de qualquer ponto da página, pelo menu.
+- Deslizar o painel sem recalcular o layout a cada quadro.
+
+**Não-objetivos do adendo.**
+
+- Mudar o menu do desktop (a barra com os cinco links).
+- Mudar os links de navegação, a ordem deles ou o destaque da seção atual.
+- Campos novos no `Perfil`: as redes são as que ele já tem.
+
+**Personas do adendo.**
+
+- Como **um visitante no celular**, quero ver que o menu abriu sobre a página e fechá-lo
+  onde o abri.
+- Como **quem avalia o portfólio no celular**, quero abrir o GitHub, o LinkedIn ou o
+  currículo sem rolar até o fim da página.
+- Como **quem usa leitor de tela**, quero que o botão diga se abre ou fecha o menu.
+
+### RF-25 — Painel abaixo da barra do site
+
+- **Given** a home no celular (até 768 px), com o menu fechado
+  **When** o visitante toca no botão do menu
+  **Then** o painel abre da direita, a partir de baixo da barra do site até o fim da
+  tela; a barra (logo e botão) continua visível e clicável, e um véu escurece a página
+  abaixo dela.
+- **Given** o menu aberto
+  **When** o visitante olha para o botão da barra
+  **Then** ele mostra um X, tem o nome "Fechar menu" e `aria-expanded="true"`; fechado,
+  volta ao hambúrguer, com o nome "Abrir menu" e `aria-expanded="false"`.
+- **Given** o menu aberto
+  **When** o visitante toca no X ou aperta Esc
+  **Then** o menu fecha e o foco fica no botão; tocar no véu ou num link fecha sem mover
+  o foco para o botão.
+- **Given** a home acima de 768 px
+  **When** a página abre
+  **Then** o menu é a barra de sempre, sem véu e sem o bloco do RF-26.
+
+### RF-26 — Redes e currículo no pé do painel
+
+- **Given** `link_github`, `link_linkedin` e `curriculo` do `Perfil`
+  **When** o menu do celular abre
+  **Then** o pé do painel mostra dois grupos, cada link com ícone e nome visível e pelo
+  menos 44 px de altura: "Redes Sociais", com GitHub e LinkedIn em nova aba
+  (`rel="noopener noreferrer"`), e "Currículo", com "Download CV" baixando o arquivo
+  (o mesmo texto do botão de Sobre). Os dois rótulos são do mesmo nível: mesma fonte,
+  tamanho, peso, caixa e cor, e só o espaço acima do segundo os separa.
+- **Given** um desses campos vazio
+  **When** o menu abre
+  **Then** o link dele não existe, nunca `href="None"` nem erro 500; grupo sem nenhum
+  link não aparece, e sem os três campos o bloco inteiro some.
+- **Given** o bloco no painel
+  **When** se mede o contraste
+  **Then** os rótulos e os links passam de 4,5:1 sobre o fundo do painel e ficam um tom
+  mais apagados que os links de navegação.
+- **Given** um celular baixo, em que os links e o bloco não cabem na altura do painel
+  **When** o menu abre
+  **Then** o painel rola por dentro, e nenhum link fica fora de alcance.
+
+### RF-27 — Deslize por transform
+
+- **Given** o painel do menu
+  **When** ele abre ou fecha
+  **Then** desliza por `transform`, sem animar `right`, `left` nem `width`; com
+  movimento reduzido, não anima (RF-08).
+
+**Decisões resolvidas do adendo.**
+
+1. **Painel abaixo da barra, não sobre ela** (2026-11-17). Com o painel sobre a barra, o
+   logo some sob o véu e o botão de fechar precisa de um lugar próprio. Abaixo dela, o
+   logo continua à vista e o mesmo botão abre e fecha, no mesmo ponto.
+2. **Ícone e nome, não só o ícone** (2026-11-17). Com duas redes e o currículo, sobra
+   espaço para o nome, que diz para onde cada link leva; só ícones servem quando as redes
+   são muitas.
+3. **Currículo no menu, num grupo próprio** (2026-11-17). Fora do hero, ele só aparecia
+   em Sobre; no menu, fica a um toque de qualquer ponto da página. Fica separado das
+   redes porque não é uma rede, e o "Download CV" repete o texto do botão de Sobre.
+
+### RF-28 — A suíte cobre o adendo
+
+- Com os três campos preenchidos, o painel tem o grupo "Redes Sociais" com GitHub e
+  LinkedIn em nova aba e o grupo "Currículo" com "Download CV" e `download`; com cada
+  campo vazio, o link some, o grupo vazio some, e sem nenhum o bloco não existe; nunca
+  `href="None"`. Os dois rótulos usam a mesma classe, e o CSS dá a ela um tamanho só.
+- O painel não tem mais botão de fechar próprio, e o botão da barra controla o painel
+  (`aria-controls`).
+- No `styles.css`: o painel começa abaixo da barra, o véu existe só no celular, o
+  painel desliza por `transform` sem `transition` de `right`, rola por dentro
+  (`overflow-y: auto`), e o bloco do RF-26 some acima de 768 px; o contraste do bloco é
+  calculado dos tokens.
+- No `main.js`: abrir e fechar trocam o nome do botão e o `aria-expanded`, e o véu
+  fecha o menu.

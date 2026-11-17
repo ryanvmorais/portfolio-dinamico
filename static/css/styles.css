@@ -365,37 +365,121 @@ textarea {
     width: 100%;
 }
 
-.nav__toggle,
-.nav__close {
+.nav__toggle {
     display: none;
     color: var(--color-white);
     padding: var(--spacing-sm);
 }
 
-/* Mobile Navigation */
+/* Véu, redes e currículo só existem no painel do celular (spec 004, RF-25 e RF-26) */
+.nav__veu,
+.nav__extras {
+    display: none;
+}
+
+/* Mobile Navigation. Spec 004, adendo: o painel começa abaixo da barra, que
+   fica à vista e clicável, e desliza por transform (RF-27). A barra tem
+   backdrop-filter, então o fixed se mede por ela: painel e véu declaram a
+   altura, nunca bottom: 0 (ADR-14). O z-index põe o painel à frente do véu,
+   que vem depois no HTML. */
 @media (max-width: 768px) {
     .nav__menu {
         position: fixed;
-        top: 0;
-        right: -100%;
+        top: var(--header-height);
+        right: 0;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
         width: 80%;
         max-width: 320px;
-        height: 100vh;
+        height: calc(100vh - var(--header-height));
         /* dvh acompanha a barra do navegador do celular; vh fica de reserva (RF-15) */
-        height: 100dvh;
+        height: calc(100dvh - var(--header-height));
+        overflow-y: auto;
         background: var(--color-bg-secondary);
-        padding: var(--spacing-4xl) var(--spacing-xl);
-        transition: right var(--transition-slow);
+        padding: var(--spacing-xl);
+        transform: translateX(100%);
+        transition: transform var(--transition-slow);
+    }
+
+    /* .show entra e sai por abrirMenu() e fecharMenu() no main.js. A sombra
+       só aberto: fechado, ela vazaria na borda direita da tela */
+    .nav__menu.show {
+        transform: none;
         box-shadow: var(--shadow-xl);
     }
 
-    .nav__menu.show {
-        right: 0;
+    .nav__veu {
+        display: block;
+        position: fixed;
+        top: var(--header-height);
+        left: 0;
+        width: 100%;
+        height: calc(100vh - var(--header-height));
+        height: calc(100dvh - var(--header-height));
+        background: rgba(4, 10, 20, 0.7);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity var(--transition-slow), visibility var(--transition-slow);
+    }
+
+    .nav__menu.show ~ .nav__veu {
+        opacity: 1;
+        visibility: visible;
     }
 
     .nav__list {
         flex-direction: column;
         gap: var(--spacing-sm);
+    }
+
+    /* Pé do painel (RF-26): um tom abaixo dos links de navegação (gray-300) */
+    .nav__extras {
+        display: block;
+        margin-top: auto;
+        padding-top: var(--spacing-lg);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Os dois rótulos têm o mesmo nível: uma regra só, um tamanho só */
+    .nav__grupo {
+        margin-bottom: var(--spacing-xs);
+        font-size: var(--fs-xs);
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-gray-400);
+    }
+
+    .nav__extras-lista + .nav__grupo {
+        margin-top: var(--spacing-lg);
+    }
+
+    .nav__extra {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        min-height: 2.75rem;
+        color: var(--color-gray-400);
+        transition: color var(--transition-fast);
+    }
+
+    .nav__extra:hover {
+        color: var(--color-accent);
+    }
+
+    /* O download.svg usa currentColor, que dentro de <img> vira preto; o filtro
+       deixa os três ícones claros, como os ícones sociais do rodapé */
+    .nav__extra img {
+        filter: brightness(0) invert(1);
+        opacity: 0.7;
+    }
+
+    /* O ícone do botão segue o estado lido pelo leitor de tela (ADR-12); o
+       aria-expanded muda em abrirMenu() e fecharMenu() no main.js */
+    .nav__toggle[aria-expanded='true'] .nav__icone-abrir,
+    .nav__toggle[aria-expanded='false'] .nav__icone-fechar {
+        display: none;
     }
 
     /* Alvo de toque de 44px (RF-18); o sublinhado acompanha o texto, não a caixa */
@@ -409,19 +493,12 @@ textarea {
         bottom: 0.25rem;
     }
 
-    .nav__toggle,
-    .nav__close {
+    .nav__toggle {
         display: flex;
         align-items: center;
         justify-content: center;
         width: 2.75rem;
         height: 2.75rem;
-    }
-
-    .nav__close {
-        position: absolute;
-        top: var(--spacing-lg);
-        right: var(--spacing-lg);
     }
 }
 

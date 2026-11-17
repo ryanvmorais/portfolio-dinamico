@@ -26,7 +26,6 @@
     const header = document.getElementById('header');
     const navMenu = document.getElementById('nav-menu');
     const navToggle = document.getElementById('nav-toggle');
-    const navClose = document.getElementById('nav-close');
     const navLinks = document.querySelectorAll('.nav__link');
     const backToTop = document.getElementById('back-to-top');
     const contactForm = document.getElementById('contact-form');
@@ -61,9 +60,11 @@
 
     // -----------------------------------------------------------------------
     // MENU DO CELULAR
-    // O painel fica fora da tela por right: -100%, o que não o tira do Tab nem
+    // O painel fica fora da tela por transform, o que não o tira do Tab nem
     // do leitor de tela. Por isso ele é inerte enquanto fechado (RF-04);
-    // no desktop o menu é a barra de sempre e nunca recebe inert.
+    // no desktop o menu é a barra de sempre e nunca recebe inert. O mesmo
+    // botão abre e fecha: o ícone segue o aria-expanded pelo CSS, e o nome
+    // muda aqui (adendo, ADR-12).
     // -----------------------------------------------------------------------
     function menuEstaAberto() {
         return navMenu.classList.contains('show');
@@ -82,6 +83,7 @@
         navMenu.inert = false;
         navMenu.classList.add('show');
         navToggle.setAttribute('aria-expanded', 'true');
+        navToggle.setAttribute('aria-label', 'Fechar menu');
         document.body.style.overflow = 'hidden';
         conteudoDeFundo.forEach((elemento) => {
             elemento.inert = true;
@@ -93,8 +95,8 @@
      * Fecha o painel do celular.
      *
      * @param {{devolverFoco?: boolean}} [opcoes] - devolverFoco leva o foco de
-     *   volta ao botão do menu (Esc e botão de fechar). Clique em link ou fora
-     *   do painel não devolve: a página navega ou o visitante foi para outro lugar.
+     *   volta ao botão do menu (Esc e o X do botão). Clique em link ou fora
+     *   do painel (no véu, inclusive) não devolve: a página navega ou o visitante foi para outro lugar.
      */
     function fecharMenu({ devolverFoco = false } = {}) {
         if (!navMenu) {
@@ -102,6 +104,7 @@
         }
         navMenu.classList.remove('show');
         navToggle.setAttribute('aria-expanded', 'false');
+        navToggle.setAttribute('aria-label', 'Abrir menu');
         document.body.style.overflow = '';
         conteudoDeFundo.forEach((elemento) => {
             elemento.inert = false;
@@ -125,16 +128,19 @@
         });
 
         if (navToggle) {
-            navToggle.addEventListener('click', abrirMenu);
-        }
-        if (navClose) {
-            navClose.addEventListener('click', () => fecharMenu({ devolverFoco: true }));
+            navToggle.addEventListener('click', () => {
+                if (menuEstaAberto()) {
+                    fecharMenu({ devolverFoco: true });
+                } else {
+                    abrirMenu();
+                }
+            });
         }
         navLinks.forEach((link) => {
             link.addEventListener('click', () => fecharMenu());
         });
 
-        // Clique fora do painel fecha sem roubar o foco
+        // Clique fora do painel (o véu fica fora dele) fecha sem roubar o foco
         document.addEventListener('click', (e) => {
             if (menuEstaAberto() && !navMenu.contains(e.target) && !navToggle.contains(e.target)) {
                 fecharMenu();

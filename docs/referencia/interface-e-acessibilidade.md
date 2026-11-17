@@ -37,8 +37,22 @@ que ficaram, e que um ajuste "inofensivo" desfaria:
   direitos autorais segue centralizada.
 - **Menu do celular:** o painel `#nav-menu` é `inert` enquanto fechado (só no
   celular, por `matchMedia` no `main.js`); ao abrir, o foco vai ao primeiro link e
-  o resto da página fica inerte; Esc e o botão de fechar devolvem o foco ao
-  hambúrguer. **O corte de 768 px é o mesmo no JS e no CSS.**
+  o resto da página fica inerte; Esc e o X devolvem o foco ao botão. **O corte de
+  768 px é o mesmo no JS e no CSS.** Adendo da spec 004:
+  - O painel começa **abaixo da barra**, que fica à vista e clicável, e um véu
+    (`.nav__veu`) escurece a página; tocar no véu ou num link fecha sem mover o foco.
+  - **Um botão só** (`#nav-toggle`) abre e fecha: o CSS mostra o hambúrguer ou o X
+    pelo `aria-expanded`, e o `main.js` troca o nome ("Abrir menu", "Fechar menu").
+    Não há botão de fechar dentro do painel.
+  - A barra tem `backdrop-filter`, então o `position: fixed` do painel e do véu se
+    mede por ela: os dois **declaram `top` e altura** (`calc(100dvh -
+    var(--header-height))`), nunca `bottom: 0`. O painel desliza por `transform`,
+    nunca por `right`, e rola por dentro em celular baixo.
+  - No pé do painel, dois grupos lidos do `Perfil`: "Redes Sociais" (GitHub e
+    LinkedIn) e "Currículo" ("Download CV"). Os rótulos são `<p class="nav__grupo">`
+    que dão nome às listas (`aria-labelledby`), não títulos: o painel vem antes do
+    `<h1>`. Cada link tem o seu `{% if %}`, grupo vazio some, e o bloco não existe
+    acima de 768 px.
 - **Contraste:** o texto de apoio usa `--color-gray-400` (#8393aa, 4,67:1 no pior
   fundo). `--color-gray-500` é só cor de borda, nunca de texto.
 - **Avisos:** um componente só, `.notification`, para o `main.js` (AJAX) e para as

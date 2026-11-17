@@ -73,14 +73,51 @@
                     <li class="nav__item"><a href="#skills" class="nav__link">Habilidades</a></li>
                     <li class="nav__item"><a href="#contact" class="nav__link">Contato</a></li>
                 </ul>
-                <button class="nav__close" id="nav-close" aria-label="Fechar menu">
-                    <img src="{% static 'icons/close.svg' %}" alt="" aria-hidden="true" width="24" height="24">
-                </button>
+
+                {% comment %}
+                REDES E CURRÍCULO no pé do painel, só no celular (spec 004, RF-26). Cada link tem o seu if: campo vazio
+                não vira href="None" nem erro 500, e grupo sem link some. Os rótulos são <p> que dão nome às listas, não
+                títulos: o painel vem antes do <h1> no HTML (ADR-13).
+                {% endcomment %}
+                {% if perfil.link_github or perfil.link_linkedin or perfil.curriculo %}
+                <div class="nav__extras">
+                    {% if perfil.link_github or perfil.link_linkedin %}
+                    <p class="nav__grupo" id="nav-grupo-redes">Redes Sociais</p>
+                    <ul class="nav__extras-lista" aria-labelledby="nav-grupo-redes">
+                        {% if perfil.link_github %}
+                        <li><a href="{{ perfil.link_github }}" class="nav__extra" target="_blank" rel="noopener noreferrer">
+                            <img src="{% static 'icons/social/github.svg' %}" alt="" aria-hidden="true" width="20" height="20">
+                            GitHub
+                        </a></li>
+                        {% endif %}
+                        {% if perfil.link_linkedin %}
+                        <li><a href="{{ perfil.link_linkedin }}" class="nav__extra" target="_blank" rel="noopener noreferrer">
+                            <img src="{% static 'icons/social/linkedin.svg' %}" alt="" aria-hidden="true" width="20" height="20">
+                            LinkedIn
+                        </a></li>
+                        {% endif %}
+                    </ul>
+                    {% endif %}
+                    {% if perfil.curriculo %}
+                    <p class="nav__grupo" id="nav-grupo-curriculo">Currículo</p>
+                    <ul class="nav__extras-lista" aria-labelledby="nav-grupo-curriculo">
+                        <li><a href="{{ perfil.curriculo.url }}" class="nav__extra" download>
+                            <img src="{% static 'icons/download.svg' %}" alt="" aria-hidden="true" width="20" height="20">
+                            Download CV
+                        </a></li>
+                    </ul>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
 
-            {# aria-expanded e o rótulo são alternados por abrirMenu()/fecharMenu() em main.js (spec 004, RF-04) #}
+            {# VÉU: escurece a página abaixo da barra com o menu do celular aberto; o toque nele fecha o menu (spec 004, RF-25) #}
+            <div class="nav__veu" aria-hidden="true"></div>
+
+            {# Um botão só abre e fecha: o CSS mostra o ícone pelo aria-expanded, e abrirMenu()/fecharMenu() em main.js trocam o estado e o nome (spec 004, ADR-12) #}
             <button class="nav__toggle" id="nav-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="nav-menu">
-                <img src="{% static 'icons/menu.svg' %}" alt="" aria-hidden="true" width="24" height="24">
+                <img class="nav__icone-abrir" src="{% static 'icons/menu.svg' %}" alt="" aria-hidden="true" width="24" height="24">
+                <img class="nav__icone-fechar" src="{% static 'icons/close.svg' %}" alt="" aria-hidden="true" width="24" height="24">
             </button>
         </nav>
     </header>

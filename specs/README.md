@@ -67,7 +67,7 @@ Cada fase termina num portão de aprovação antes de a próxima começar.
 | 001 | [vitrine-portfolio](001-vitrine-portfolio/) | concluído | Perfil, projetos, tecnologias, habilidades e estatísticas na home |
 | 002 | [formulario-contato](002-formulario-contato/) | concluído | Honeypot, rate limit, sanitização XSS e notificação por e-mail |
 | 003 | [configuracao-seguranca](003-configuracao-seguranca/) | concluído | Settings, CSP, admin ofuscado, hardening de produção e CI de segurança; adendo: CSP sem estilo inline |
-| 004 | [correcoes-de-interface](004-correcoes-de-interface/) | concluído | Correções da auditoria de interface: hero no celular, formulário com retorno, menu, contraste, avisos, fontes locais, páginas de erro e imagens novas |
+| 004 | [correcoes-de-interface](004-correcoes-de-interface/) | concluído | Correções da auditoria de interface: hero no celular, formulário com retorno, menu, contraste, avisos, fontes locais, páginas de erro e imagens novas; adendo: menu do celular com redes e currículo |
 | 005 | [modo-demonstracao](005-modo-demonstracao/) | concluído | Modo demonstração do formulário de contato (valida sem gravar nem enviar, com aviso e link para o código) e e-mail no terminal em desenvolvimento |
 | 006 | [hospedagem](006-hospedagem/) | concluído | Demo na Railway: receita de build, HTTPS atrás do proxy, dados num volume, mídia servida em produção e erros no log |
 | 007 | [descoberta](007-descoberta/) | concluído | Demo identificada como demonstração para buscadores e redes sociais: `URL_PUBLICA`, canonical, `og:*`, `twitter:card`, ícone de tela inicial, `robots.txt`, `sitemap.xml` e `security.txt` |
