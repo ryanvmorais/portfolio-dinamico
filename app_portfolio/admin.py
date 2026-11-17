@@ -82,7 +82,6 @@ class PerfilAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "email_contato",
-                    "telefone",
                     "localizacao",
                     "status_trabalho",
                     "formacao",

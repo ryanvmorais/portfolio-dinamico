@@ -245,3 +245,34 @@ Admin, depois do deploy.
   `uv run mypy app_portfolio portfolio`, `uv run pytest`,
   `uv run python manage.py makemigrations --check`. — 333 passed;
   ruff/black/mypy verdes; `makemigrations --check` sem mudança.
+
+## Adendo (2026-11-17): telefone do perfil sem uso
+
+> Status do adendo: concluído (2026-11-17). Quebra os RF-28 e RF-29 e o ADR-13 do
+> adendo. O texto acima fica como está; as etapas continuam a numeração.
+
+## Etapa 11 — Remoção do telefone
+
+- [x] `app_portfolio/models.py`, `app_portfolio/admin.py` e
+  `app_portfolio/management/commands/semear_dados_demo.py`: sai o `telefone`. — RF-28,
+  ADR-13
+- [x] `uv run python manage.py makemigrations app_portfolio --name remove_perfil_telefone`:
+  a migração `0028` com o `RemoveField`. — RF-28, ADR-13
+- [x] `app_portfolio/test_redesenho.py`: o `telefone` no teste dos campos antigos e a
+  migração de ida e volta da `0027` à `0028`; o `test_semear_dados_demo.py` segue
+  verde com o comando sem o campo. — RF-29
+- [x] Portão de qualidade: `uv run ruff check --fix .`, `uv run black .`,
+  `uv run mypy app_portfolio portfolio`, `uv run pytest`,
+  `uv run python manage.py makemigrations --check`. — 334 passed; ruff/black/mypy
+  verdes; `makemigrations --check` sem mudança.
+
+## Etapa 12 — Fechamento
+
+- [x] `design.md`: "Desvios do adendo" e "Notas de implementação do adendo", se houver.
+  — RF-29
+- [x] Status do adendo `concluído` nos três arquivos, frontmatter de volta a
+  `concluído` e a linha do índice do `specs/README.md`. — RF-29
+- [x] Portão de qualidade: `uv run ruff check .`, `uv run black --check .`,
+  `uv run mypy app_portfolio portfolio`, `uv run pytest`,
+  `uv run python manage.py makemigrations --check`. — 334 passed; ruff/black/mypy
+  verdes; `makemigrations --check` sem mudança.

@@ -662,3 +662,60 @@ perde o queixo mais cedo; o texto de ajuda orienta o enquadramento.
     site bloqueia um `<script>` injetado na página.
   - Com uma foto cujo cabelo encosta na borda de cima do arquivo, o círculo mostra a
     cabeça inteira, e o cabelo encosta no alto do círculo (decisão resolvida 3).
+
+## Adendo (2026-11-17): telefone do perfil sem uso
+
+> Status do adendo: concluído (2026-11-17). Desenha os RF-28 e RF-29 do adendo do `requirements.md`.
+> O texto acima fica como está; os ADRs continuam a numeração.
+
+### Visão geral da abordagem do adendo
+
+Uma migração `0028` com um `RemoveField` do `telefone` do `Perfil`. O campo sai do
+`models.py`, do grupo "Detalhes de Contato e Formação" do `PerfilAdmin` e do perfil do
+`semear_dados_demo`. Nenhum template, view ou contexto muda, porque nenhum lê o campo.
+
+### Componentes do adendo
+
+- `app_portfolio/models.py`: sai a linha do `telefone`.
+- `app_portfolio/migrations/0028_remove_perfil_telefone.py`: o `RemoveField` gerado pelo
+  `makemigrations`.
+- `app_portfolio/admin.py`: sai o `"telefone"` dos campos do grupo de contato.
+- `app_portfolio/management/commands/semear_dados_demo.py`: sai o telefone fictício.
+- `app_portfolio/test_redesenho.py`: o teste dos campos antigos ganha o `telefone`, e um
+  teste novo leva a migração da `0027` à `0028` e de volta.
+
+### Interfaces do adendo
+
+Sem rota nem contexto novo. O formulário do Admin do perfil perde um campo.
+
+### ADR-13 — Telefone sai sem conversão
+
+- **Decisão:** um `RemoveField` direto; a volta recria a coluna vazia.
+- **Alternativas:** manter o campo para um uso futuro; levar o número para outro campo.
+- **Porquê:** nada no site lê o telefone, e nenhum outro campo serve para guardá-lo; é o
+  mesmo critério do ADR-04.
+- **Trade-off:** o número gravado se perde na migração; quem quiser mostrar um telefone
+  recria o campo e o template.
+
+### Impacto no código existente do adendo
+
+- A spec 001 cita o `telefone` entre os campos do `Perfil`; o texto dela fica como está,
+  como registro.
+- `docs/referencia/arquitetura.md` não lista o campo; não muda.
+
+### Estratégia de testes do adendo
+
+- No `test_redesenho.py`: o `telefone` entra no teste dos campos antigos; a migração de ida
+  e volta segue o padrão do teste da `0023` à `0026`, com o esquema atual restaurado no fim.
+- O `test_semear_dados_demo.py` roda o comando de verdade: um `telefone` que sobrasse nele
+  quebraria a criação do perfil.
+
+### Notas de implementação do adendo
+
+- Sem desvios: a implementação seguiu o texto aprovado.
+- A migração `0028_remove_perfil_telefone` é o `RemoveField` que o `makemigrations` gerou.
+- Suíte: 333 testes antes, 334 depois. O `test_migracao_tira_o_telefone_e_volta` grava
+  um perfil com telefone na `0027`, confere na `0028` que a coluna saiu e o perfil ficou,
+  e na volta que a coluna existe de novo, vazia; o esquema atual é restaurado no fim. O
+  teste dos campos antigos ganhou o `telefone`, e os testes do `semear_dados_demo` seguem
+  verdes sem o campo.

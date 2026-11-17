@@ -561,3 +561,49 @@ cabeça é o da própria foto.
   seguem no Contato e no rodapé.
 - No `styles.css`, a foto do celular tem 160 px, e o recorte da foto parte do alto.
 - O texto de ajuda do campo de foto cita a proporção 4:5 e o espaço acima da cabeça.
+
+## Adendo (2026-11-17): telefone do perfil sem uso
+
+> Status do adendo: concluído (2026-11-17). O texto acima fica como está; o adendo
+> acrescenta requisitos, com a numeração continuando a dele.
+
+**Contexto.** O `Perfil` tem o campo `telefone` desde a spec 001, editável no Admin, no
+grupo "Detalhes de Contato e Formação". Nenhum template, view ou arquivo de descoberta o
+lê: a seção de Contato mostra o e-mail, o LinkedIn e o GitHub. O ADR-04 tirou os campos
+sem uso, e o `telefone` ficou de fora da lista. Um campo que não aparece no site engana
+quem preenche o Admin e guarda um dado pessoal que nada usa.
+
+**Objetivos do adendo.**
+
+- Tirar o `telefone` do modelo, do Admin e dos dados de demonstração.
+- Manter o caminho de volta da migração, como nas do ADR-03.
+
+**Não-objetivos do adendo.**
+
+- Mostrar um telefone no site.
+- Mudar os outros campos de contato do `Perfil`.
+
+**Personas do adendo.**
+
+- Como **quem clona o projeto**, quero que cada campo do Admin apareça em algum lugar do
+  site, para saber o que preencher.
+
+### RF-28 — Perfil sem telefone
+
+- **Given** o Admin do perfil
+  **When** a página de edição abre
+  **Then** não há campo de telefone, e os outros campos de contato seguem no mesmo grupo.
+- **Given** um banco com um telefone gravado no perfil
+  **When** a migração do adendo roda
+  **Then** a coluna `telefone` sai da tabela do `Perfil`, e os outros dados do perfil
+  ficam como estavam.
+- **Given** o banco depois da migração
+  **When** ela é desfeita
+  **Then** a coluna volta, vazia.
+
+### RF-29 — A suíte cobre o adendo
+
+- O `Perfil` não tem o campo `telefone`.
+- A migração vai e volta: com um perfil gravado, a ida tira a coluna e mantém o nome do
+  perfil, e a volta recria a coluna vazia.
+- O `semear_dados_demo` cria o perfil sem telefone, e os testes dele continuam passando.

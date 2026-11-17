@@ -796,13 +796,55 @@ def test_migracao_converte_os_dados_e_volta() -> None:
         executor.migrate(executor.loader.graph.leaf_nodes())
 
 
+def _colunas_do_perfil() -> set[str]:
+    """
+    Lê as colunas da tabela do ``Perfil`` direto do banco.
+
+    Returns:
+        set[str]: Os nomes das colunas de ``app_portfolio_perfil``.
+    """
+    with connection.cursor() as cursor:
+        descricao = connection.introspection.get_table_description(
+            cursor, "app_portfolio_perfil"
+        )
+    return {coluna.name for coluna in descricao}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_migracao_tira_o_telefone_e_volta() -> None:
+    """Da 0027 à 0028 a coluna telefone sai e o perfil fica; a volta a recria vazia (adendo, RF-28)."""
+    antes = [(APP, "0027_foto_com_espaco_acima_da_cabeca")]
+    depois = [(APP, "0028_remove_perfil_telefone")]
+    try:
+        antigos = _migrar(antes)
+        antigos.get_model(APP, "Perfil").objects.create(
+            nome="Ana Dev", cargo="Desenvolvedora", telefone="+55 11 90000-0000"
+        )
+
+        novos = _migrar(depois)
+        assert "telefone" not in _colunas_do_perfil()
+        assert list(
+            novos.get_model(APP, "Perfil").objects.values_list("nome", flat=True)
+        ) == ["Ana Dev"]
+
+        de_volta = _migrar(antes)
+        assert "telefone" in _colunas_do_perfil()
+        assert list(
+            de_volta.get_model(APP, "Perfil").objects.values_list("telefone", flat=True)
+        ) == [None]
+    finally:
+        # Os próximos testes precisam do esquema atual.
+        executor = MigrationExecutor(connection)
+        executor.migrate(executor.loader.graph.leaf_nodes())
+
+
 def test_campos_antigos_sairam_dos_modelos() -> None:
-    """Progresso, opção de barras, ícones e mostrar_no_home não existem mais."""
+    """Progresso, opção de barras, ícones, mostrar_no_home e telefone não existem mais."""
     campos = {
         modelo: {campo.name for campo in modelo._meta.get_fields()}
         for modelo in (Perfil, Habilidade, Tecnologia, CategoriaHabilidade)
     }
-    assert "mostrar_progresso" not in campos[Perfil]
+    assert not {"mostrar_progresso", "telefone"} & campos[Perfil]
     assert "progresso" not in campos[Habilidade]
     assert not {"icone", "mostrar_no_home"} & campos[Tecnologia]
     assert "icone" not in campos[CategoriaHabilidade]
