@@ -1,6 +1,6 @@
 ---
 feature: Correções da auditoria de interface
-status: em andamento
+status: concluído
 date: 2026-10-18
 related:
   - 001-vitrine-portfolio
@@ -102,52 +102,55 @@ origin: nova feature (auditoria de interface em navegador real)
 
 ## Adendo (2026-11-17): menu do celular com redes e currículo
 
-> Status do adendo: rascunho. Quebra os RF-25 a RF-28 e os ADR-12 a ADR-14 do adendo. O
-> texto acima fica como está; as etapas continuam a numeração.
+> Status do adendo: concluído (2026-11-17). Quebra os RF-25 a RF-28 e os ADR-12 a
+> ADR-14 do adendo. O texto acima fica como está; as etapas continuam a numeração.
 
 ## Etapa 8 — Painel abaixo da barra, botão único, véu e redes
 
-- [ ] `templates/base.html`: sai o `nav__close`; o `nav__toggle` com os dois ícones
+- [x] `templates/base.html`: sai o `nav__close`; o `nav__toggle` com os dois ícones
       (`nav__icone-abrir` e `nav__icone-fechar`); o bloco `nav__extras` com os grupos
       "Redes Sociais" e "Currículo" (`<p class="nav__grupo">` e `<ul
       aria-labelledby>`), cada link com o seu `{% if %}`; o `nav__veu` depois do painel.
       — RF-25, RF-26, ADR-12, ADR-13
-- [ ] `static/css/styles.css`: painel abaixo da barra, em coluna, com `overflow-y: auto`,
+- [x] `static/css/styles.css`: painel abaixo da barra, em coluna, com `overflow-y: auto`,
       `transform` e sombra só aberto; véu com altura declarada e transição de `opacity` e
       `visibility`; bloco e véu escondidos fora do celular; `.nav__grupo` e `.nav__extra`;
       ícone do botão pelo `aria-expanded`; saem as regras do `.nav__close`. — RF-25,
       RF-26, RF-27, ADR-12, ADR-14
-- [ ] `static/js/main.js`: o botão alterna abrir e fechar e troca o `aria-label`; saem o
+- [x] `static/js/main.js`: o botão alterna abrir e fechar e troca o `aria-label`; saem o
       `navClose` e o ouvinte dele. — RF-25, ADR-12
-- [ ] `app_portfolio/test_interface.py`: o bloco com cada campo vazio e preenchido, os
+- [x] `app_portfolio/test_interface.py`: o bloco com cada campo vazio e preenchido, os
       rótulos com a mesma classe, o botão com os dois ícones, sem `nav-close`; o CSS do
       painel, do véu e do bloco; o contraste do bloco; o JavaScript do botão; os testes
       que citavam o `.nav__close`. — RF-28
-- [ ] Portão de qualidade: `uv run ruff check --fix .`, `uv run black .`,
-      `uv run mypy app_portfolio portfolio`, `uv run pytest`.
+- [x] Portão de qualidade: `uv run ruff check --fix .`, `uv run black .`,
+      `uv run mypy app_portfolio portfolio`, `uv run pytest` — 348 passed (eram 333);
+      ruff, black e mypy verdes.
 
 ## Etapa 9 — Conferência no navegador
 
-- [ ] Ambiente local com `semear_dados_demo` e os três campos preenchidos, a 390 x 844 e a
+- [x] Ambiente local com `semear_dados_demo` e os três campos preenchidos, a 390 x 844 e a
       360 x 640, menu fechado e aberto: barra visível e clicável, véu, X no lugar do
       hambúrguer, bloco no pé do painel, rolagem no celular baixo e nenhum link fora de
       alcance. — RF-25, RF-26
-- [ ] Teclado e leitor de tela: o foco vai ao primeiro link ao abrir; Esc e X fecham com
+- [x] Teclado e leitor de tela: o foco vai ao primeiro link ao abrir; Esc e X fecham com
       o foco no botão; o botão anuncia "Abrir menu" e "Fechar menu" pela árvore de
       acessibilidade; o toque no véu fecha. — RF-25
-- [ ] axe-core sem achado e nenhuma violação de CSP, com o menu aberto e fechado; o
+- [x] axe-core sem achado e nenhuma violação de CSP, com o menu aberto e fechado; o
       painel desliza por `transform`. — RF-26, RF-27
-- [ ] Portão da etapa: servidor, navegador e banco temporário encerrados; resultados em
-      "Notas de implementação do adendo".
+- [x] Portão da etapa: servidor, navegador e banco temporário encerrados; resultados em
+      "Notas de implementação do adendo" — encerrados; axe-core sem achado novo (os dois
+      de boas práticas com o menu aberto vêm de antes do adendo), CSP sem violação.
 
 ## Etapa 10 — Documentação e fechamento
 
-- [ ] `docs/referencia/interface-e-acessibilidade.md`: o menu do celular com o painel
+- [x] `docs/referencia/interface-e-acessibilidade.md`: o menu do celular com o painel
       abaixo da barra, o botão único, o véu e o bloco de redes e currículo. — RF-25,
       RF-26
-- [ ] `design.md`: "Desvios do adendo" e "Notas de implementação do adendo", se houver.
+- [x] `design.md`: "Desvios do adendo" e "Notas de implementação do adendo", se houver.
       — RF-28
-- [ ] Status do adendo `concluído` nos três arquivos, frontmatter de volta a `concluído`
+- [x] Status do adendo `concluído` nos três arquivos, frontmatter de volta a `concluído`
       e a linha do índice do `specs/README.md`. — RF-28
-- [ ] Portão de qualidade: `uv run ruff check .`, `uv run black --check .`,
-      `uv run mypy app_portfolio portfolio`, `uv run pytest`.
+- [x] Portão de qualidade: `uv run ruff check .`, `uv run black --check .`,
+      `uv run mypy app_portfolio portfolio`, `uv run pytest` — 348 passed; ruff, black
+      e mypy verdes.

@@ -1,6 +1,6 @@
 ---
 feature: Correções da auditoria de interface
-status: em andamento
+status: concluído
 date: 2026-10-18
 related:
   - 001-vitrine-portfolio
@@ -337,7 +337,7 @@ O navegador real (axe-core, Tab, medidas do hero) fica fora do pytest.
 
 ## Adendo (2026-11-17): menu do celular com redes e currículo
 
-> Status do adendo: aprovado (2026-11-17). O texto acima fica como está; o adendo acrescenta
+> Status do adendo: concluído (2026-11-17). O texto acima fica como está; o adendo acrescenta
 > requisitos, com a numeração continuando a dele.
 
 **Contexto.** O painel do menu do celular (RF-04) cobre a tela inteira, da barra do site

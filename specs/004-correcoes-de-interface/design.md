@@ -1,6 +1,6 @@
 ---
 feature: Correções da auditoria de interface
-status: em andamento
+status: concluído
 date: 2026-10-18
 related:
   - 001-vitrine-portfolio
@@ -210,7 +210,7 @@ verificação em navegador real não entra no pytest.
 
 ## Adendo (2026-11-17): menu do celular com redes e currículo
 
-> Status do adendo: aprovado (2026-11-17). Desenha os RF-25 a RF-28 do adendo do `requirements.md`.
+> Status do adendo: concluído (2026-11-17). Desenha os RF-25 a RF-28 do adendo do `requirements.md`.
 > O texto acima fica como está; os ADRs continuam a numeração.
 
 ### Visão geral da abordagem do adendo
@@ -358,3 +358,48 @@ e `perfil.curriculo`, que o `base.html` já recebe para o rodapé. Some o `id="n
   clicável, o véu, o X no lugar do hambúrguer, o bloco no pé do painel, a rolagem no
   celular baixo, Tab e Esc, o leitor de tela anunciando "Abrir menu" e "Fechar menu"
   pela árvore de acessibilidade, nenhuma violação de CSP e nenhum achado do axe-core.
+
+### Desvios do adendo
+
+1. **Cor dos ícones do bloco (RF-26).** O componente pedia "o mesmo filtro dos ícones
+   sociais", mas os ícones do rodapé não têm filtro (o traço já é ciano), e o
+   `download.svg` usa `currentColor`, que dentro de `<img>` vira preto. Os três ícones
+   do bloco levam `filter: brightness(0) invert(1)` e `opacity: 0.7`, a mesma receita
+   do botão do GitHub nos cartões: claros e iguais entre si.
+2. **Ordem de pintura do painel e do véu (ADR-14).** O véu vem depois do painel no HTML
+   e, com os dois em `position: fixed`, ficaria por cima dele; o painel ganhou
+   `z-index: 1` dentro do celular.
+3. **Classe das listas e espaço entre os grupos (RF-26).** As listas dos grupos levam a
+   classe `nav__extras-lista`, e o espaço acima do segundo rótulo vem de
+   `.nav__extras-lista + .nav__grupo`; o link do bloco ganha a cor de destaque ao passar
+   o mouse, como os links de navegação.
+
+### Notas de implementação do adendo
+
+- **Suíte:** 333 testes antes, 348 depois. A classe `TestMenuComRedesECurriculo` do
+  `test_interface.py` traz 15 testes (HTML com cada campo vazio e preenchido, CSS do
+  painel, do véu e do bloco, contraste e JavaScript), e dois testes antigos passaram a
+  ler o `calc()` da altura e o seletor só do `.nav__toggle`.
+- **Navegador** (Chrome do sistema pelo Playwright, `semear_dados_demo` com currículo,
+  banco temporário), a 390 x 844, 360 x 640 e 667 x 375 deitado:
+  - O painel começa a 64 px do topo (abaixo da barra) e vai até o fim da tela (780 px
+    de altura a 390 x 844); o véu cobre a mesma faixa. Com o menu aberto, o ponto
+    central do logo e o do botão continuam sendo o próprio logo e o botão.
+  - Fechado, o painel fica em `translateX(100%)`, sem rolagem horizontal; aberto,
+    `transform: none`. A única transição do painel é `transform`.
+  - Os dois rótulos medem 12 px, peso 600, caixa alta e `rgb(131, 147, 170)`; os três
+    links do bloco têm 44 px de altura.
+  - A 390 x 844 o bloco termina 32 px acima do fim do painel; a 360 x 640 cabe sem
+    rolar; a 667 x 375 o painel rola por dentro e o "Download CV" fica alcançável.
+  - Teclado: ao abrir, o foco vai ao "Início"; o Tab passa pelos cinco links, GitHub,
+    LinkedIn, "Download CV" e chega ao botão, sem entrar na página inerte. Esc e o X
+    fecham com o foco no botão; o toque no véu e o clique num link fecham sem mover o
+    foco para o botão. A árvore de acessibilidade tem um botão "Fechar menu" com o
+    menu aberto e um "Abrir menu" depois de fechar.
+  - Nenhuma violação de CSP nem erro no console. Acima de 768 px, o véu, o bloco e o
+    botão ficam com `display: none` e o painel nunca fica inerte.
+  - axe-core 4.14.0: sem achado no menu fechado. Com o menu aberto, a 667 x 375,
+    acusa `landmark-one-main` e `page-has-heading-one` (boas práticas, não critérios
+    WCAG): o `<main>` fica `inert` de propósito enquanto o painel está aberto (RF-04).
+    A branch principal, sem o adendo, acusa os mesmos dois a 390 x 844 e a
+    667 x 375; não é efeito do adendo.
