@@ -32,8 +32,8 @@ XFrameOptionsMiddleware → CSPMiddleware → PermissionsPolicyMiddleware
 - CSP via `django-csp` 4, no dicionário `CONTENT_SECURITY_POLICY` (o pacote
   ignora os nomes antigos `CSP_*`; o app `csp` em `INSTALLED_APPS` faz o
   `manage.py check` acusar um `CSP_*` esquecido): `script-src 'self'` (sem
-  `'unsafe-inline'`: nenhum template usa script inline); `style-src` mantém `'unsafe-inline'` (2 atributos `style=""` inline na
-  barra de progresso de habilidades); as fontes vêm de `'self'` (spec 004: o
+  `'unsafe-inline'`: nenhum template usa script inline); `style-src` mantém `'unsafe-inline'` (o atributo `style=""` inline do
+  honeypot do formulário de contato); as fontes vêm de `'self'` (spec 004: o
   Google Fonts saiu de `style-src` e `font-src`); `base-uri 'none'`,
   `form-action 'self'` e `frame-ancestors 'none'`, que não herdam o
   `default-src`, e `object-src 'none'`, explícito embora herde
