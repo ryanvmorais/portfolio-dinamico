@@ -825,3 +825,10 @@ de caso citam só tecnologias da linha do próprio projeto.
   linha: é o texto livre de cada projeto, que o CSS não iguala.
 - Suíte: 349 testes antes, 355 depois (três no `test_semear_dados_demo.py`, três no
   `test_interface.py`).
+- Correção depois do merge: o `display: flex` do `.project-card` vencia o `display:
+  none` que o navegador dá ao atributo `hidden`, e os filtros (chip e categoria)
+  marcavam os cards como escondidos sem tirá-los da tela. Entrou
+  `.project-card[hidden] { display: none; }`, no padrão do `.projects__estado[hidden]`,
+  com um teste no `test_interface.py`; no navegador, cada chip passou a mostrar só os
+  seus projetos, e cada categoria, dois. A verificação do adendo media o atributo, não
+  o que aparecia na tela.

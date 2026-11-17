@@ -33,7 +33,8 @@ que ficaram, e que um ajuste "inofensivo" desfaria:
   até a altura da fileira (`align-items: stretch`); o de projeto é uma coluna
   flexível, com as ações no pé (`margin-top: auto`) e o bloco de tags com a altura de
   duas linhas. Voltar o `align-items: start` ou tirar o `min-height` das tags
-  desalinha as fileiras.
+  desalinha as fileiras. O `.project-card[hidden] { display: none; }` é o que faz
+  os filtros esconderem o card: sem ele, o `display: flex` vence o `hidden`.
 - **Alto contraste:** chips, selo, filtros e monograma têm
   borda, reforçada no bloco `forced-colors: active`; o que está marcado usa
   `Highlight`.
