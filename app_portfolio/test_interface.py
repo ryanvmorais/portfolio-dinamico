@@ -1123,6 +1123,11 @@ class TestCardsDoMesmoTamanho:
         assert "flex: 1" in _regra(CSS, ".project-card__content")
         assert "margin-top: auto" in _regra(CSS, ".project-card__acoes")
 
+    def test_card_filtrado_some_mesmo_com_display_flex(self) -> None:
+        """O [hidden] dos filtros vence o display: flex do card (senão nada some)."""
+        assert "card.hidden = !mostrar" in JS
+        assert "display: none" in _regra(CSS, ".project-card[hidden]")
+
     def test_tags_reservam_duas_linhas(self) -> None:
         """Com uma linha de tags num card e duas no vizinho, o resto segue alinhado."""
         tags = _regra(CSS, ".project-card__tech")
