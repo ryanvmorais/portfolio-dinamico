@@ -55,7 +55,9 @@ magnitude mais rápido para instalar.
 `[project.optional-dependencies]` (extras, aqui só `prod`) e
 `[dependency-groups]` (ferramentas de dev), e a quarentena
 `[tool.uv] exclude-newer = "7 days"`, que faz o lock resolver só versões
-publicadas há 7 dias ou mais (defesa contra pacote malicioso recém-publicado).
+publicadas há 7 dias ou mais (defesa contra pacote malicioso recém-publicado),
+com o `exclude-newer-package` para a exceção pontual (ver
+`docs/referencia/dependencias-e-cache.md`).
 
 **Docs:** [docs.astral.sh/uv](https://docs.astral.sh/uv/)
 
