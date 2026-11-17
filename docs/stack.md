@@ -144,8 +144,9 @@ carregar/executar script, estilo e imagem.
 manualmente em um middleware próprio duplicaria uma solução já testada.
 
 **Estudar:** as diretivas `default-src`/`script-src`/`style-src`/`font-src`, por
-que `'unsafe-inline'` enfraquece a defesa contra XSS (corrigido em `script-src`
-na auditoria de segurança de 2026-09 — ver `specs/003-configuracao-seguranca/`).
+que `'unsafe-inline'` enfraquece a defesa contra XSS (tirado do `script-src` na
+auditoria de segurança de 2026-09 e do `style-src` no adendo de 2026-11 — ver
+`specs/003-configuracao-seguranca/`).
 Desde a spec 004 as fontes vêm do próprio site, então `style-src` e `font-src`
 não citam mais o Google.
 

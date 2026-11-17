@@ -111,6 +111,7 @@ app_portfolio/        # A única aplicação
   test_redesenho.py    # Redesenho da home (spec 008): hero, ordem, cartão, chips, rodapé, marca e a migração de ida e volta
   test_readme_en.py    # Compara o README.en.md com o README.md (títulos, tabela, selos, blocos, links)
   test_comentarios_templates.py # Guarda a regra dos comentários dos templates ({# #}, nunca <!-- -->)
+  test_estilo_inline.py # Barra style= e <style> nos templates (a CSP não aceita estilo inline) e confere o honeypot escondido pela classe
   test_impessoalidade.py # Falha se o nome do mantenedor aparecer em arquivo versionado ou se este arquivo citar skill pessoal
   management/commands/semear_dados_demo.py # Dados fictícios (Lighthouse CI e dev)
   migrations/
@@ -198,7 +199,7 @@ Um único `settings.py` para dev e produção, ramificado por `if not DEBUG:`
 estáticos, mídia (`servir_midia`), dados graváveis, banco, log e e-mail:
 `docs/referencia/configuracoes.md`: **leia antes de mexer em `settings.py`**.
 
-- ⚠️ `<script>` inline num template exige revisar o `script-src` do `CONTENT_SECURITY_POLICY`: o navegador bloqueia em silêncio.
+- ⚠️ CSP sem `'unsafe-inline'` em `script-src` nem `style-src`: `<script>`, `<style>` ou `style=` num template o navegador bloqueia em silêncio; estilo vai para o `styles.css` (o `test_estilo_inline.py` acusa).
 - ⚠️ CSP só no dicionário `CONTENT_SECURITY_POLICY`: o django-csp 4 ignora os `CSP_*` antigos, e o cabeçalho some.
 - ⚠️ Rate limit no `CacheArquivoAtomico` (`app_portfolio/cache.py`), nunca `LocMemCache` nem o `FileBasedCache` puro, cujo `add()` não é atômico (`docs/referencia/dependencias-e-cache.md`).
 - ⚠️ `STORAGES["staticfiles"]`, nunca `STATICFILES_STORAGE`: o Django 6.1 o ignora.

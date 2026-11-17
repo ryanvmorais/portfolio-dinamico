@@ -64,6 +64,8 @@ Variáveis de ambiente consumidas por `settings.py` (documentadas em
 
 ### ADR-02 — CSP com `'unsafe-inline'` em `style-src`, mas não em `script-src`
 
+**Superseded by** adendo, ADR-05.
+
 - **Decisão (corrigida em 2026-09-11):** `CSP_SCRIPT_SRC = ("'self'",)` — sem
   `'unsafe-inline'`. `CSP_STYLE_SRC` mantém `'unsafe-inline'` porque
   `home.html` usa 2 atributos `style=""` inline (barra de progresso de
@@ -122,3 +124,148 @@ manual (`manage.py check --deploy` + auditoria de segurança de 2026-09-11:
 Exceção: a normalização do `ADMIN_URL` (RF-06, ADR-03) tem teste próprio
 (`TestCaminhoDoAdmin` em `app_portfolio/tests.py`), que carrega uma cópia
 avulsa do `settings.py` com cada valor da variável.
+
+## Adendo (2026-11-17): CSP sem estilo inline
+
+> Status do adendo: concluído (2026-11-17). Desenha os RF-09 a RF-11 do adendo do `requirements.md`. O
+> texto acima fica como está; os ADRs continuam a numeração.
+
+### Visão geral da abordagem do adendo
+
+O honeypot é o último estilo inline da home. Ele passa a ser escondido por uma classe do
+`styles.css`, e com isso o `'unsafe-inline'` sai do `style-src`. Nenhum template ganha
+nonce nem hash: a política fica `style-src 'self'`, igual ao `script-src`. Um teste lê os
+templates como texto e falha se um `style=` ou um `<style>` voltar, como o
+`test_comentarios_templates.py` já faz com os comentários.
+
+### Componentes do adendo
+
+#### `templates/home.html`
+
+- A `<div>` do honeypot troca o `style="display:none;"` pela classe
+  `contact__honeypot`. O `aria-hidden="true"`, o `tabindex="-1"` e o
+  `autocomplete="off"` do campo continuam.
+
+#### `static/css/styles.css`
+
+- Regra nova junto das do formulário de contato: `.contact__honeypot { display: none; }`.
+  O `display: none` tira o campo da tela, da ordem do Tab e da árvore de
+  acessibilidade de uma vez.
+
+#### `portfolio/settings.py`
+
+- `"style-src": [SELF]`, e o comentário da CSP diz que nenhum template tem estilo nem
+  script inline. O `UNSAFE_INLINE` sai do import, porque nenhuma diretiva o usa mais.
+
+#### `app_portfolio/test_estilo_inline.py` (módulo novo)
+
+- Lê todos os templates do projeto como texto, sem banco nem cliente HTTP, e falha se
+  algum tiver atributo `style=` ou elemento `<style>`.
+- Confere no `styles.css` a regra `.contact__honeypot` com `display: none`.
+- Renderiza a home e confere que o campo `honeypot` está dentro do elemento com a classe
+  e que o HTML entregue não tem `style=`.
+
+#### `app_portfolio/tests.py`
+
+- O `test_home_envia_a_csp` passa a esperar `style-src` igual a `["'self'"]`.
+
+### Interfaces do adendo
+
+O cabeçalho `Content-Security-Policy` muda numa diretiva: `style-src 'self'` no lugar de
+`style-src 'self' 'unsafe-inline'`. Variáveis de ambiente, rotas e o formulário de
+contato não mudam.
+
+### ADR-05 — Honeypot escondido por uma classe da folha de estilo
+
+**Supersedes** ADR-02.
+
+- **Decisão:** a `<div>` do honeypot recebe a classe `contact__honeypot`, e o
+  `styles.css` a esconde com `display: none`. O `style-src` fica só com `'self'`.
+- **Alternativas:**
+  - O atributo `hidden` na `<div>`: dispensa a regra de CSS, mas fica escrito no HTML,
+    e um robô que leia o HTML pula o campo marcado como escondido sem precisar
+    interpretar CSS.
+  - Manter o `style=` com um hash e `'unsafe-hashes'`: a CSP aceitaria só aquele
+    valor, mas em qualquer elemento da página, e o valor é justamente
+    `display:none;`. Um trecho injetado com o mesmo atributo esconderia conteúdo do
+    site.
+  - Nonce por pedido no `style-src`: o nonce não vale para atributo `style=`, só para
+    elemento `<style>`, então exigiria trocar a `<div>` por um bloco `<style>` com nonce
+    em cada resposta, para esconder um elemento só.
+- **Porquê:** a regra numa folha externa é o que o resto da interface já usa, não pede
+  nenhuma exceção na CSP, e quem procura o campo escondido precisa ler o CSS.
+- **Trade-off:** o campo passa a depender de o `styles.css` carregar. Se a folha falhar,
+  o campo aparece sem rótulo no formulário; uma pessoa que o preenchesse teria o envio
+  descartado como o de um robô (spec 002, RF-01). A folha vem do próprio site pelo
+  WhiteNoise, e sem ela a página inteira já aparece sem estilo.
+
+### ADR-06 — A regra contra estilo inline lê os templates como texto
+
+- **Decisão:** o teste novo procura `style=` e `<style` no texto de cada template de
+  `templates/` e das pastas `templates/` dos apps, e uma checagem a mais renderiza a
+  home.
+- **Alternativas:** só renderizar páginas e procurar `style=` no HTML entregue.
+- **Porquê:** a renderização só cobre os ramos que o teste monta (com ou sem perfil,
+  modo demonstração, páginas de erro); o texto cobre todo template, inclusive ramo que
+  nenhum teste abre. A renderização da home cobre o que o texto não vê: HTML gerado no
+  Python e marcado como seguro.
+- **Trade-off:** um `style=` escrito como texto de exemplo dentro de um template também
+  falha o teste. Hoje nenhum template tem isso, e a mensagem do teste aponta o arquivo e
+  a linha.
+
+### Impacto no código existente do adendo
+
+- O ADR-02 deixa de valer (ganha `**Superseded by** adendo, ADR-05.`), e o RF-05 já
+  aponta o RF-09.
+- `docs/referencia/configuracoes.md`, `docs/stack.md`, a nota "CSP e scripts/estilos
+  inline" do `specs/README.md` e o aviso da CSP no `CLAUDE.md`: o `style-src` não tem
+  mais `'unsafe-inline'`, e estilo inline num template é bloqueado como script inline.
+- A árvore do `CLAUDE.md` ganha o `test_estilo_inline.py`.
+
+### Estratégia de testes do adendo
+
+- **Suíte (RF-11):** os testes do `test_estilo_inline.py` e o assert novo do
+  `test_home_envia_a_csp`. O comportamento do honeypot preenchido segue coberto pelo
+  `test_contato_honeypot_bot_protection` (spec 002).
+- **Navegador (RF-09, RF-10):** com o servidor de desenvolvimento e os dados do
+  `semear_dados_demo`, abrir no Chrome a home (com e sem perfil, modo demonstração ligado
+  e desligado) e o Admin (login, lista, edição de um projeto com imagem, uma ação em
+  lote), registrando os eventos `securitypolicyviolation` e o console de cada página. A
+  conta e o banco da conferência ficam numa pasta temporária, pelo `DIRETORIO_DADOS`.
+- **Teclado e leitor de tela (RF-10):** na home, o Tab vai do último campo visível ao
+  botão de envio sem parar no honeypot, e a árvore de acessibilidade do Chrome não tem o
+  campo.
+
+### Desvios do adendo
+
+1. O `pyproject.toml` põe o `app_portfolio.test_estilo_inline` na lista de overrides do
+   mypy da suíte, como os outros módulos de teste: as fixtures `client` e `settings`
+   do pytest-django entram sem tipo. — RF-11
+2. A renderização da home roda nas quatro combinações do RF-09 (com e sem perfil, modo
+   demonstração ligado e desligado), não numa só. — RF-11, ADR-06
+3. No HTML entregue, o teste procura o atributo `style` e o elemento `<style>` pelo
+   `html.parser` da biblioteca padrão, não pelo texto `style=`, para não acusar um
+   texto da página que cite a palavra. — ADR-06
+
+### Notas de implementação do adendo
+
+- Suíte: 331 testes, 22 deles do `test_estilo_inline.py`. Contra o código anterior ao
+  adendo, 6 casos do módulo novo falham (o `style=` do `home.html`, a regra ausente no
+  `styles.css` e as quatro renderizações da home).
+- Navegador: Chrome sem interface (`puppeteer-core`), com o servidor de desenvolvimento
+  em duas portas (modo demonstração desligado e ligado) sobre um banco temporário, os
+  dados do `semear_dados_demo` e um superusuário de teste. Cada página registrou os
+  eventos `securitypolicyviolation`, os erros e os avisos do console.
+  - Home, nas quatro combinações: nenhuma violação e nenhum elemento com `[style]` no
+    DOM; a caixa do honeypot com `display: none` calculado.
+  - Admin: login, índice, listas de projetos e de perfil, inclusão de projeto, edição
+    de projeto (campo de imagem e o seletor duplo de tecnologias do
+    `filter_horizontal`) e a confirmação da exclusão em lote, sem violação nem erro no
+    console. O `<style>` da lista (decisão resolvida 3) não aparece, porque nenhum
+    `ModelAdmin` desliga as barras de ações.
+  - Controle: um `style=` injetado na home gerou a violação `style-src-attr`, o que
+    confirma que a conferência enxerga o bloqueio.
+  - "Igual à de antes" foi conferido pela ausência de violação: a mudança só altera o
+    que a CSP bloqueia. Não houve comparação de capturas de tela.
+- Teclado e leitor de tela: o Tab vai de `mensagem` direto ao botão de envio, e o campo
+  `honeypot` fica fora da árvore de acessibilidade do Chrome.

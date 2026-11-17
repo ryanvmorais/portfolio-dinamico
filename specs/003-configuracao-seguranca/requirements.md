@@ -79,6 +79,7 @@ alguém esquecer de configurar algo em produção.
 ### RF-05 — Content Security Policy
 
 **Superseded by** 004-correcoes-de-interface, RF-17, nas fontes.
+**Superseded by** adendo, RF-09, no `style-src`.
 
 - **Given** qualquer resposta HTTP
   **Then** o header CSP é definido via `django-csp`: `default-src 'self'`,
@@ -128,3 +129,86 @@ alguém esquecer de configurar algo em produção.
 
 - Sem 2FA no Admin — risco aceito dado que é um projeto pessoal de baixo
   valor de alvo.
+
+## Adendo (2026-11-17): CSP sem estilo inline
+
+> Status do adendo: concluído (2026-11-17). O texto acima é o reconstruído em 2026-09-11 e fica como
+> está; o adendo acrescenta requisitos, com a numeração continuando a dele.
+
+**Contexto.** O RF-05 e o ADR-02 mantiveram `'unsafe-inline'` no `style-src` porque a
+home tinha atributos `style=""`: a largura da barra de progresso das habilidades, vinda
+do banco, e o honeypot do formulário de contato. A spec 008 tirou a barra de progresso,
+e sobra só o honeypot (`<div style="display:none;">` no `home.html`). Enquanto o
+`'unsafe-inline'` existir, um trecho de HTML que escape da sanitização também consegue
+aplicar estilo à página: esconder, sobrepor ou imitar conteúdo do site. A política vale
+para todas as respostas, o Admin inclusive. Os templates do Admin do Django 6.1 não têm
+atributo `style=`; o único `<style>` deles (na lista de registros) só aparece quando um
+`ModelAdmin` desliga as duas barras de ações, o que nenhum `ModelAdmin` deste projeto faz.
+
+**Objetivos do adendo.**
+
+- Tirar `'unsafe-inline'` do `style-src`: a página só aplica estilo das folhas servidas
+  pelo próprio site.
+- Manter o honeypot invisível, fora do Tab e fora do leitor de tela.
+- Fazer a suíte acusar um `style=` ou `<style>` que volte aos templates, em vez de a CSP
+  bloqueá-lo em silêncio no navegador.
+
+**Não-objetivos do adendo.**
+
+- Nonce ou hash de estilo: nenhum template precisa de estilo inline.
+- Trocar o `django-csp` pela CSP nativa do Django.
+- Mudar as outras diretivas do RF-05 (com a mudança das fontes da spec 004).
+- Mudar a resposta do servidor ao honeypot preenchido (spec 002, RF-01).
+
+**Personas do adendo.**
+
+- Como **um visitante**, quero que um conteúdo injetado não consiga mudar a aparência da
+  página.
+- Como **um robô de spam** que preenche todo campo do formulário, devo continuar caindo
+  no honeypot.
+- Como **quem mantém uma cópia do projeto**, quero que a suíte acuse um estilo inline
+  novo num template antes de ele chegar ao navegador.
+- Como **quem usa o Admin**, quero o painel funcionando como antes com a política nova.
+
+### RF-09 — `style-src` sem `'unsafe-inline'`
+
+- **Given** qualquer resposta HTTP
+  **Then** o cabeçalho CSP tem `style-src 'self'`, sem `'unsafe-inline'`, e as outras
+  diretivas seguem as do RF-05 com a mudança das fontes da spec 004 (RF-17).
+- **Given** a home, com e sem perfil cadastrado e com o modo demonstração ligado e
+  desligado
+  **When** ela abre no navegador
+  **Then** o console não registra nenhuma violação de CSP, e a página aparece como antes.
+- **Given** o Admin (no caminho do `ADMIN_URL`)
+  **When** a equipe entra, abre uma lista, edita um registro com imagem e usa uma ação em
+  lote
+  **Then** o console não registra nenhuma violação de CSP, e as telas aparecem como antes.
+
+### RF-10 — Honeypot escondido pela folha de estilo
+
+- **Given** o formulário de contato na home
+  **Then** o campo `honeypot` fica dentro de um elemento escondido por uma classe do
+  `styles.css`, sem atributo `style`: não aparece na tela, o Tab não para nele e o
+  leitor de tela não o anuncia.
+- **Given** um POST com o campo `honeypot` preenchido
+  **Then** a resposta é a da spec 002, RF-01: redireciona para a home sem gravar nada.
+
+**Decisões resolvidas do adendo.**
+
+1. **O Admin entra no escopo** (2026-11-17). A política é uma só para o site e o painel;
+   a conferência do Admin é no navegador, porque a suíte não executa o CSS nem o
+   JavaScript do painel.
+2. **Estilo aplicado pelo JavaScript continua** (2026-11-17). O `main.js` muda
+   `element.style` (menu do celular, animação dos cartões), e a CSP não bloqueia estilo
+   aplicado pelo CSSOM, só o que chega no HTML.
+3. **O `<style>` da lista do Admin fica de fora** (2026-11-17). Ele só aparece com as duas
+   barras de ações desligadas, e o nonce que ele leva é o da CSP nativa do Django, que o
+   `django-csp` não preenche; um `ModelAdmin` que desligue as duas barras perde só o
+   ajuste de largura da primeira coluna.
+
+### RF-11 — A suíte cobre o adendo
+
+- O cabeçalho CSP da home tem exatamente `style-src 'self'`.
+- Nenhum template de `templates/` tem atributo `style=` nem elemento `<style>`.
+- O campo `honeypot` da home está dentro do elemento com a classe, e a classe existe no
+  `styles.css` com `display: none`.

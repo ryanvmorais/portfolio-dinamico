@@ -70,3 +70,62 @@ origin: engenharia reversa do código existente (portfolio/settings.py)
       vazio vale `admin/`, e as barras são opcionais. — RF-06
 - [x] Portão de qualidade. — `uv run ruff check .`, `uv run black --check .`,
       `uv run mypy .`, `uv run pytest` verdes (239 testes).
+
+## Adendo (2026-11-17): CSP sem estilo inline
+
+> Status do adendo: concluído (2026-11-17). Quebra os RF-09 a RF-11 e os ADR-05 e ADR-06 do adendo. O
+> texto acima fica como está; as etapas continuam a numeração.
+
+## Etapa 5 — Honeypot pela folha de estilo e `style-src` fechado
+
+- [x] `static/css/styles.css`: `.contact__honeypot { display: none; }` junto das regras
+      do formulário de contato. — RF-10, ADR-05
+- [x] `templates/home.html`: a `<div>` do honeypot troca o `style="display:none;"` pela
+      classe `contact__honeypot`, e o comentário do bloco diz que a classe o esconde.
+      — RF-10, ADR-05
+- [x] `portfolio/settings.py`: `"style-src": [SELF]`, o comentário da CSP sem a
+      exceção do honeypot e o `UNSAFE_INLINE` fora do import. — RF-09, ADR-05
+- [x] `app_portfolio/tests.py`: o `test_home_envia_a_csp` espera `style-src` igual a
+      `["'self'"]`. — RF-11
+- [x] `app_portfolio/test_estilo_inline.py` (novo): nenhum template com `style=` nem
+      `<style>` (um caso por template, com arquivo e linha na falha); a regra
+      `.contact__honeypot` com `display: none` no `styles.css`; a home renderizada com
+      o campo `honeypot` dentro do elemento com a classe e sem `style=` no HTML.
+      — RF-11, ADR-06
+- [x] Portão de qualidade: `uv run ruff check --fix .`, `uv run black .`,
+      `uv run mypy app_portfolio portfolio`, `uv run pytest`. — 331 passed;
+      ruff/black/mypy verdes. Contra o código anterior, o `test_estilo_inline.py` falha
+      em 6 casos.
+
+## Etapa 6 — Conferência no navegador
+
+- [x] Servidor de desenvolvimento com o `DIRETORIO_DADOS` numa pasta temporária,
+      `migrate`, `semear_dados_demo` e um superusuário de teste. — RF-09
+- [x] Home no Chrome, com e sem perfil e com o `MODO_DEMONSTRACAO` ligado e desligado:
+      nenhum evento `securitypolicyviolation` nem erro de CSP no console, e a página
+      igual à de antes. — RF-09 — 4 combinações sem violação e sem `[style]` no DOM; o
+      controle (um `style=` injetado) gerou a violação `style-src-attr` esperada.
+- [x] Admin no Chrome: login, lista de projetos, edição de um projeto com imagem e uma
+      ação em lote, sem violação de CSP e com as telas iguais às de antes. — RF-09 —
+      login, índice, listas, inclusão, edição (upload e seletor de tecnologias) e a
+      confirmação da exclusão em lote sem violação nem erro no console.
+- [x] Teclado e leitor de tela: o Tab passa do último campo visível do formulário ao
+      botão de envio sem parar no honeypot, e a árvore de acessibilidade do Chrome não
+      tem o campo. — RF-10 — Tab de `mensagem` para o botão de envio; o campo fora da
+      árvore de acessibilidade.
+- [x] Pasta temporária, servidor e navegador da conferência encerrados.
+
+## Etapa 7 — Documentação e fechamento
+
+- [x] `docs/referencia/configuracoes.md` e `docs/stack.md`: `style-src 'self'`, sem
+      `'unsafe-inline'`, e o honeypot escondido pela classe. — RF-09, RF-10
+- [x] `specs/README.md`: a nota "CSP e scripts/estilos inline" passa a valer para
+      estilo, e a linha do índice da spec 003 volta a `concluído`. — RF-09
+- [x] `CLAUDE.md`: o aviso da CSP cobre `style=` e `<style>` (`style-src`), e a árvore
+      ganha o `test_estilo_inline.py`. — RF-09, RF-11
+- [x] Spec 003: status do adendo `concluído` nos três arquivos, frontmatter de volta a
+      `concluído`, `### Desvios do adendo` e `### Notas de implementação do adendo` no
+      `design.md`, se houver.
+- [x] Portão de qualidade: `uv run ruff check .`, `uv run black --check .`,
+      `uv run mypy app_portfolio portfolio`, `uv run pytest`. — 331 passed;
+      ruff/black/mypy verdes.
