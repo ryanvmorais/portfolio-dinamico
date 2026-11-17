@@ -29,6 +29,11 @@ que ficaram, e que um ajuste "inofensivo" desfaria:
   `#projects-status` fica vazia para não repetir a frase. "Limpar filtro" devolve
   o foco ao filtro "Todos". Sem JavaScript, todos os projetos aparecem.
 - **Estudo de caso:** `<details>` nativo, fechado, só com os campos preenchidos.
+- **Cards do mesmo tamanho** (adendo da spec 008, ADR-15): os de habilidade esticam
+  até a altura da fileira (`align-items: stretch`); o de projeto é uma coluna
+  flexível, com as ações no pé (`margin-top: auto`) e o bloco de tags com a altura de
+  duas linhas. Voltar o `align-items: start` ou tirar o `min-height` das tags
+  desalinha as fileiras.
 - **Alto contraste:** chips, selo, filtros e monograma têm
   borda, reforçada no bloco `forced-colors: active`; o que está marcado usa
   `Highlight`.

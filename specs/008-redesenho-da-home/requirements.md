@@ -607,3 +607,81 @@ quem preenche o Admin e guarda um dado pessoal que nada usa.
 - A migração vai e volta: com um perfil gravado, a ida tira a coluna e mantém o nome do
   perfil, e a volta recria a coluna vazia.
 - O `semear_dados_demo` cria o perfil sem telefone, e os testes dele continuam passando.
+
+## Adendo (2026-11-17): vitrine completa e proporcional
+
+> Status do adendo: concluído (2026-11-17). O texto acima fica como está; o adendo
+> acrescenta requisitos, com a numeração continuando a dele.
+
+**Contexto.** A home sabe mostrar mais do que os dados de demonstração exibiam: o estudo
+de caso, o link "Ver online", os três níveis de habilidade e o chip que conta e filtra os
+projetos. O `semear_dados_demo` criava três projetos com o mesmo estudo de caso e duas
+categorias de habilidade, e quem abria a home preenchida não via tudo o que o template
+oferece. Os cards também não ficavam do mesmo tamanho: os de habilidade tinham a altura do
+próprio conteúdo, e os botões do card de projeto subiam ou desciam conforme o texto acima.
+
+**Objetivos do adendo.**
+
+- Dados de demonstração que acionam todos os recursos das seções Projetos e Habilidades.
+- Cards da mesma seção com o mesmo tamanho, pelo conteúdo e pelo CSS.
+- Contagem de projetos que varia de chip para chip, como num portfólio real.
+
+**Não-objetivos do adendo.**
+
+- Mudar o template, a view ou os modelos.
+- Limitar quantas tags ou habilidades quem usa o template cadastra: a proporção vale para
+  a demonstração.
+
+**Personas do adendo.**
+
+- Como **quem avalia se usa o template**, quero ver na home preenchida tudo o que ela
+  mostra, para saber o que vou conseguir apresentar.
+- Como **quem clona o projeto**, quero um exemplo equilibrado de quanto texto e quantas
+  tags cabem, para preencher o meu do mesmo jeito.
+
+### RF-30 — Projetos de demonstração completos e equilibrados
+
+- **Given** o comando `semear_dados_demo` (só com `DEBUG=True`)
+  **When** ele roda
+  **Then** cria seis projetos, dois por categoria (Web App, API e Mobile), cada um com
+  imagem, cinco tecnologias, os quatro campos do estudo de caso, "Ver online" e
+  "Código".
+- **Given** a home com esses dados
+  **When** o filtro de uma categoria é usado
+  **Then** mostra dois projetos.
+
+### RF-31 — Habilidades de demonstração nos três níveis
+
+- **Given** o mesmo comando
+  **When** ele roda
+  **Then** cria três categorias de habilidade, cada uma com seis habilidades: três de uso
+  no dia a dia, duas de "já usei em projeto" e uma de "estudando".
+- **Given** a home com esses dados
+  **When** a seção Habilidades abre
+  **Then** as habilidades de uso no dia a dia mostram de dois a quatro projetos, sempre
+  mais que as de "já usei" (um projeto cada), e as de "estudando" aparecem sem contagem
+  e sem filtro.
+
+### RF-32 — Cards do mesmo tamanho
+
+- **Given** a seção Habilidades no desktop
+  **When** os cards ficam lado a lado
+  **Then** têm a mesma altura, mesmo com conteúdos de tamanhos diferentes.
+- **Given** os cards de projeto de uma mesma fileira
+  **When** os textos acima dos botões têm alturas diferentes
+  **Then** "Ver online" e "Código" ficam presos ao pé do card, na mesma linha nos cards
+  da fileira.
+- **Given** os dados de demonstração, de 360 px a 1440 px de largura
+  **When** a seção Projetos abre
+  **Then** as tags de cada projeto ocupam no máximo duas linhas, e o bloco de tags tem a
+  altura de duas linhas mesmo quando cabe numa só.
+
+### RF-33 — A suíte cobre o adendo
+
+- O `semear_dados_demo` cria seis projetos, dois por categoria, todos com cinco
+  tecnologias, estudo de caso completo, `link_online` e `link_github`, e a home marca
+  dois cards por categoria para o filtro.
+- Cada categoria de habilidade tem três, duas e uma habilidade nos três níveis; no dia a
+  dia a contagem varia e fica acima da de "já usei", e "estudando" fica sem projeto.
+- O `styles.css` estica os cards de habilidade, prende as ações do card de projeto ao pé
+  e reserva duas linhas para as tags.

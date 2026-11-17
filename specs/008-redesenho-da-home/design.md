@@ -719,3 +719,109 @@ Sem rota nem contexto novo. O formulário do Admin do perfil perde um campo.
   e na volta que a coluna existe de novo, vazia; o esquema atual é restaurado no fim. O
   teste dos campos antigos ganhou o `telefone`, e os testes do `semear_dados_demo` seguem
   verdes sem o campo.
+
+## Adendo (2026-11-17): vitrine completa e proporcional
+
+> Status do adendo: concluído (2026-11-17). Desenha os RF-30 a RF-33 do adendo do
+> `requirements.md`. O texto acima fica como está; os ADRs continuam a numeração.
+
+### Visão geral da abordagem do adendo
+
+Duas frentes, sem tocar em template, view ou modelo. Os dados do `semear_dados_demo`
+passam a acionar todos os recursos das duas seções, com as mesmas quantidades em cada
+card. O `styles.css` ganha três ajustes: os cards de habilidade esticam até a altura da
+fileira, o card de projeto vira uma coluna flexível com as ações no pé, e o bloco de tags
+reserva a altura de duas linhas.
+
+### Componentes do adendo
+
+- `app_portfolio/management/commands/semear_dados_demo.py`: três categorias de projeto,
+  seis projetos (`ProjetoDemo`) com descrição, cinco tecnologias e estudo de caso
+  próprios, e três categorias de habilidade com seis habilidades cada.
+- `static/css/styles.css`: `.skills__container` com `align-items: stretch`;
+  `.project-card` e `.project-card__content` em coluna flexível, e
+  `.project-card__acoes` com `margin-top: auto`; `.project-card__tech` com
+  `min-height` de duas linhas de tag e `align-content: flex-start`.
+- `app_portfolio/test_semear_dados_demo.py` e `app_portfolio/test_interface.py`: os
+  testes do RF-33.
+
+### Distribuição das tecnologias
+
+Seis projetos com cinco tags dão 30 tags para as 15 habilidades ligadas a uma tecnologia
+(as três de "estudando" ficam sem ligação). Cada habilidade de "já usei" fica em um
+projeto, e as 24 tags restantes se dividem entre as nove de uso no dia a dia, de quatro a
+dois projetos.
+
+| Projeto | Categoria | Tecnologias |
+|---|---|---|
+| Plataforma de E-commerce | Web App | Python, Django, PostgreSQL, TypeScript, React |
+| API de Gestão Financeira | API | Python, PostgreSQL, Redis, Nginx, GitHub Actions |
+| Dashboard de Analytics | Web App | Django, PostgreSQL, TypeScript, Vue.js, Docker |
+| App de Gestão de Tarefas | Mobile | TypeScript, React Native, Tailwind CSS, Firebase, AWS |
+| Rede Social para Devs | Mobile | Python, Django, React Native, Tailwind CSS, Docker |
+| Serviço de Chatbot com IA | API | Python, FastAPI, Docker, Nginx, GitHub Actions |
+
+| Categoria | Uso no dia a dia | Já usei em projeto | Estudando |
+|---|---|---|---|
+| Back-end | Python · 4, Django · 3, PostgreSQL · 3 | FastAPI · 1, Redis · 1 | Go |
+| Front-end | TypeScript · 3, React Native · 2, Tailwind CSS · 2 | React · 1, Vue.js · 1 | Svelte |
+| DevOps e ferramentas | Docker · 3, GitHub Actions · 2, Nginx · 2 | AWS · 1, Firebase · 1 | Kubernetes |
+
+A combinação saiu de uma busca entre as distribuições plausíveis: a que respeita as
+contagens acima, cabe em duas linhas a 360 px com a maior folga (14,7 px) e deixa todos
+os projetos com o mesmo número de linhas no maior número de larguras. Os textos do estudo
+de caso citam só tecnologias da linha do próprio projeto.
+
+### ADR-14 — Cinco tags por projeto, contagem em escada
+
+- **Decisão:** cinco tecnologias em cada projeto e seis habilidades em cada categoria, na
+  proporção 3, 2 e 1; a contagem vai de quatro a dois projetos no dia a dia e fica em um
+  para "já usei".
+- **Alternativas:** quatro tags por projeto numa linha só, com todas as habilidades do
+  dia a dia em dois projetos e as de "já usei" em um; quatro habilidades por categoria
+  com contagens de três e dois (somem React, Vue.js, FastAPI, Redis e Firebase); sete
+  tags por projeto para três, dois e um projetos por nível.
+- **Porquê:** decisão de projeto (2026-11-17): chips com o mesmo número em todo um nível
+  não parecem um portfólio real, e a escada mostra para que serve a contagem; a sexta e a
+  sétima tag já passariam de duas linhas no celular.
+- **Trade-off:** as tags ocupam duas linhas na maioria das larguras; quem quiser uma só
+  cadastra menos tecnologias por projeto.
+
+### ADR-15 — Mesmo tamanho pelo CSS, não só pelo conteúdo
+
+- **Decisão:** os cards de habilidade esticam até a altura da fileira, as ações do card de
+  projeto ficam no pé com `margin-top: auto`, e o bloco de tags reserva duas linhas.
+- **Alternativas:** confiar só no conteúdo equilibrado; altura fixa nos cards; escolher as
+  tags para todos os projetos quebrarem no mesmo ponto (a única combinação encontrada
+  tinha 2,7 px de folga, e qualquer diferença de fonte a desfaria).
+- **Porquê:** um título ou uma descrição que quebra numa linha a mais desalinha a fileira
+  mesmo com dados iguais, e altura fixa corta o texto de quem cadastra mais.
+- **Trade-off:** com o estudo de caso de um card aberto, a fileira inteira cresce, e os
+  vizinhos ficam com um espaço vazio acima dos botões enquanto ele estiver aberto; um
+  projeto com uma linha de tags deixa a segunda vazia.
+
+### Impacto no código existente do adendo
+
+- Nenhum template, view ou modelo muda, e o banco de quem já usa o template fica como
+  está.
+- O Lighthouse CI audita a home com os dados novos: mais projetos e habilidades.
+
+### Estratégia de testes do adendo
+
+- No `test_semear_dados_demo.py`: o comando de verdade, conferindo pelo banco as
+  quantidades do RF-30 e do RF-31, e a home com dois cards por categoria.
+- No `test_interface.py`: o `styles.css` lido como texto, com as regras do RF-32.
+- **Navegador** (Chrome sem interface, dados do `semear_dados_demo`): de 360 a 1440 px,
+  tags em no máximo duas linhas, cards de habilidade com a mesma altura e, em cada
+  fileira, o estudo de caso e os botões na mesma altura.
+
+### Notas de implementação do adendo
+
+- Sem desvios: a implementação seguiu o texto aprovado.
+- Navegador: tags em duas linhas a 360, 375, 390, 430, 1280 e 1440 px e numa linha a 768,
+  1024 e 1150 px; cards de habilidade da mesma altura em todas; sem rolagem lateral. A
+  900 px (duas colunas) as fileiras ficam com cards e botões alinhados, mas uma descrição
+  quebra numa linha a menos que a do vizinho, e o "Como foi feito" daquele card sobe uma
+  linha: é o texto livre de cada projeto, que o CSS não iguala.
+- Suíte: 349 testes antes, 355 depois (três no `test_semear_dados_demo.py`, três no
+  `test_interface.py`).
