@@ -365,6 +365,211 @@ class TestMenuDoCelular:
 
 
 # ---------------------------------------------------------------------------
+# Adendo, RF-25 a RF-28 — Painel abaixo da barra, botão único, véu e redes
+# ---------------------------------------------------------------------------
+
+LINK_GITHUB = "https://github.com/ana-dev"
+LINK_LINKEDIN = "https://www.linkedin.com/in/ana-dev"
+
+
+def _extras(html: str) -> str:
+    """
+    Recorta o bloco de redes e currículo do painel do menu.
+
+    Args:
+        html (str): HTML da home.
+
+    Returns:
+        str: Do ``nav__extras`` até o fim do painel, ou ``""`` sem o bloco.
+    """
+    if 'class="nav__extras"' not in html:
+        return ""
+    inicio = html.index('class="nav__extras"')
+    return html[inicio : html.index('class="nav__veu"', inicio)]
+
+
+def _perfil_completo(**campos) -> Perfil:
+    """
+    Cria o perfil com GitHub, LinkedIn e currículo, menos o que ``campos`` zerar.
+
+    Args:
+        **campos (dict): Campos do ``Perfil`` que substituem os padrões.
+
+    Returns:
+        Perfil: Perfil salvo.
+    """
+    padrao = {
+        "link_github": LINK_GITHUB,
+        "link_linkedin": LINK_LINKEDIN,
+        "curriculo": SimpleUploadedFile("cv.pdf", b"%PDF-1.4", "application/pdf"),
+    }
+    return _perfil(**{**padrao, **campos})
+
+
+@pytest.mark.django_db
+class TestMenuComRedesECurriculo:
+    def test_tres_campos_dao_os_dois_grupos(self, client) -> None:
+        """Com os três campos, "Redes Sociais" tem GitHub e LinkedIn em nova aba e "Currículo" baixa o PDF."""
+        _perfil_completo()
+        bloco = _extras(_home(client))
+        assert 'id="nav-grupo-redes">Redes Sociais</p>' in bloco
+        assert 'id="nav-grupo-curriculo">Currículo</p>' in bloco
+        assert bloco.count('aria-labelledby="nav-grupo-redes"') == 1
+        assert bloco.count('aria-labelledby="nav-grupo-curriculo"') == 1
+        for endereco, nome in ((LINK_GITHUB, "GitHub"), (LINK_LINKEDIN, "LinkedIn")):
+            link = re.search(
+                rf'<a href="{re.escape(endereco)}"[^>]*>(.*?)</a>', bloco, re.S
+            )
+            assert link, nome
+            assert 'target="_blank"' in link.group(0)
+            assert 'rel="noopener noreferrer"' in link.group(0)
+            assert nome in link.group(1)
+        curriculo = re.search(
+            r'<a href="/media/curriculo/cv[^"]*"[^>]*>(.*?)</a>', bloco, re.S
+        )
+        assert curriculo
+        assert " download" in curriculo.group(0)
+        assert "Download CV" in curriculo.group(1)
+
+    @pytest.mark.parametrize(
+        ("campo", "some", "grupo_fica"),
+        [
+            ("link_github", "GitHub", "nav-grupo-redes"),
+            ("link_linkedin", "LinkedIn", "nav-grupo-redes"),
+            ("curriculo", "Download CV", "nav-grupo-redes"),
+        ],
+    )
+    def test_campo_vazio_tira_so_o_link_dele(
+        self, client, campo: str, some: str, grupo_fica: str
+    ) -> None:
+        """Campo vazio tira o link, nunca vira href="None", e o outro grupo continua."""
+        _perfil_completo(**{campo: ""})
+        bloco = _extras(_home(client))
+        assert some not in bloco
+        assert 'href="None"' not in bloco
+        assert f'id="{grupo_fica}"' in bloco
+
+    def test_grupo_sem_link_some(self, client) -> None:
+        """Sem GitHub e LinkedIn some "Redes Sociais"; sem currículo some "Currículo"."""
+        _perfil_completo(link_github="", link_linkedin="")
+        bloco = _extras(_home(client))
+        assert "nav-grupo-redes" not in bloco
+        assert "nav-grupo-curriculo" in bloco
+
+        Perfil.objects.all().delete()
+        _perfil_completo(curriculo="")
+        bloco = _extras(_home(client))
+        assert "nav-grupo-curriculo" not in bloco
+        assert "nav-grupo-redes" in bloco
+
+    def test_sem_os_tres_campos_o_bloco_some(self, client) -> None:
+        """Sem GitHub, LinkedIn nem currículo, o painel não tem o bloco."""
+        _perfil()
+        html = _home(client)
+        assert 'class="nav__extras"' not in html
+        assert "nav__grupo" not in html
+
+    def test_rotulos_usam_a_mesma_classe(self, client) -> None:
+        """Os dois rótulos são <p class="nav__grupo">, sem nível de título (ADR-13)."""
+        _perfil_completo()
+        bloco = _extras(_home(client))
+        assert (
+            len(re.findall(r'<p class="nav__grupo" id="nav-grupo-[a-z]+">', bloco)) == 2
+        )
+        assert "<h" not in bloco
+
+    def test_botao_da_barra_e_o_unico_controle(self, client) -> None:
+        """Sem botão de fechar no painel; o da barra leva os dois ícones (ADR-12)."""
+        _perfil()
+        html = _home(client)
+        assert "nav-close" not in html and "nav__close" not in html
+        botao = re.search(r'<button[^>]*id="nav-toggle".*?</button>', html, re.S)
+        assert botao
+        assert 'aria-controls="nav-menu"' in botao.group(0)
+        assert 'class="nav__icone-abrir"' in botao.group(0)
+        assert 'class="nav__icone-fechar"' in botao.group(0)
+        # O véu fica fora do painel e do botão: o "clique fora" do main.js o cobre
+        assert html.index('class="nav__veu"') > html.index('id="nav-menu"')
+        assert html.index('class="nav__veu"') < html.index('id="nav-toggle"')
+
+    def test_painel_comeca_abaixo_da_barra_e_rola_por_dentro(self) -> None:
+        """O painel parte de baixo da barra, com altura declarada, e rola por dentro (RF-25, RF-26)."""
+        menu = _bloco(CSS, "@media (max-width: 768px) {\n    .nav__menu")
+        regra = _regra(menu, ".nav__menu")
+        assert "top: var(--header-height)" in regra
+        assert "height: calc(100dvh - var(--header-height))" in regra
+        assert "overflow-y: auto" in regra
+        assert "bottom:" not in regra
+
+    def test_painel_desliza_por_transform(self) -> None:
+        """Abre por transform, sem animar right, left nem width; sombra só aberto (RF-27)."""
+        menu = _bloco(CSS, "@media (max-width: 768px) {\n    .nav__menu")
+        regra = _regra(menu, ".nav__menu")
+        assert "transform: translateX(100%)" in regra
+        assert "transition: transform var(--transition-slow)" in regra
+        assert "box-shadow" not in regra
+        aberto = _regra(menu, ".nav__menu.show")
+        assert "transform: none" in aberto and "box-shadow" in aberto
+        assert not re.search(r"transition:[^;]*\b(right|left|width)\b", menu)
+
+    def test_veu_so_no_celular_e_com_altura_declarada(self) -> None:
+        """O véu e o bloco somem acima de 768 px; o véu declara top e altura (ADR-14)."""
+        assert "display: none" in _regra(CSS, ".nav__veu,\n.nav__extras")
+        menu = _bloco(CSS, "@media (max-width: 768px) {\n    .nav__menu")
+        veu = _regra(menu, ".nav__veu")
+        assert "top: var(--header-height)" in veu
+        assert "height: calc(100dvh - var(--header-height))" in veu
+        assert "bottom:" not in veu and "inset" not in veu
+        assert "visibility: visible" in _regra(menu, ".nav__menu.show ~ .nav__veu")
+
+    def test_rotulos_tem_um_tamanho_e_links_tem_44_px(self) -> None:
+        """.nav__grupo tem um font-size só, e cada link do bloco chega a 44 px (RF-26)."""
+        menu = _bloco(CSS, "@media (max-width: 768px) {\n    .nav__menu")
+        grupo = _regra(menu, ".nav__grupo")
+        assert grupo.count("font-size") == 1
+        assert "text-transform: uppercase" in grupo
+        assert len(re.findall(r"(?m)^\s*\.nav__grupo \{", CSS)) == 1
+        assert "min-height: 2.75rem" in _regra(menu, ".nav__extra")
+
+    def test_contraste_do_bloco(self) -> None:
+        """Rótulos e links passam de 4,5:1 no painel e ficam abaixo dos links de navegação."""
+        cores = _tokens()
+        menu = _bloco(CSS, "@media (max-width: 768px) {\n    .nav__menu")
+        for seletor in (".nav__grupo", ".nav__extra"):
+            assert "color: var(--color-gray-400)" in _regra(menu, seletor)
+        assert "color: var(--color-gray-300)" in _regra(CSS, ".nav__link")
+        fundo = cores["color-bg-secondary"]
+        assert _contraste(cores["color-gray-400"], fundo) >= CONTRASTE_MINIMO
+        assert _luminancia(cores["color-gray-400"]) < _luminancia(
+            cores["color-gray-300"]
+        )
+
+    def test_icone_do_botao_segue_o_estado(self) -> None:
+        """Com aria-expanded verdadeiro some o hambúrguer; com falso, o X."""
+        menu = _bloco(CSS, "@media (max-width: 768px) {\n    .nav__menu")
+        assert "display: none" in _regra(
+            menu,
+            ".nav__toggle[aria-expanded='true'] .nav__icone-abrir,\n"
+            "    .nav__toggle[aria-expanded='false'] .nav__icone-fechar",
+        )
+
+    def test_javascript_alterna_e_troca_o_nome(self) -> None:
+        """O clique alterna abrir e fechar; o nome do botão acompanha o estado."""
+        abrir = JS[JS.index("function abrirMenu(") : JS.index("function fecharMenu(")]
+        fechar = JS[
+            JS.index("function fecharMenu(") : JS.index("function iniciarMenu(")
+        ]
+        assert "setAttribute('aria-label', 'Fechar menu')" in abrir
+        assert "setAttribute('aria-label', 'Abrir menu')" in fechar
+        iniciar = JS[JS.index("function iniciarMenu(") :]
+        alternar = iniciar[: iniciar.index("navLinks.forEach")]
+        assert "if (menuEstaAberto())" in alternar
+        assert "fecharMenu({ devolverFoco: true })" in alternar
+        assert "abrirMenu()" in alternar
+        assert "navClose" not in JS
+
+
+# ---------------------------------------------------------------------------
 # RF-05 — Contraste do texto
 # ---------------------------------------------------------------------------
 
@@ -646,7 +851,7 @@ class TestTransicoesEAltura:
         """O painel do menu usa 100dvh, com 100vh de reserva (o hero, spec 008, ADR-10)."""
         menu = _bloco(CSS, "@media (max-width: 768px) {\n    .nav__menu")
         regra = _regra(menu, ".nav__menu")
-        assert regra.index("height: 100vh") < regra.index("height: 100dvh")
+        assert regra.index("height: calc(100vh") < regra.index("height: calc(100dvh")
 
 
 # ---------------------------------------------------------------------------
@@ -728,9 +933,9 @@ class TestAlvosDeToque:
         assert "width: 2.75rem" in _regra(bloco, ".social__link")
 
     def test_botoes_do_menu_do_celular_tem_44_px(self) -> None:
-        """O hambúrguer e o fechar têm 2,75rem; os links do painel, padding vertical."""
+        """O botão do menu tem 2,75rem; os links do painel, padding vertical."""
         menu = _bloco(CSS, "@media (max-width: 768px) {\n    .nav__menu")
-        assert "width: 2.75rem" in _regra(menu, ".nav__toggle,\n    .nav__close")
+        assert "width: 2.75rem" in _regra(menu, ".nav__toggle")
         assert "padding-block: 0.5rem" in _regra(menu, ".nav__link")
 
 
