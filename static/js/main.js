@@ -33,6 +33,10 @@
     const filterBtns = document.querySelectorAll('.filter-btn');
     const projectCards = document.querySelectorAll('.project-card');
     const projectsStatus = document.getElementById('projects-status');
+    // Chips de habilidade com projeto (os sem projeto são <span>) e a linha de
+    // estado do filtro por chip, com o "Limpar filtro" (spec 008, RF-13).
+    const chips = document.querySelectorAll('button.chip');
+    const linhaDeEstado = document.getElementById('projects-estado');
     const sections = document.querySelectorAll('section[id]');
 
     // Conteúdo que fica inerte enquanto o menu do celular está aberto, para o
@@ -224,14 +228,28 @@
 
     // -----------------------------------------------------------------------
     // FILTROS DE PROJETO
-    // O botão ativo ganha a classe .active (visual) e aria-pressed (leitor de
-    // tela); a região #projects-status anuncia quantos projetos ficaram (RF-13).
+    // Categoria (botões acima da grade) ou tecnologia (chips da seção
+    // Habilidades), um de cada vez (spec 008, ADR-07). O botão de categoria
+    // ativo ganha a classe .active (visual) e aria-pressed (leitor de tela); a
+    // região #projects-status anuncia o filtro de categoria (spec 004, RF-13).
     // -----------------------------------------------------------------------
-    function filtrarProjetos(categoria, rotulo) {
+
+    /**
+     * Mostra só os cartões que casam com o filtro.
+     *
+     * @param {{categoria?: string, tecnologia?: string|null}} [filtro] -
+     *   categoria é o slug do data-category ou 'all'; tecnologia é um id do
+     *   data-tecnologias, ou null para não filtrar por tecnologia.
+     * @returns {number} Quantos cartões ficaram visíveis.
+     */
+    function filtrarProjetos({ categoria = 'all', tecnologia = null } = {}) {
         let visiveis = 0;
 
         projectCards.forEach((card) => {
-            const mostrar = categoria === 'all' || card.getAttribute('data-category') === categoria;
+            const daCategoria = categoria === 'all'
+                || card.getAttribute('data-category') === categoria;
+            const tecnologias = (card.getAttribute('data-tecnologias') || '').split(' ');
+            const mostrar = daCategoria && (!tecnologia || tecnologias.includes(tecnologia));
             card.hidden = !mostrar;
             if (mostrar) {
                 visiveis += 1;
@@ -239,26 +257,131 @@
             }
         });
 
-        if (projectsStatus) {
-            const plural = visiveis === 1 ? 'projeto' : 'projetos';
-            projectsStatus.textContent = categoria === 'all'
-                ? `Mostrando todos os ${visiveis} ${plural}.`
-                : `Mostrando ${visiveis} ${plural} em ${rotulo}.`;
+        return visiveis;
+    }
+
+    function plural(quantidade) {
+        return quantidade === 1 ? 'projeto' : 'projetos';
+    }
+
+    function anunciarCategoria(categoria, rotulo, visiveis) {
+        if (!projectsStatus) {
+            return;
         }
+        projectsStatus.textContent = categoria === 'all'
+            ? `Mostrando todos os ${visiveis} ${plural(visiveis)}.`
+            : `Mostrando ${visiveis} ${plural(visiveis)} em ${rotulo}.`;
+    }
+
+    function marcarCategoria(botaoAtivo) {
+        filterBtns.forEach((b) => {
+            b.classList.remove('active');
+            b.setAttribute('aria-pressed', 'false');
+        });
+        botaoAtivo.classList.add('active');
+        botaoAtivo.setAttribute('aria-pressed', 'true');
+    }
+
+    function botaoTodos() {
+        return document.querySelector('.filter-btn[data-filter="all"]');
+    }
+
+    // Tira o filtro por tecnologia: desmarca os chips e esconde a linha.
+    function desmarcarChips() {
+        chips.forEach((chip) => chip.setAttribute('aria-pressed', 'false'));
+        if (linhaDeEstado) {
+            linhaDeEstado.hidden = true;
+        }
+    }
+
+    // Volta à lista inteira, com "Todos" marcado, e anuncia na região viva.
+    function mostrarTodos() {
+        desmarcarChips();
+        const todos = botaoTodos();
+        if (todos) {
+            marcarCategoria(todos);
+        }
+        anunciarCategoria('all', '', filtrarProjetos());
     }
 
     function iniciarFiltros() {
         filterBtns.forEach((btn) => {
             btn.addEventListener('click', function () {
-                filterBtns.forEach((b) => {
-                    b.classList.remove('active');
-                    b.setAttribute('aria-pressed', 'false');
-                });
-                this.classList.add('active');
-                this.setAttribute('aria-pressed', 'true');
-                filtrarProjetos(this.getAttribute('data-filter'), this.textContent.trim());
+                // A categoria tira o filtro por tecnologia (ADR-07)
+                desmarcarChips();
+                marcarCategoria(this);
+                const categoria = this.getAttribute('data-filter');
+                const visiveis = filtrarProjetos({ categoria });
+                anunciarCategoria(categoria, this.textContent.trim(), visiveis);
             });
         });
+    }
+
+
+    // -----------------------------------------------------------------------
+    // CHIPS DE HABILIDADE
+    // O chip filtra os projetos pela tecnologia, volta a categoria para
+    // "Todos", rola até Projetos e põe o foco na linha de estado (spec 008,
+    // RF-13 e ADR-08). Quem anuncia é a linha, ao receber o foco: a região
+    // #projects-status fica vazia para o leitor de tela não ouvir a frase duas
+    // vezes. O mesmo chip de novo, "Limpar filtro" ou uma categoria desfazem.
+    // -----------------------------------------------------------------------
+    function aplicarChip(chip) {
+        chips.forEach((outro) => outro.setAttribute('aria-pressed', 'false'));
+        chip.setAttribute('aria-pressed', 'true');
+
+        const todos = botaoTodos();
+        if (todos) {
+            marcarCategoria(todos);
+        }
+        const visiveis = filtrarProjetos({ tecnologia: chip.getAttribute('data-tecnologia') });
+        if (projectsStatus) {
+            projectsStatus.textContent = '';
+        }
+
+        const secao = document.getElementById('projects');
+        if (secao) {
+            const alturaDoCabecalho = header ? header.offsetHeight : 0;
+            window.scrollTo({
+                top: secao.offsetTop - alturaDoCabecalho,
+                behavior: comportamentoDeRolagem(),
+            });
+        }
+
+        if (linhaDeEstado) {
+            const nome = chip.getAttribute('data-nome');
+            linhaDeEstado.querySelector('.projects__estado-texto').textContent =
+                `Mostrando ${visiveis} ${plural(visiveis)} com ${nome}`;
+            linhaDeEstado.hidden = false;
+            // preventScroll: a rolagem acima já leva à seção, no ritmo que o
+            // sistema pede; o foco não pode saltar na frente dela.
+            linhaDeEstado.focus({ preventScroll: true });
+        }
+    }
+
+    function iniciarChips() {
+        chips.forEach((chip) => {
+            chip.addEventListener('click', () => {
+                if (chip.getAttribute('aria-pressed') === 'true') {
+                    mostrarTodos();
+                } else {
+                    aplicarChip(chip);
+                }
+            });
+        });
+
+        const limpar = linhaDeEstado && linhaDeEstado.querySelector('.projects__limpar');
+        if (limpar) {
+            limpar.addEventListener('click', () => {
+                mostrarTodos();
+                // O botão some junto com a linha: o foco vai para o "Todos",
+                // logo acima, em vez de cair no início da página.
+                const todos = botaoTodos();
+                if (todos) {
+                    todos.focus();
+                }
+            });
+        }
     }
 
 
@@ -437,6 +560,7 @@
         iniciarScroll();
         iniciarAncoras();
         iniciarFiltros();
+        iniciarChips();
         iniciarRevelar();
         iniciarFormulario();
     }

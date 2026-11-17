@@ -1,8 +1,8 @@
 """
 Preenche o banco com dados fictícios, para desenvolver e auditar a Home.
 
-Um banco vazio devolve uma Home sem projetos, habilidades nem estatísticas, e as
-métricas do Lighthouse ficam enganosas. O Lighthouse CI
+Um banco vazio devolve uma Home sem projetos nem habilidades, e as métricas do
+Lighthouse ficam enganosas. O Lighthouse CI
 (``.github/workflows/lighthouse.yml``) roda este comando antes de subir o servidor.
 
 O comando é idempotente (rodar duas vezes não duplica nada), recusa rodar com
@@ -27,8 +27,8 @@ from PIL import Image, ImageOps
 from app_portfolio.models import (
     CategoriaHabilidade,
     CategoriaProjeto,
-    Estatistica,
     Habilidade,
+    NivelHabilidade,
     Perfil,
     Projeto,
     Tecnologia,
@@ -44,41 +44,49 @@ CORES = [
     ("#9333ea", "#1e1b4b"),
 ]
 
-# Ícones que já existem em static/icons/tech/.
-TECNOLOGIAS = [
-    ("Python", "python.svg"),
-    ("Django", "django.svg"),
-    ("PostgreSQL", "postgresql.svg"),
-    ("Docker", "docker.svg"),
-]
+# Na ordem em que os projetos as recebem: o primeiro projeto fica com as duas
+# primeiras, o segundo com três, e assim por diante.
+TECNOLOGIAS = ["Python", "Django", "PostgreSQL", "Docker"]
 
 # (nome, slug): o slug é o que os projetos abaixo usam para escolher a categoria.
 CATEGORIAS_PROJETO = [("Web", "web"), ("API", "api")]
 
-# (título, slug da categoria): a descrição é a mesma para todos.
+# (título, slug da categoria, endereço no ar): a descrição é a mesma para todos. O
+# endereço usa o example.com, domínio reservado para exemplos (RFC 2606).
 PROJETOS = [
-    ("Loja virtual", "web"),
-    ("API de pedidos", "api"),
-    ("Painel de métricas", "web"),
+    ("Loja virtual", "web", "https://example.com/loja"),
+    ("API de pedidos", "api", "https://example.com/api-de-pedidos"),
+    ("Painel de métricas", "web", "https://example.com/painel"),
 ]
 
-# Categoria de habilidade -> (ícone de static/icons/, habilidades com o progresso).
-HABILIDADES = {
-    "Back-end": ("server.svg", [("Python", 90), ("Django", 85), ("PostgreSQL", 75)]),
-    "Infraestrutura": ("cloud.svg", [("Docker", 70), ("Linux", 65), ("CI/CD", 60)]),
+# Estudo de caso de exemplo, o mesmo para todos os projetos (spec 008, RF-10).
+ESTUDO_DE_CASO = {
+    "problema": "Pedidos anotados em planilha se perdiam entre a venda e a entrega.",
+    "papel": "Projeto individual: modelagem, back-end, interface e deploy.",
+    "decisao_tecnica": "Django com PostgreSQL: o Admin pronto cobriu o painel interno.",
+    "resultado": "Exemplo de demonstração: os números de um projeto real entram aqui.",
 }
 
-# (título, legenda, destaque_sobre): a legenda quebra linha no "\n", como no admin.
-ESTATISTICAS = [
-    ("5+", "Anos de\nexperiência", True),
-    ("30+", "Projetos\nentregues", False),
-    ("15+", "Clientes\natendidos", False),
-]
+# Categoria de habilidade -> (habilidade, nível). A habilidade se liga à
+# tecnologia de mesmo nome, quando houver (spec 008, RF-12); as outras ficam
+# como chips sem contagem.
+HABILIDADES = {
+    "Back-end": [
+        ("Python", NivelHabilidade.DIA_A_DIA),
+        ("Django", NivelHabilidade.DIA_A_DIA),
+        ("PostgreSQL", NivelHabilidade.JA_USEI),
+    ],
+    "Infraestrutura": [
+        ("Docker", NivelHabilidade.JA_USEI),
+        ("Linux", NivelHabilidade.JA_USEI),
+        ("Kubernetes", NivelHabilidade.ESTUDANDO),
+    ],
+}
 
 
 class Command(BaseCommand):
     """
-    Cria perfil, projetos, tecnologias, habilidades e estatísticas de demonstração.
+    Cria perfil, projetos, tecnologias e habilidades de demonstração.
 
     Idempotente e restrito a ``DEBUG=True``; ver a docstring do módulo.
 
@@ -96,8 +104,8 @@ class Command(BaseCommand):
         Fluxo:
             1. Recusa rodar se ``DEBUG`` estiver desligado.
             2. Cria o perfil, se ainda não houver um.
-            3. Cria as tecnologias e os projetos com imagem.
-            4. Cria as habilidades e as estatísticas.
+            3. Cria as tecnologias e os projetos com imagem e estudo de caso.
+            4. Cria as habilidades, ligadas às tecnologias.
             5. Imprime o total de projetos e habilidades.
 
         Args:
@@ -116,8 +124,7 @@ class Command(BaseCommand):
         self._perfil()
         tecnologias = self._tecnologias()
         self._projetos(tecnologias)
-        self._habilidades()
-        self._estatisticas()
+        self._habilidades(tecnologias)
         self.stdout.write(
             self.style.SUCCESS(
                 f"Dados de demonstração prontos: {Projeto.objects.count()} projetos, "
@@ -165,7 +172,6 @@ class Command(BaseCommand):
             "Gosto de código simples, testado e bem documentado.",
             bio_curta="Aplicações web do banco de dados à interface.",
             anos_experiencia=5,
-            mostrar_progresso=True,
             email_contato="maria@example.com",
             telefone="+55 11 90000-0000",
             localizacao="São Paulo, Brasil",
@@ -181,22 +187,20 @@ class Command(BaseCommand):
     @staticmethod
     def _tecnologias() -> list[Tecnologia]:
         """
-        Cria as tecnologias exibidas na Home.
+        Cria as tecnologias dos projetos.
 
         Returns:
             list[Tecnologia]: As tecnologias, na ordem de ``TECNOLOGIAS``.
         """
         return [
-            Tecnologia.objects.get_or_create(
-                nome=nome,
-                defaults={"icone": icone, "mostrar_no_home": True, "ordem": ordem},
-            )[0]
-            for ordem, (nome, icone) in enumerate(TECNOLOGIAS)
+            Tecnologia.objects.get_or_create(nome=nome, defaults={"ordem": ordem})[0]
+            for ordem, nome in enumerate(TECNOLOGIAS)
         ]
 
     def _projetos(self, tecnologias: list[Tecnologia]) -> None:
         """
-        Cria as categorias de projeto e os projetos com imagem e tecnologias.
+        Cria as categorias de projeto e os projetos com imagem, tecnologias,
+        endereço no ar e estudo de caso.
 
         Args:
             tecnologias (list[Tecnologia]): Tecnologias associadas a cada projeto.
@@ -207,7 +211,7 @@ class Command(BaseCommand):
             )[0]
             for nome, slug in CATEGORIAS_PROJETO
         }
-        for ordem, (titulo, slug) in enumerate(PROJETOS):
+        for ordem, (titulo, slug, link_online) in enumerate(PROJETOS):
             projeto, novo = Projeto.objects.get_or_create(
                 titulo=titulo,
                 defaults={
@@ -215,7 +219,9 @@ class Command(BaseCommand):
                     "descricao": "Projeto de demonstração com autenticação, "
                     "testes automatizados e deploy contínuo.",
                     "link_github": "https://github.com/maria-souza-demo/demo",
+                    "link_online": link_online,
                     "ordem": ordem,
+                    **ESTUDO_DE_CASO,
                 },
             )
             if novo:
@@ -226,28 +232,20 @@ class Command(BaseCommand):
                 projeto.tecnologias.set(tecnologias[: 2 + ordem])
 
     @staticmethod
-    def _habilidades() -> None:
-        """Cria as categorias de habilidade e as habilidades com o progresso."""
-        for nome, (icone, habilidades) in HABILIDADES.items():
-            categoria, _ = CategoriaHabilidade.objects.get_or_create(
-                nome=nome, defaults={"icone": icone}
-            )
-            for habilidade, progresso in habilidades:
+    def _habilidades(tecnologias: list[Tecnologia]) -> None:
+        """
+        Cria as categorias de habilidade e as habilidades com nível.
+
+        Args:
+            tecnologias (list[Tecnologia]): As tecnologias criadas; a habilidade
+                de mesmo nome fica ligada a ela.
+        """
+        por_nome = {tecnologia.nome: tecnologia for tecnologia in tecnologias}
+        for nome, habilidades in HABILIDADES.items():
+            categoria, _ = CategoriaHabilidade.objects.get_or_create(nome=nome)
+            for habilidade, nivel in habilidades:
                 Habilidade.objects.get_or_create(
                     categoria=categoria,
                     nome=habilidade,
-                    defaults={"progresso": progresso},
+                    defaults={"nivel": nivel, "tecnologia": por_nome.get(habilidade)},
                 )
-
-    @staticmethod
-    def _estatisticas() -> None:
-        """Cria as estatísticas da Home (uma delas em destaque na foto do Sobre)."""
-        for ordem, (titulo, legenda, destaque) in enumerate(ESTATISTICAS):
-            Estatistica.objects.get_or_create(
-                titulo=titulo,
-                defaults={
-                    "legenda": legenda,
-                    "ordem": ordem,
-                    "destaque_sobre": destaque,
-                },
-            )

@@ -3,6 +3,8 @@ Testes do comando ``semear_dados_demo`` e da configuração do Lighthouse CI.
 
 Cobre:
 - o comando recusa rodar com ``DEBUG=False`` e é idempotente;
+- as habilidades saem com nível e tecnologia ligada, e os projetos com a versão no
+  ar e o estudo de caso, sem estatísticas (spec 008, RF-21);
 - toda URL da configuração do Lighthouse (``.github/lighthouse/``) responde 200 com os
   dados semeados, e o mobile e o desktop auditam as mesmas páginas com as mesmas
   checagens;
@@ -19,12 +21,13 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from django.apps import apps
 from django.conf import LazySettings
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import Client
 
-from app_portfolio.models import Estatistica, Habilidade, Perfil, Projeto
+from app_portfolio.models import Habilidade, NivelHabilidade, Perfil, Projeto
 
 pytestmark = pytest.mark.django_db
 
@@ -105,15 +108,46 @@ def test_recusa_rodar_com_debug_desligado() -> None:
 
 
 @pytest.mark.usefixtures("_demo")
-def test_cria_perfil_projetos_habilidades_e_estatisticas() -> None:
+def test_cria_perfil_projetos_e_habilidades() -> None:
     """Dado ``DEBUG=True``, cria tudo o que a Home exibe, com as imagens."""
     call_command("semear_dados_demo")
 
     assert Perfil.objects.get().foto
+    assert Perfil.objects.get().anos_experiencia > 0
     assert all(projeto.imagem for projeto in Projeto.objects.all())
     assert Projeto.objects.count() >= 3
     assert Habilidade.objects.exists()
-    assert Estatistica.objects.filter(destaque_sobre=True).exists()
+
+
+@pytest.mark.usefixtures("_demo")
+def test_habilidades_com_nivel_e_tecnologia() -> None:
+    """Os três níveis aparecem, e a habilidade com projeto fica ligada (spec 008, RF-21)."""
+    call_command("semear_dados_demo")
+
+    niveis = set(Habilidade.objects.values_list("nivel", flat=True))
+    assert niveis == set(NivelHabilidade.values)
+    python = Habilidade.objects.get(nome="Python")
+    assert python.tecnologia is not None
+    assert python.tecnologia.projeto_set.exists()
+
+
+@pytest.mark.usefixtures("_demo")
+def test_projetos_com_versao_no_ar_e_estudo_de_caso() -> None:
+    """Todo projeto tem o endereço no ar em example.com e o estudo de caso."""
+    call_command("semear_dados_demo")
+
+    for projeto in Projeto.objects.all():
+        assert projeto.link_online
+        assert projeto.link_online.startswith("https://example.com/")
+        assert projeto.tem_estudo_de_caso
+
+
+def test_nenhuma_estatistica() -> None:
+    """O modelo Estatistica saiu do projeto: não há o que semear (spec 008, RF-05)."""
+    nomes = {
+        modelo.__name__ for modelo in apps.get_app_config("app_portfolio").get_models()
+    }
+    assert "Estatistica" not in nomes
 
 
 @pytest.mark.usefixtures("_demo")
@@ -124,7 +158,6 @@ def test_rodar_duas_vezes_nao_duplica_nada() -> None:
         Perfil.objects.count(),
         Projeto.objects.count(),
         Habilidade.objects.count(),
-        Estatistica.objects.count(),
     )
 
     call_command("semear_dados_demo")
@@ -133,7 +166,6 @@ def test_rodar_duas_vezes_nao_duplica_nada() -> None:
         Perfil.objects.count(),
         Projeto.objects.count(),
         Habilidade.objects.count(),
-        Estatistica.objects.count(),
     )
 
 

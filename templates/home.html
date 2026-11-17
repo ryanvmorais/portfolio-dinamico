@@ -4,74 +4,184 @@
 {% block content %}
     {# Seção Hero #}
     <main id="main-content">
+        {% comment %}
+        HERO (spec 008): todo texto vem do Perfil ou é contado dos dados, nada escrito aqui (RF-01).
+        A altura é a do conteúdo, para o topo de Projetos aparecer na primeira tela (ADR-10).
+        {% endcomment %}
         <section class="hero" id="home" aria-labelledby="hero-title">
             <div class="hero__container container">
                 <div class="hero__content">
-                    <span class="hero__greeting">Olá, eu sou</span>
-                    <h1 id="hero-title" class="hero__title">
-                        {# As chaves duplas {{ }} exibem o conteúdo que vem do Banco de Dados #}
-                        <span class="hero__name">{{ perfil.nome }}</span>
-                        <span class="hero__role">{{ perfil.cargo }}</span>
-                    </h1>
-                    <p class="hero__description">
-                        {{ perfil.bio_curta }}
+                    {% if perfil.status_trabalho %}
+                    <p class="hero__selo">
+                        <span class="hero__selo-ponto" aria-hidden="true"></span>
+                        {{ perfil.status_trabalho }}{% if perfil.localizacao %} · {{ perfil.localizacao }}{% endif %}
                     </p>
-                    <div class="hero__buttons">
+                    {% endif %}
+                    <h1 id="hero-title" class="hero__title">{{ perfil.nome|default:"Seu Nome" }}</h1>
+                    {% if perfil.cargo %}
+                    <p class="hero__role">{{ perfil.cargo }}</p>
+                    {% endif %}
+                    {% if perfil.bio_curta %}
+                    <p class="hero__description">{{ perfil.bio_curta }}</p>
+                    {% endif %}
+
+                    <div class="hero__acoes">
                         <a href="#projects" class="btn btn--primary">
-                            Ver Projetos
+                            Ver projetos
                             <img src="{% static 'icons/arrow-right.svg' %}" alt="" aria-hidden="true" width="20" height="20">
                         </a>
-                        <a href="#contact" class="btn btn--secondary">
-                            Entrar em Contato
-                        </a>
+                        {# Um link por campo preenchido: campo opcional vazio não vira href="None" nem erro 500 (spec 004, RF-01) #}
+                        {% if perfil.link_github or perfil.link_linkedin or perfil.curriculo %}
+                        <ul class="hero__links" role="list">
+                            {% if perfil.link_github %}
+                            <li><a href="{{ perfil.link_github }}" class="icone-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                                <img src="{% static 'icons/social/github.svg' %}" alt="" aria-hidden="true" width="22" height="22">
+                            </a></li>
+                            {% endif %}
+                            {% if perfil.link_linkedin %}
+                            <li><a href="{{ perfil.link_linkedin }}" class="icone-link" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                                <img src="{% static 'icons/social/linkedin.svg' %}" alt="" aria-hidden="true" width="22" height="22">
+                            </a></li>
+                            {% endif %}
+                            {% if perfil.curriculo %}
+                            <li><a href="{{ perfil.curriculo.url }}" class="icone-link" download aria-label="Baixar currículo">
+                                <img src="{% static 'icons/download.svg' %}" alt="" aria-hidden="true" width="22" height="22">
+                            </a></li>
+                            {% endif %}
+                        </ul>
+                        {% endif %}
+                        <a href="#contact" class="hero__contato">ou entre em contato</a>
                     </div>
 
-                    {# LOOP: Percorre a lista de estatísticas cadastrada no Django Admin #}
-                    <div class="hero__stats">
-                        {% for stat in estatisticas %}
-                        <div class="hero__stat">
-                            <span class="hero__stat-number">{{ stat.titulo }}</span>
-                            <span class="hero__stat-label">{{ stat.legenda }}</span>
-                        </div>
-                        {% empty %}
-                        <p>Nenhuma estatística disponível.</p>
-                        {% endfor %}
-                    </div>
+                    {# Só números que os dados comprovam: os anos do perfil e os projetos contados (spec 008, RF-05) #}
+                    {% if perfil.anos_experiencia > 0 or total_projetos %}
+                    <ul class="hero__numeros" role="list">
+                        {% if perfil.anos_experiencia > 0 %}
+                        <li><strong class="hero__numero">{{ perfil.anos_experiencia }}+</strong> ano{{ perfil.anos_experiencia|pluralize }} de experiência</li>
+                        {% endif %}
+                        {% if total_projetos %}
+                        <li><strong class="hero__numero">{{ total_projetos }}</strong> projeto{{ total_projetos|pluralize }} publicado{{ total_projetos|pluralize }}</li>
+                        {% endif %}
+                    </ul>
+                    {% endif %}
                 </div>
 
-                {# BLOCO ESTÉTICO: Simula um editor de código para dar o estilo 'Dev' #}
-                <div class="hero__visual" aria-hidden="true">
-                    <div class="hero__code-block">
-                        <div class="code-header">
-                            <span class="code-dot code-dot--red"></span>
-                            <span class="code-dot code-dot--yellow"></span>
-                            <span class="code-dot code-dot--green"></span>
-                            <span class="code-filename">developer.js</span>
-                        </div>
-                        <pre class="code-content"><code><span class="code-keyword">const</span> <span class="code-variable">developer</span> = {
-  <span class="code-property">name</span>: <span class="code-string">"{{ perfil.nome }}"</span>,
-  <span class="code-property">role</span>: <span class="code-string">"Full-Stack Developer"</span>,
-  <span class="code-property">skills</span>: [<span class="code-string">"Python"</span>, <span class="code-string">"Django"</span>, <span class="code-string">"React"</span>],
-  <span class="code-property">passion</span>: <span class="code-string">"Building amazing apps"</span>,
-  <span class="code-method">code</span>: () => <span class="code-string">"Clean & Efficient"</span>,
-  <span class="code-method">solve</span>: () => <span class="code-string">"Complex Problems"</span>
-};</code></pre>
-                    </div>
+                {# A foto é a maior imagem da primeira tela: sem lazy, com fetchpriority e medidas declaradas (spec 008, RNF-04) #}
+                <div class="hero__foto-moldura">
+                    <img
+                    src="{% if perfil.foto %}{{ perfil.foto.url }}{% else %}{% static 'icons/default_perfil.webp' %}{% endif %}"
+                    alt="Foto de {{ perfil.nome|default:'Desenvolvedor' }}"
+                    class="hero__foto"
+                    width="340"
+                    height="425"
+                    fetchpriority="high"
+                    >
                 </div>
-            </div>
-            <div class="hero__scroll">
-                {# aria-label começa pelo texto visível "Explorar" (spec 004, RF-11) #}
-                <a href="#about" class="scroll-indicator" aria-label="Explorar: rolar para a seção Sobre">
-                    <span class="scroll-text">Explorar</span>
-                    <span class="scroll-line"></span>
-                </a>
             </div>
         </section>
-        
+
+        {# Seção Projetos #}
+        <section class="projects section" id="projects">
+            <div class="container">
+                <span class="section__subtitle">Estudos de caso</span>
+                <h2 class="section__title">Projetos em Destaque</h2>
+
+                {# FILTROS: Criados dinamicamente com base nas categorias do banco. aria-pressed e a classe .active são alternados por filtrarProjetos() em main.js (spec 004, RF-13) #}
+                <div class="projects__filters" role="group" aria-label="Filtros de projeto">
+                    <button class="filter-btn active" data-filter="all" aria-pressed="true">Todos</button>
+                    {% for categoria in categorias_projetos %}
+                        <button class="filter-btn" data-filter="{{ categoria.slug }}" aria-pressed="false">
+                            {{ categoria.nome }}
+                        </button>
+                    {% endfor %}
+                </div>
+                {# Região viva: main.js escreve aqui quantos projetos o filtro de categoria mostra #}
+                <p class="sr-only" id="projects-status" role="status"></p>
+                {% comment %}
+                LINHA DE ESTADO do filtro por chip: o main.js (iniciarChips) a mostra, escreve o texto e põe o foco nela (spec 008, ADR-08).
+                tabindex="-1" deixa o script focá-la sem colocá-la na ordem do Tab; ao receber o foco, o leitor de tela lê o resultado.
+                {% endcomment %}
+                <p class="projects__estado" id="projects-estado" tabindex="-1" hidden>
+                    <span class="projects__estado-texto"></span>
+                    <button type="button" class="projects__limpar">Limpar filtro</button>
+                </p>
+
+                <div class="projects__grid">
+                    {% for projeto in projetos %}
+                    {# data-tecnologias: os ids que o filtro por chip procura (spec 008, ADR-06) #}
+                    <article class="project-card" data-category="{{ projeto.categoria_projeto.slug }}" data-tecnologias="{% for tech in projeto.tecnologias.all %}{{ tech.pk }}{% if not forloop.last %} {% endif %}{% endfor %}">
+                        <div class="project-card__image">
+                            {# Fallback para imagem estática se o projeto não tiver imagem no banco #}
+                            {# alt vazio: a capa é decorativa e o título logo abaixo já nomeia o projeto (spec 004, RF-21) #}
+                            <img src="{% if projeto.imagem %}{{ projeto.imagem.url }}{% else %}{% static 'icons/default_projeto.webp' %}{% endif %}"
+                            alt=""
+                            class="project-card__img"
+                            loading="lazy">
+                        </div>
+
+                        <div class="project-card__content">
+                            <span class="project-card__category">{{ projeto.categoria_projeto.nome }}</span>
+                            <h3 class="project-card__title">{{ projeto.titulo }}</h3>
+                            <p class="project-card__description">{{ projeto.descricao }}</p>
+
+                            <div class="project-card__tech">
+                                {% for tech in projeto.tecnologias.all %}
+                                    <span class="tech-tag">{{ tech.nome }}</span>
+                                {% endfor %}
+                            </div>
+
+                            {# ESTUDO DE CASO: <details> nativo, fechado, abre com Enter ou Espaço e sem JavaScript; só os campos preenchidos (spec 008, RF-10) #}
+                            {% if projeto.tem_estudo_de_caso %}
+                            <details class="project-card__caso">
+                                <summary class="project-card__caso-titulo">Como foi feito</summary>
+                                <dl class="project-card__caso-lista">
+                                    {% if projeto.problema.strip %}
+                                    <dt>Problema</dt>
+                                    <dd>{{ projeto.problema|linebreaksbr }}</dd>
+                                    {% endif %}
+                                    {% if projeto.papel.strip %}
+                                    <dt>Meu papel</dt>
+                                    <dd>{{ projeto.papel|linebreaksbr }}</dd>
+                                    {% endif %}
+                                    {% if projeto.decisao_tecnica.strip %}
+                                    <dt>Decisão técnica</dt>
+                                    <dd>{{ projeto.decisao_tecnica|linebreaksbr }}</dd>
+                                    {% endif %}
+                                    {% if projeto.resultado.strip %}
+                                    <dt>Resultado</dt>
+                                    <dd>{{ projeto.resultado|linebreaksbr }}</dd>
+                                    {% endif %}
+                                </dl>
+                            </details>
+                            {% endif %}
+
+                            {# Links opcionais (blank=True): sem o if saía href="None". O sr-only dá a cada link um nome próprio com o título (spec 004, RF-10; spec 008, RF-09); começa por ":" porque o NVDA cola o texto de um .sr-only no anterior e engole o espaço inicial #}
+                            {% if projeto.link_online or projeto.link_github %}
+                            <div class="project-card__acoes">
+                                {% if projeto.link_online %}
+                                <a href="{{ projeto.link_online }}" class="btn btn--primary project-card__acao" target="_blank" rel="noopener noreferrer">
+                                    <span>Ver online<span class="sr-only">: {{ projeto.titulo }}</span></span>
+                                </a>
+                                {% endif %}
+                                {% if projeto.link_github %}
+                                <a href="{{ projeto.link_github }}" class="btn btn--secondary project-card__acao" target="_blank" rel="noopener noreferrer">
+                                    <img src="{% static 'icons/github.svg' %}" alt="" aria-hidden="true" width="18" height="18">
+                                    <span>Código<span class="sr-only">: {{ projeto.titulo }}</span></span>
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
         {# Seção Sobre #}
         <section class="about section" id="about">
             <div class="container">
-                <span class="section__subtitle">Conheça-me</span>
+                <span class="section__subtitle">Quem sou</span>
                 <h2 class="section__title">Sobre Mim</h2>
                 
                 <div class="about__container">
@@ -86,15 +196,13 @@
                             >
                             <div class="about__image-decoration" aria-hidden="true"></div>
                         </div>
-                        {# O filtro |linebreaks transforma quebras de linha do banco em <p> no HTML #}
+                        {# Selo contado do perfil, nunca digitado; com zero anos, some (spec 008, RF-05) #}
+                        {% if perfil.anos_experiencia > 0 %}
                         <div class="about__experience-badge">
-                            {% for stat in estatisticas %}
-                                {% if stat.destaque_sobre %}
-                                    <span class="experience-number">{{ stat.titulo }}</span>
-                                    <span class="experience-text">{{ stat.legenda|linebreaksbr }}</span>
-                                {% endif %}
-                            {% endfor %}
+                            <span class="experience-number">{{ perfil.anos_experiencia }}+</span>
+                            <span class="experience-text">ano{{ perfil.anos_experiencia|pluralize }} de<br>experiência</span>
                         </div>
+                        {% endif %}
                     </div>
     
                     <div class="about__content">
@@ -129,116 +237,41 @@
             </div>
         </section>
         
-        {# Seção Projetos #}
-        <section class="projects section" id="projects">
-            <div class="container">
-                <span class="section__subtitle">Meu Trabalho</span>
-                <h2 class="section__title">Projetos em Destaque</h2>
-                
-                {# FILTROS: Criados dinamicamente com base nas categorias do banco. aria-pressed e a classe .active são alternados por filtrarProjetos() em main.js (spec 004, RF-13) #}
-                <div class="projects__filters" role="group" aria-label="Filtros de projeto">
-                    <button class="filter-btn active" data-filter="all" aria-pressed="true">Todos</button>
-                    {% for categoria in categorias_projetos %}
-                        <button class="filter-btn" data-filter="{{ categoria.slug }}" aria-pressed="false">
-                            {{ categoria.nome }}
-                        </button>
-                    {% endfor %}
-                </div>
-                {# Região viva: main.js escreve aqui quantos projetos o filtro mostra #}
-                <p class="sr-only" id="projects-status" role="status"></p>
-                
-                <div class="projects__grid">
-                    {% for projeto in projetos %}
-                    <article class="project-card" data-category="{{ projeto.categoria_projeto.slug }}">
-                        <div class="project-card__image">
-                            {# Fallback para imagem estática se o projeto não tiver imagem no banco #}
-                            {# alt vazio: a capa é decorativa e o título logo abaixo já nomeia o projeto (spec 004, RF-21) #}
-                            <img src="{% if projeto.imagem %}{{ projeto.imagem.url }}{% else %}{% static 'icons/default_projeto.webp' %}{% endif %}"
-                            alt=""
-                            class="project-card__img"
-                            loading="lazy">
-                        </div>
-        
-                        <div class="project-card__content">
-                            <span class="project-card__category">{{ projeto.categoria_projeto.nome }}</span>
-                            <h3 class="project-card__title">{{ projeto.titulo }}</h3>
-                            <p class="project-card__description">{{ projeto.descricao }}</p>
-            
-                            <div class="project-card__tech">
-                                {% for tech in projeto.tecnologias.all %}
-                                    <span class="tech-tag">{{ tech.nome }}</span>
-                                {% endfor %}
-                            </div>
-
-                            {# O link é opcional (blank=True): sem este if saía href="None", que abre /None. O sr-only dá a cada link um nome próprio (spec 004, RF-10) #}
-                            {% if projeto.link_github %}
-                            <a href="{{ projeto.link_github }}" class="btn-github" target="_blank" rel="noopener noreferrer">
-                                <img src="{% static 'icons/github.svg' %}" alt="" aria-hidden="true" width="18" height="18">
-                                <span>Ver no GitHub<span class="sr-only"> do projeto {{ projeto.titulo }}</span></span>
-                            </a>
-                            {% endif %}
-                        </div>
-                    </article>
-                    {% endfor %}
-                </div>
-            </div>
-        </section>
-
         {# Seção Habilidades #}
         <section class="skills section" id="skills">
             <div class="container">
-                <span class="section__subtitle">Minhas Competências</span>
+                <span class="section__subtitle">Com o que trabalho</span>
                 <h2 class="section__title">Habilidades Técnicas</h2>
-        
+
+                {% comment %}
+                CHIPS (spec 008, RF-11 e RF-12): um bloco por categoria, um h4 por nível na ordem do NivelHabilidade.
+                Com projeto que a prove, a habilidade vira botão: o main.js (iniciarChips) filtra os projetos pela tecnologia e alterna aria-pressed.
+                Sem projeto, é texto: um botão que não faz nada confundiria o teclado e o leitor de tela.
+                {% endcomment %}
                 <div class="skills__container">
-                    {% for categoria in categorias_habilidades %}
+                    {% for grupo in habilidades_por_categoria %}
                     <div class="skills__category">
-                        <div class="skills__category-header">
-                            {% if categoria.icone %}
-                                <img src="{% static 'icons/' %}{{ categoria.icone }}" alt="" aria-hidden="true" width="24" height="24">
-                            {% else %}
-                                <img src="{% static 'icons/code.svg' %}" alt="" aria-hidden="true" width="24" height="24">
-                            {% endif %}
-                            <h3 class="skills__category-title">{{ categoria.nome }}</h3>
-                        </div>
-
-                        <div class="skills__list">
-                            {# NESTED LOOP: Mostra as habilidades pertencentes a esta categoria específica #}
-                            {% for habilidade in categoria.habilidades.all %}
-                            <div class="skill-item">
-                                <div class="skill-item__info">
-                                    <span class="skill-item__name">{{ habilidade.nome }}</span>
-            
-                                    {# 1. Toggle para o número da porcentagem #}
-                                    {% if perfil.mostrar_progresso %}
-                                        <span class="skill-item__level">{{ habilidade.progresso }}%</span>
-                                    {% endif %}
-                                </div>
-
-                                {# 2. Toggle para a barra visual #}
-                                {% if perfil.mostrar_progresso %}
-                                    {# aria-label dá nome à barra; sem ele o leitor de tela diz só "barra de progresso, 90" (spec 004, RF-07) #}
-                                    <div class="skill-item__bar" role="progressbar" aria-label="{{ habilidade.nome }}" aria-valuenow="{{ habilidade.progresso }}" aria-valuemin="0" aria-valuemax="100">
-                                        <div class="skill-item__progress" style="width: {{ habilidade.progresso }}%"></div>
-                                    </div>
+                        <h3 class="skills__category-title">{{ grupo.categoria.nome }}</h3>
+                        {% for nivel in grupo.niveis %}
+                        <h4 class="skills__nivel">{{ nivel.rotulo }}</h4>
+                        <ul class="skills__chips" role="list">
+                            {% for habilidade in nivel.habilidades %}
+                            <li>
+                                {% if habilidade.qtd_projetos %}
+                                <button type="button" class="chip" data-tecnologia="{{ habilidade.tecnologia_id }}" data-nome="{{ habilidade.tecnologia.nome }}" aria-pressed="false">
+                                    {# Um span só por dentro: entre dois itens do inline-flex o espaço some, e o NVDA lia "Python· 3 projetos" #}
+                                    <span>{{ habilidade.nome }} <span class="chip__contagem">· {{ habilidade.qtd_projetos }} projeto{{ habilidade.qtd_projetos|pluralize }}</span></span>
+                                </button>
+                                {% else %}
+                                <span class="chip">{{ habilidade.nome }}</span>
                                 {% endif %}
-                            </div>
-                            {% empty %}
-                                <p>Nenhuma habilidade cadastrada.</p>
+                            </li>
                             {% endfor %}
-                        </div>
+                        </ul>
+                        {% empty %}
+                        <p>Nenhuma habilidade cadastrada.</p>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
-                </div>
-
-                {# Ícones de Tecnologias #}
-                <div class="skills__icons" aria-label="Ícones de tecnologias">
-                    {% for tech in tech_icons %}
-                        <div class="skills__icon" title="{{ tech.nome }}">
-                        {% if tech.icone %}
-                            <img src="{% static 'icons/tech/' %}{{ tech.icone }}" alt="{{ tech.nome }}" width="40" height="40" loading="lazy">
-                        {% endif %}
-                        </div>
                     {% endfor %}
                 </div>
             </div>
@@ -247,7 +280,7 @@
         {# Seção de Contato #}
         <section class="contact section" id="contact">
             <div class="container">
-                <span class="section__subtitle">Vamos Conversar</span>
+                <span class="section__subtitle">Próximo passo</span>
                 <h2 class="section__title">Entre em Contato</h2>
                 
                 <div class="contact__container">

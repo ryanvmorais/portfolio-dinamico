@@ -232,7 +232,7 @@ X_FRAME_OPTIONS = "DENY"  # nenhuma página pode ser enquadrada (clickjacking)
 CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
         "default-src": [SELF],
-        # 'unsafe-inline' só em estilo: a barra de progresso das habilidades usa
+        # 'unsafe-inline' só em estilo: o honeypot do formulário de contato usa
         # style="" inline. Script nunca: nenhum template tem <script> inline.
         "style-src": [SELF, UNSAFE_INLINE],
         "script-src": [SELF],

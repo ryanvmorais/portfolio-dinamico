@@ -1,8 +1,8 @@
 """
 Painel administrativo do portfólio.
 
-Todo o conteúdo do site (perfil, projetos, tecnologias, habilidades,
-estatísticas) é editado aqui, sem deploy. As mensagens de contato entram
+Todo o conteúdo do site (perfil, projetos, tecnologias e habilidades) é
+editado aqui, sem deploy. As mensagens de contato entram
 somente leitura: o painel serve para lê-las, não para alterá-las.
 """
 
@@ -11,7 +11,6 @@ from django.contrib import admin
 from .models import (
     CategoriaHabilidade,
     CategoriaProjeto,
-    Estatistica,
     Habilidade,
     MensagemContato,
     Perfil,
@@ -26,11 +25,11 @@ from .models import (
 
 @admin.register(Tecnologia)
 class TecnologiaAdmin(admin.ModelAdmin):
-    """Gerencia os ícones e tecnologias que aparecem no portfólio."""
+    """Gerencia as tecnologias dos projetos, que as habilidades ligam (spec 008)."""
 
-    list_display = ("nome", "ordem", "mostrar_no_home")
-    list_editable = ("ordem", "mostrar_no_home")  # Permite editar sem abrir o item
-    list_filter = ("mostrar_no_home",)
+    list_display = ("nome", "ordem")
+    list_editable = ("ordem",)  # Permite editar sem abrir o item
+    # Também habilita a busca do autocomplete_fields do HabilidadeInline.
     search_fields = ("nome",)
 
 
@@ -50,7 +49,16 @@ class ProjetoAdmin(admin.ModelAdmin):
             {"fields": ("titulo", "descricao", "categoria_projeto", "imagem", "ordem")},
         ),
         ("Tecnologias Utilizadas", {"fields": ("tecnologias",)}),
-        ("Links e Repositórios", {"fields": ("link_github",)}),
+        ("Links e Repositórios", {"fields": ("link_github", "link_online")}),
+        (
+            "Estudo de caso",
+            {
+                # Recolhido: os quatro campos são opcionais, e o cartão só
+                # mostra o "Como foi feito" quando algum tem texto.
+                "classes": ("collapse",),
+                "fields": ("problema", "papel", "decisao_tecnica", "resultado"),
+            },
+        ),
     )
 
     # Interface amigável para selecionar múltiplas tecnologias (Many-to-Many)
@@ -68,7 +76,7 @@ class PerfilAdmin(admin.ModelAdmin):
             "Informações Básicas",
             {"fields": ("nome", "cargo", "bio_curta", "foto", "curriculo")},
         ),
-        ("Sobre Mim", {"fields": ("bio", "anos_experiencia", "mostrar_progresso")}),
+        ("Sobre Mim", {"fields": ("bio", "anos_experiencia")}),
         (
             "Detalhes de Contato e Formação",
             {
@@ -111,7 +119,7 @@ class MensagemContatoAdmin(admin.ModelAdmin):
 
 
 # ---------------------------------------------------------------------------
-# Habilidades, estatísticas e categorias
+# Habilidades e categorias
 # ---------------------------------------------------------------------------
 
 
@@ -120,6 +128,9 @@ class HabilidadeInline(admin.TabularInline):
 
     model = Habilidade
     extra = 1  # Define quantos campos vazios aparecem por padrão
+    fields = ("nome", "nivel", "tecnologia")
+    # Busca em vez de lista suspensa; o TecnologiaAdmin já tem search_fields.
+    autocomplete_fields = ("tecnologia",)
 
 
 @admin.register(CategoriaHabilidade)
@@ -128,14 +139,6 @@ class CategoriaHabilidadeAdmin(admin.ModelAdmin):
 
     list_display = ("nome",)
     inlines = [HabilidadeInline]  # Ativa a edição em massa de habilidades
-
-
-@admin.register(Estatistica)
-class EstatisticaAdmin(admin.ModelAdmin):
-    """Gerencia os números de destaque exibidos na Hero Section."""
-
-    list_display = ("legenda", "titulo", "ordem")
-    list_editable = ("titulo", "ordem")
 
 
 @admin.register(CategoriaProjeto)
