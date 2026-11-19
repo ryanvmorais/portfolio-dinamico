@@ -510,7 +510,8 @@ A spec 004, RF-15, passa a valer só para o painel do menu.
   cai em "Filtros de projeto, grupo, Todos, botão de alternância, pressionado".
   Os links do cartão leem "Ver online: Painel de métricas" e "Código: Painel de
   métricas"; o "Como foi feito", "botão, recolhido".
-- **Capa dos READMEs** (`assets/portfolio-django-home-desktop.png`) refeita: a
+- **Capa dos READMEs** (`assets/portfolio-django-home-desktop.png`, depois
+  substituída por `assets/portfolio-django-home-desktop-e-celular.webp`) refeita: a
   home a 1280 px numa moldura de navegador e, por cima, o celular a 390 px
   aberto num cartão com o "Como foi feito" expandido, com os dados de
   demonstração e o nome padrão "Seu Nome"; 2400 x 1440, 256 cores, 421 KB (a
