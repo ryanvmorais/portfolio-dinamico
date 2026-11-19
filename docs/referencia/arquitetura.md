@@ -39,8 +39,10 @@ monograma do logo (contexto `iniciais` da `home`), para o `/favicon.svg` (SVG
 montado em texto, com a fonte do sistema) e para o `/apple-touch-icon.png` (PNG
 opaco de 180 px desenhado pelo Pillow com a Inter de `static/fonts/`,
 memoizado por `lru_cache`). Sem `Perfil`, as duas rotas redirecionam (302)
-para o `favicon.webp` e o `apple-touch-icon.png` de `static/icons/`. O `?v=`
-com as iniciais no `<head>` fura o cache de um dia quando o nome muda.
+para o `favicon.webp` e o `apple-touch-icon.png` de `static/icons/`, que trazem o
+mesmo monograma com as iniciais padrão ("SN"). O `?v=` com as iniciais no
+`<head>` fura o cache de um dia quando o nome muda. As páginas de erro ligam o
+`/favicon.svg` sem o `?v=` (não têm contexto), com o `favicon.webp` de reserva.
 
 ## Tratamento de imagens
 

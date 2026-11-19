@@ -80,7 +80,8 @@ que ficaram, e que um ajuste "inofensivo" desfaria:
   Gemini; os dois ícones são a reserva da marca gerada das iniciais
   (`marca.py`), usada sempre que há `Perfil`.
 - **Páginas de erro:** `400.html`, `403.html`, `403_csrf.html`, `404.html` e `500.html`
-  estendem o `erro.html`, independente do `base.html` (sem banco, sem JavaScript). A
+  estendem o `erro.html`, independente do `base.html` (sem banco, sem JavaScript; só o
+  pedido do `/favicon.svg`, à parte, consulta o perfil, com o `favicon.webp` de reserva). A
   falha de CSRF procura o `403_csrf.html`, não o `403.html`: sem ele, o Django mostra a
   página embutida em inglês. O `403.html` e o `403_csrf.html` aparecem com qualquer
   `DEBUG`; o 400, o 404 e o 500, só com `DEBUG=False` (com `DEBUG=True` o Django mostra a
