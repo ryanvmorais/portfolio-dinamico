@@ -1,4 +1,4 @@
-![Dynamic Portfolio with Django: home page in a dark theme, in a desktop browser, with an availability badge, name, role, a "Ver projetos" button, numbers counted from the data and the profile photo; next to it, on a phone, a project card with its case study open](assets/portfolio-django-home-desktop.png)
+![Dynamic Portfolio with Django: home page in a dark theme, in a desktop browser, with an availability badge, name, role, the "Ver projetos" and "Entre em contato" buttons, numbers counted from the data and the profile photo; next to it, on a phone, a project card with its cover image, its technologies and the "Ver online" and "Código" buttons](assets/portfolio-django-home-desktop-e-celular.webp)
 
 # 🌊 Dynamic Portfolio with Django | Educational Portfolio Template
 

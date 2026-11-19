@@ -1,4 +1,4 @@
-![Portfólio Dinâmico com Django: página inicial em tema escuro, no navegador do desktop, com selo de disponibilidade, nome, cargo, botão "Ver projetos", números contados dos dados e a foto do perfil; ao lado, no celular, um cartão de projeto com o estudo de caso aberto](assets/portfolio-django-home-desktop.png)
+![Portfólio Dinâmico com Django: página inicial em tema escuro, no navegador do desktop, com selo de disponibilidade, nome, cargo, botões "Ver projetos" e "Entre em contato", números contados dos dados e a foto do perfil; ao lado, no celular, o cartão de um projeto com a capa, as tecnologias e os botões "Ver online" e "Código"](assets/portfolio-django-home-desktop-e-celular.webp)
 
 # 🌊 Portfólio Dinâmico com Django | Template Educativo para Portfólios
 
