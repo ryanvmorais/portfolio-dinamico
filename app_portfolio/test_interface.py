@@ -997,6 +997,13 @@ class TestPaginasDeErro:
             filho = (RAIZ / f"templates/{nome}.html").read_text(encoding="utf-8")
             assert "{% extends 'erro.html' %}" in filho
 
+    def test_paginas_de_erro_usam_o_favicon_das_iniciais(self) -> None:
+        """O erro.html liga o favicon gerado antes da reserva, como a home (spec 008)."""
+        texto = (RAIZ / "templates/erro.html").read_text(encoding="utf-8")
+        svg = texto.find('type="image/svg+xml" href="/favicon.svg"')
+        reserva = texto.find('type="image/webp"')
+        assert -1 < svg < reserva
+
 
 # ---------------------------------------------------------------------------
 # RF-20 — Imagem de compartilhamento e ícone da aba
