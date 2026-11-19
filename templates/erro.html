@@ -10,6 +10,8 @@
     <meta name="robots" content="noindex">
     <meta name="theme-color" content="#0a1628">
 
+    {# Favicon com as iniciais do perfil, como na home (spec 008, RF-17). Caminho literal: o 500 não depende nem de resolver URL; o banco só entra no pedido do ícone, e se ele falhar o navegador usa a reserva abaixo. #}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/webp" href="{% static 'icons/favicon.webp' %}">
     <link rel="stylesheet" href="{% static 'css/fontes.css' %}">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
