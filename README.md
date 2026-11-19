@@ -6,11 +6,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![Django](https://img.shields.io/badge/Django-6.1-092E20?logo=django&logoColor=white)
-![deps](https://img.shields.io/badge/deps-uv-DE5FE9?logo=uv&logoColor=white)
 [![CI](https://img.shields.io/github/actions/workflow/status/ryanvmorais/portfolio-dinamico/ci.yml?label=CI&logo=githubactions&logoColor=white)](https://github.com/ryanvmorais/portfolio-dinamico/actions/workflows/ci.yml)
-![lint](https://img.shields.io/badge/lint-ruff-261230?logo=ruff&logoColor=white)
-![style](https://img.shields.io/badge/style-black-000000?logo=black&logoColor=white)
-![types](https://img.shields.io/badge/types-mypy%20strict-2A6DB2)
 ![license](https://img.shields.io/badge/license-MIT-green?logo=opensourceinitiative&logoColor=white)
 
 🔗 **[Ver demo ao vivo](https://portfolio-dinamico.ryanmorais.com.br/)**
@@ -39,12 +35,12 @@ Este projeto foi estruturado para consolidar pilares fundamentais de engenharia 
 
 Para quem está começando, o maior desafio não é decorar comandos do Django, mas entender a **montagem do raciocínio** de uma aplicação profissional. Confira os pilares da construção deste projeto:
 
-1. **Arquitetura de Dados Relacional:** em vez de textos soltos, utilizamos o **ORM do Django** para criar relacionamentos inteligentes. Por exemplo, um `Projeto` está ligado a uma `Categoria` e a várias `Tecnologias`. Isso permite que o banco de dados trabalhe por você, facilitando filtros e buscas.
-2. **Otimização de Consultas (Performance):** para evitar que o site fique lento, usamos um "truque sênior": o `select_related` e o `prefetch_related`. Eles reduzem o número de idas ao banco de dados, buscando todas as informações necessárias em uma única viagem, o que é crucial para manter a **Alta Performance**.
-3. **Segurança Defensiva (Honeypot):** para proteger o formulário de contato sem usar CAPTCHAs chatos, criamos uma "armadilha invisível". É um campo oculto que humanos não veem, mas robôs preenchem automaticamente. Se o campo for preenchido, o sistema identifica o bot e descarta o envio silenciosamente.
-4. **Controle de Fluxo (Rate Limiting):** para evitar ataques de spam (milhares de e-mails por segundo), implementamos uma trava no cache. O sistema monitora o IP do usuário e, após um envio com sucesso, bloqueia novas tentativas por 10 minutos, protegendo a integridade do seu servidor de e-mail.
-5. **Sanitização de Conteúdo:** nunca confiamos no que o usuário digita. Utilizamos a biblioteca `bleach` para "limpar" as mensagens recebidas, garantindo que qualquer tentativa de injetar scripts maliciosos (ataques XSS) seja neutralizada antes mesmo de chegar ao banco de dados.
-6. **Blindagem do Navegador (CSP):** configuramos o *Content Security Policy*. Isso é como um segurança na porta do site que diz ao navegador: "só execute scripts que venham deste próprio servidor". Isso impede que invasores injetem códigos externos no seu front-end.
+1. **Arquitetura de Dados Relacional:** em vez de textos soltos, o projeto usa o **ORM do Django** para criar relacionamentos inteligentes. Por exemplo, um `Projeto` está ligado a uma `Categoria` e a várias `Tecnologias`. Isso permite que o banco de dados trabalhe por você, facilitando filtros e buscas.
+2. **Otimização de Consultas (Performance):** para evitar que o site fique lento, o projeto usa um "truque sênior": o `select_related` e o `prefetch_related`. Eles reduzem o número de idas ao banco de dados, buscando todas as informações necessárias em uma única viagem, o que é crucial para manter a **Alta Performance**.
+3. **Segurança Defensiva (Honeypot):** para proteger o formulário de contato sem usar CAPTCHAs chatos, o projeto cria uma "armadilha invisível". É um campo oculto que humanos não veem, mas robôs preenchem automaticamente. Se o campo for preenchido, o sistema identifica o bot e descarta o envio silenciosamente.
+4. **Controle de Fluxo (Rate Limiting):** para evitar spam (envios automáticos em sequência), o projeto põe uma trava no cache. O sistema monitora o IP do usuário e, após um envio com sucesso, bloqueia novas tentativas por 10 minutos, protegendo a integridade do seu servidor de e-mail.
+5. **Sanitização de Conteúdo:** nada do que o usuário digita é confiável, por isso o projeto usa a biblioteca `bleach` para "limpar" as mensagens recebidas, garantindo que qualquer tentativa de injetar scripts maliciosos (ataques XSS) seja neutralizada antes mesmo de chegar ao banco de dados.
+6. **Blindagem do Navegador (CSP):** o projeto configura a *Content Security Policy*. Isso é como um segurança na porta do site que diz ao navegador: "só execute scripts que venham deste próprio servidor". Isso impede que invasores injetem códigos externos no seu front-end.
 7. **Habilidades provadas pelos projetos:** em vez de uma porcentagem, cada habilidade tem um nível em palavras (`Uso no dia a dia`, `Já usei em projeto` ou `Estudando`) e pode ser ligada a uma `Tecnologia` no Painel Administrativo (*Admin*). O chip da habilidade mostra quantos projetos usam aquela tecnologia e, ao ser clicado, filtra a seção de projetos. Os números do topo da página também não são digitados: os anos de experiência vêm do Perfil, e os projetos publicados são contados do banco.
 8. **Estudo de caso no cartão:** cada projeto pode ter o endereço da versão no ar e quatro campos curtos (problema, papel, decisão técnica e resultado). Os campos preenchidos aparecem num "Como foi feito" que abre e fecha com o elemento nativo `<details>`, sem JavaScript.
 9. **Marca gerada do nome:** o logo, o favicon e o ícone de tela inicial do celular saem das iniciais do nome cadastrado no Perfil. O favicon é um SVG montado no servidor, e o ícone é um PNG desenhado pelo Pillow com a fonte do próprio projeto: quem clona o template tem uma marca própria sem editar imagem nenhuma.
@@ -61,7 +57,7 @@ Para garantir a melhor experiência de aprendizado, o projeto utiliza as seguint
 | :--- | :--- |
 | **Python 3.12+** | Linguagem base focada em legibilidade e eficiência no back-end. |
 | **Django 6.1** | Framework web "com baterias incluídas", utilizado para toda a lógica, o ORM e o painel administrativo. |
-| **SQLite / PostgreSQL** | Banco de dados relacional para persistência segura das informações. |
+| **SQLite** (trocável por PostgreSQL) | Banco de dados relacional para persistência segura das informações. |
 | **uv** | Gerenciador de dependências e ambientes virtuais (substitui `pip`), com lockfile reprodutível. |
 | **bleach** | Limpa o HTML das mensagens recebidas, neutralizando tentativas de injeção de scripts (XSS). |
 | **django-csp** | Aplica a Content Security Policy, que diz ao navegador de onde scripts e estilos podem vir. |
@@ -132,7 +128,7 @@ uv run mypy app_portfolio portfolio
 uv run pytest
 ```
 
-O mesmo portão roda automaticamente em CI (`.github/workflows/ci.yml`) a cada push e a cada PR, junto com uma checagem de segurança (`pip-audit` + `manage.py check --deploy`). O `pip-audit` roda também toda segunda-feira (`.github/workflows/pip-audit.yml`), o CodeQL (`.github/workflows/codeql.yml`) analisa o código em busca de falhas de segurança e o Lighthouse CI (`.github/workflows/lighthouse.yml`) audita a Home em mobile e desktop. Para ver a cobertura dos testes, rode `uv run pytest --cov=app_portfolio --cov-report=term-missing`. Para o mapa de cada tecnologia da stack (o que é, por que foi escolhida, o que estudar), veja [docs/stack.md](docs/stack.md). Para as especificações de cada funcionalidade, veja [specs/](specs/). Para o detalhamento exaustivo de arquitetura e convenções, veja [CLAUDE.md](CLAUDE.md).
+O mesmo portão roda automaticamente em CI (`.github/workflows/ci.yml`) a cada PR e a cada push na `main`, junto com uma checagem de segurança (`pip-audit` + `manage.py check --deploy`). O `pip-audit` roda também toda segunda-feira (`.github/workflows/pip-audit.yml`), o CodeQL (`.github/workflows/codeql.yml`) analisa o código em busca de falhas de segurança e o Lighthouse CI (`.github/workflows/lighthouse.yml`) audita a Home em mobile e desktop. Para ver a cobertura dos testes, rode `uv run pytest --cov=app_portfolio --cov-report=term-missing`. Para o mapa de cada tecnologia da stack (o que é, por que foi escolhida, o que estudar), veja [docs/stack.md](docs/stack.md). Para as especificações de cada funcionalidade, veja [specs/](specs/). Para o detalhamento exaustivo de arquitetura e convenções, veja [CLAUDE.md](CLAUDE.md).
 
 ---
 
@@ -145,7 +141,7 @@ Para exercitar o que você aprendeu e dominar o Django, tente implementar estas 
 2. **🌓 Chaveador de Tema (Dark/Light Mode):** crie um botão no front-end que alterne entre o tema atual e uma versão clara do site, salvando a preferência no `localStorage` do navegador.
    - **O Aprendizado:** fortalece o domínio de **manipulação de DOM com Vanilla JS** e o uso de variáveis CSS (*Design Tokens*).
 3. **✉️ Notificações Push ou Telegram:** altere a função de contato para que, além de enviar um e-mail, ela envie uma notificação para um bot do Telegram ou uma mensagem no Discord sempre que alguém preencher o formulário.
-   - **O Aprendizado:** você aprenderá a integrar o Django com **APIs externas** utilizando a biblioteca `requests`.
+   - **O Aprendizado:** você aprenderá a integrar o Django com **APIs externas** com a biblioteca `requests` (instale com `uv add requests`).
 4. **📂 Busca de Projetos no Servidor:** o filtro por categoria da seção de projetos roda só no navegador. Crie uma caixa de busca por texto que consulte o servidor (usando AJAX) e devolva só os projetos que combinam com o título, a descrição ou a tecnologia.
    - **O Aprendizado:** domínio de **Querysets** complexos (`Q`, `icontains`) e comunicação assíncrona entre o front-end e o back-end.
 

@@ -6,11 +6,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![Django](https://img.shields.io/badge/Django-6.1-092E20?logo=django&logoColor=white)
-![deps](https://img.shields.io/badge/deps-uv-DE5FE9?logo=uv&logoColor=white)
 [![CI](https://img.shields.io/github/actions/workflow/status/ryanvmorais/portfolio-dinamico/ci.yml?label=CI&logo=githubactions&logoColor=white)](https://github.com/ryanvmorais/portfolio-dinamico/actions/workflows/ci.yml)
-![lint](https://img.shields.io/badge/lint-ruff-261230?logo=ruff&logoColor=white)
-![style](https://img.shields.io/badge/style-black-000000?logo=black&logoColor=white)
-![types](https://img.shields.io/badge/types-mypy%20strict-2A6DB2)
 ![license](https://img.shields.io/badge/license-MIT-green?logo=opensourceinitiative&logoColor=white)
 
 🔗 **[See the live demo](https://portfolio-dinamico.ryanmorais.com.br/)** (the site itself is in Portuguese)
@@ -19,7 +15,7 @@ This repository holds a **Dynamic Portfolio with Django**: a professional portfo
 
 ### 🎯 Project Goal:
 
-To show **professional good practices** in web development, going beyond the "basic CRUD". The focus here is a real example of an application ready for the internet, teaching how to protect against bots, avoid common attacks and optimize database performance in a simple, didactic way.
+To show **professional best practices** in web development, going beyond the "basic CRUD". The focus here is a real example of an application ready for the internet, teaching how to protect against bots, avoid common attacks and optimize database performance in a simple, didactic way.
 
 ---
 
@@ -39,12 +35,12 @@ This project was structured to consolidate core pillars of software engineering:
 
 For beginners, the biggest challenge is not memorizing Django commands, but understanding how the **reasoning** of a professional application is put together. Here are the pillars of this project:
 
-1. **Relational Data Architecture:** instead of loose text, we use the **Django ORM** to build smart relationships. For example, a `Projeto` (project) is linked to a `Categoria` (category) and to several `Tecnologias` (technologies). That lets the database work for you, making filters and searches easier.
-2. **Query Optimization (Performance):** to keep the site from slowing down, we use a "senior trick": `select_related` and `prefetch_related`. They cut the number of trips to the database by fetching everything needed in a single one, which is crucial for **High Performance**.
-3. **Defensive Security (Honeypot):** to protect the contact form without annoying CAPTCHAs, we set an "invisible trap". It is a hidden field that humans never see but bots fill in automatically. If the field is filled, the system spots the bot and silently drops the submission.
-4. **Flow Control (Rate Limiting):** to stop spam attacks (thousands of e-mails per second), we put a lock in the cache. The system watches the user's IP and, after a successful submission, blocks new attempts for 10 minutes, protecting the integrity of your mail server.
-5. **Content Sanitization:** we never trust what the user types. We use the `bleach` library to "clean" incoming messages, so any attempt to inject malicious scripts (XSS attacks) is neutralized before it even reaches the database.
-6. **Browser Shielding (CSP):** we set up the *Content Security Policy*. It works like a guard at the site's door telling the browser: "only run scripts that come from this very server". That stops attackers from injecting external code into your front-end.
+1. **Relational Data Architecture:** instead of loose text, the project uses the **Django ORM** to build smart relationships. For example, a `Projeto` (project) is linked to a `Categoria` (category) and to several `Tecnologias` (technologies). That lets the database work for you, making filters and searches easier.
+2. **Query Optimization (Performance):** to keep the site from slowing down, the project uses a "senior trick": `select_related` and `prefetch_related`. They cut the number of trips to the database by fetching everything needed in a single one, which is crucial for **High Performance**.
+3. **Defensive Security (Honeypot):** to protect the contact form without annoying CAPTCHAs, the project sets an "invisible trap". It is a hidden field that humans never see but bots fill in automatically. If the field is filled, the system spots the bot and silently drops the submission.
+4. **Flow Control (Rate Limiting):** to stop spam (automated submissions in a row), the project puts a lock in the cache. The system watches the user's IP and, after a successful submission, blocks new attempts for 10 minutes, protecting the integrity of your mail server.
+5. **Content Sanitization:** nothing the user types is trusted, so the project uses the `bleach` library to "clean" incoming messages, so any attempt to inject malicious scripts (XSS attacks) is neutralized before it even reaches the database.
+6. **Browser Shielding (CSP):** the project sets up the *Content Security Policy*. It works like a guard at the site's door telling the browser: "only run scripts that come from this very server". That stops attackers from injecting external code into your front-end.
 7. **Skills Proven by Projects:** instead of a percentage, each skill has a level in words (`Uso no dia a dia`, "day-to-day use"; `Já usei em projeto`, "used in a project"; or `Estudando`, "learning") and can be linked to a `Tecnologia` (technology) in the Admin Panel. The skill chip shows how many projects use that technology and, when clicked, filters the projects section. The numbers at the top of the page are not typed in either: the years of experience come from the Profile, and the published projects are counted from the database.
 8. **Case Study on the Card:** each project can have the address of its live version and four short fields (problem, role, technical decision and result). The filled-in fields show up in a "Como foi feito" ("How it was built") panel that opens and closes with the native `<details>` element, without JavaScript.
 9. **Brand Generated from the Name:** the logo, the favicon and the phone home screen icon come from the initials of the name saved in the Profile. The favicon is an SVG built on the server, and the icon is a PNG drawn by Pillow with the project's own font: whoever clones the template gets their own brand without editing any image.
@@ -61,7 +57,7 @@ To give you the best learning experience, the project uses the following technol
 | :--- | :--- |
 | **Python 3.12+** | The base language, focused on readability and efficiency on the back end. |
 | **Django 6.1** | The "batteries included" web framework, used for all the logic, the ORM and the admin panel. |
-| **SQLite / PostgreSQL** | Relational database for safe persistence of the data. |
+| **SQLite** (can be swapped for PostgreSQL) | Relational database for safe persistence of the data. |
 | **uv** | Dependency and virtual environment manager (replaces `pip`), with a reproducible lockfile. |
 | **bleach** | Cleans the HTML of incoming messages, neutralizing script injection attempts (XSS). |
 | **django-csp** | Applies the Content Security Policy, which tells the browser where scripts and styles may come from. |
@@ -132,7 +128,7 @@ uv run mypy app_portfolio portfolio
 uv run pytest
 ```
 
-The same gate runs automatically in CI (`.github/workflows/ci.yml`) on every push and every PR, together with a security check (`pip-audit` + `manage.py check --deploy`). `pip-audit` also runs every Monday (`.github/workflows/pip-audit.yml`), CodeQL (`.github/workflows/codeql.yml`) scans the code for security flaws and Lighthouse CI (`.github/workflows/lighthouse.yml`) audits the home page on mobile and desktop. To see the test coverage, run `uv run pytest --cov=app_portfolio --cov-report=term-missing`. For the map of each technology in the stack (what it is, why it was chosen, what to study), see [docs/stack.md](docs/stack.md). For the specification of each feature, see [specs/](specs/). For the exhaustive detail on architecture and conventions, see [CLAUDE.md](CLAUDE.md). These three are in Portuguese.
+The same gate runs automatically in CI (`.github/workflows/ci.yml`) on every PR and on every push to `main`, together with a security check (`pip-audit` + `manage.py check --deploy`). `pip-audit` also runs every Monday (`.github/workflows/pip-audit.yml`), CodeQL (`.github/workflows/codeql.yml`) scans the code for security flaws and Lighthouse CI (`.github/workflows/lighthouse.yml`) audits the home page on mobile and desktop. To see the test coverage, run `uv run pytest --cov=app_portfolio --cov-report=term-missing`. For the map of each technology in the stack (what it is, why it was chosen, what to study), see [docs/stack.md](docs/stack.md). For the specification of each feature, see [specs/](specs/). For the exhaustive detail on architecture and conventions, see [CLAUDE.md](CLAUDE.md). These three are in Portuguese.
 
 ---
 
@@ -145,7 +141,7 @@ To exercise what you learned and master Django, try to build these new features:
 2. **🌓 Theme Switcher (Dark/Light Mode):** add a front-end button that switches between the current theme and a light version of the site, saving the preference in the browser's `localStorage`.
    - **What you learn:** strengthens your command of **DOM manipulation with Vanilla JS** and of CSS variables (*Design Tokens*).
 3. **✉️ Push or Telegram Notifications:** change the contact function so that, besides sending an e-mail, it sends a notification to a Telegram bot or a Discord message whenever someone fills in the form.
-   - **What you learn:** you will learn to integrate Django with **external APIs** using the `requests` library.
+   - **What you learn:** you will learn to integrate Django with **external APIs** with the `requests` library (install it with `uv add requests`).
 4. **📂 Server-side Project Search:** the category filter in the projects section runs only in the browser. Build a text search box that queries the server (using AJAX) and returns only the projects that match the title, the description or the technology.
    - **What you learn:** command of complex **Querysets** (`Q`, `icontains`) and of asynchronous communication between the front end and the back end.
 
