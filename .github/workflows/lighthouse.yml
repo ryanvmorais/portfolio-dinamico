@@ -56,8 +56,9 @@ jobs:
       # Fixada de proposito: cada versao do @lhci/cli embute uma versao do
       # Lighthouse, e a versao muda as notas. O Dependabot nao enxerga um npx:
       # atualize aqui a mao e recalibre os limites em .github/lighthouse/.
-      # 0.15.1 = Lighthouse 12.6.1.
-      LHCI_VERSION: "0.15.1"
+      # 0.16.1 = Lighthouse 13.6.0; pede Node 22.19 ou mais novo (o "22" do
+      # setup-node resolve a ultima 22.x).
+      LHCI_VERSION: "0.16.1"
       # portfolio.settings exige a variavel no import; valor descartavel.
       SECRET_KEY: ci-placeholder-nao-usar-em-producao-3MVL5eNw-XBWZDpk
       # Servidor de desenvolvimento: serve os estaticos sem collectstatic e o
