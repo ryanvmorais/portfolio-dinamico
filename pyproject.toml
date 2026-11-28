@@ -82,7 +82,8 @@ convention = "google"
 DJANGO_SETTINGS_MODULE = "portfolio.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
 pythonpath = ["."]
-strict = true                        # strict_config, strict_markers, strict_xfail, strict_parametrization_ids
+# strict liga strict_config, strict_markers, strict_xfail e strict_parametrization_ids.
+strict = true
 addopts = ["-ra", "--durations=15"]  # os 15 mais lentos fecham toda rodada
 # Aviso vira falha. O "No directory at: staticfiles" do WhiteNoise não precisa de
 # exceção: o conftest.py aponta o STATIC_ROOT para uma pasta vazia.

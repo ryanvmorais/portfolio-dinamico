@@ -290,7 +290,7 @@ class TestPortfolioCore:
             )
 
     @staticmethod
-    def _consultas_da_home(client) -> int:
+    def _consultas_da_home(client: Client) -> int:
         """
         Conta as consultas ao banco de um GET da home.
 
@@ -364,6 +364,7 @@ class TestPortfolioCore:
         """Uma view que já definiu o cabeçalho fica com o valor dela."""
 
         def view(request: HttpRequest) -> HttpResponse:
+            """Responde com o cabeçalho já definido pela própria view."""
             resposta = HttpResponse()
             resposta["Permissions-Policy"] = "camera=(self)"
             return resposta
@@ -512,7 +513,7 @@ class TestConfiguracaoProducao:
         assert modulo.CACHES["default"]["LOCATION"] == pasta / "django_cache"
 
     def test_https_e_hsts_em_producao(self, monkeypatch) -> None:
-        """Com DEBUG=False: redirect para HTTPS, cookies só em HTTPS e HSTS de um ano."""
+        """Com DEBUG=False: redirect e cookies só em HTTPS, e HSTS de um ano."""
         modulo = _carregar_settings(monkeypatch, DEBUG="False")
         assert modulo.SECURE_SSL_REDIRECT is True
         assert modulo.SESSION_COOKIE_SECURE is True
@@ -727,6 +728,7 @@ class TestSegurancaContato:
             timeout: Any = DEFAULT_TIMEOUT,
             version: Any = None,
         ) -> bool:
+            """Anota a reserva pedida e repassa ao add() de verdade."""
             reservas.append((key, value, timeout))
             return add_original(self, key, value, timeout, version)
 
@@ -771,7 +773,7 @@ class TestSegurancaContato:
         assert MensagemContato.objects.count() == 0  # Nada foi salvo
 
     def test_contato_envia_email_com_sucesso(self, client) -> None:
-        """Um envio válido gera um e-mail, da conta para a própria conta, com os dados."""
+        """Um envio válido gera um e-mail, da conta para ela mesma, com os dados."""
         url = reverse("home")
         data = {
             "nome": "Ana",
@@ -1190,7 +1192,7 @@ class TestConverterParaWebp:
         assert _formato_e_modo(projeto.imagem) == ("WEBP", "RGBA")
 
     def test_save_nao_reconverte_webp(self) -> None:
-        """Um WebP enviado é gravado como veio, sem perder qualidade numa recompressão."""
+        """Um WebP enviado é gravado como veio, sem perder qualidade ao recomprimir."""
         enviado = _uploaded_webp()
         projeto = Projeto.objects.create(
             titulo="Já WebP", descricao="Desc", imagem=enviado

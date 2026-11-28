@@ -256,7 +256,7 @@ class TestBancoSemeado:
         assert Habilidade.objects.count() == 18
 
     def test_habilidades_com_nivel_e_tecnologia(self) -> None:
-        """Os três níveis aparecem, e a habilidade com projeto fica ligada (spec 008, RF-21)."""
+        """Os três níveis aparecem, e a habilidade com projeto fica ligada (RF-21)."""
         niveis = set(Habilidade.objects.values_list("nivel", flat=True))
         assert niveis == set(NivelHabilidade.values)
         python = Habilidade.objects.get(nome="Python")
@@ -341,14 +341,14 @@ class TestBancoSemeado:
 
     @pytest.mark.parametrize("perfil", ["mobile", "desktop"])
     def test_toda_url_auditada_responde_200(self, perfil: str, client: Client) -> None:
-        """Dado o banco semeado, cada página auditada existe (senão o CI audita um 404)."""
+        """Cada página auditada existe no banco semeado (senão o CI audita um 404)."""
         respostas = {c: client.get(c).status_code for c in _caminhos(perfil)}
 
         assert respostas
         assert respostas == {c: 200 for c in _caminhos(perfil)}
 
     def test_nenhuma_pagina_carrega_recurso_de_fora(self, client: Client) -> None:
-        """Dado o banco semeado, nenhuma página puxa imagem, script ou CSS de outro host."""
+        """No banco semeado, nenhuma página puxa imagem, script ou CSS de outro host."""
         caminhos = _caminhos("mobile")
         assert caminhos
         for caminho in caminhos:
@@ -390,7 +390,7 @@ class TestBancoSemeado:
     ],
 )
 def test_leitor_acha_cada_recurso_de_fora(trecho: str, de_fora: list[str]) -> None:
-    """Acha o endereço absoluto em src, srcset, poster e link; links de navegação não."""
+    """Acha o endereço absoluto em src, srcset, poster e link; navegação não conta."""
     assert _recursos_de_fora(trecho) == de_fora
 
 

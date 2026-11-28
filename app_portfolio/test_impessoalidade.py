@@ -7,10 +7,10 @@ projeto sem apontar para skills pessoais, que quem clona não tem. Os testes var
 arquivos versionados e apontam o arquivo e a linha de cada violação.
 
 Estratégia de isolamento: só a lista de arquivos do ``git ls-files`` e o texto deles são
-lidos, nada é mockado. Os testes de varredura são pulados só sem a pasta ``.git`` (uma cópia
-exportada); dentro de um clone, o ``git`` que falha derruba o teste, porque a lista vazia
-passaria sem ler nada. Os padrões são conferidos contra casos escritos aqui: um padrão que
-nunca casa também acharia zero violações.
+lidos, nada é mockado. Os testes de varredura são pulados só sem a pasta ``.git``
+(uma cópia exportada); dentro de um clone, o ``git`` que falha derruba o teste,
+porque a lista vazia passaria sem ler nada. Os padrões são conferidos contra casos
+escritos aqui: um padrão que nunca casa também acharia zero violações.
 """
 
 import re
@@ -138,7 +138,7 @@ def versionados() -> list[str]:
     ],
 )
 def test_padrao_do_nome(linha: str, casa: bool) -> None:
-    """O nome casa como palavra inteira, com maiúscula; perfil e domínio ficam de fora."""
+    """O nome casa como palavra inteira; o perfil e o domínio ficam de fora."""
     assert bool(_NOME.search(linha)) is casa
 
 
