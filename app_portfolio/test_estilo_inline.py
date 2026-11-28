@@ -148,6 +148,60 @@ def test_ha_templates_para_conferir() -> None:
     assert _TEMPLATES
 
 
+# Os padrões e o leitor são conferidos contra casos escritos aqui: um padrão que nunca
+# casa também deixaria todo template passar.
+@pytest.mark.parametrize(
+    ("trecho", "linhas"),
+    [
+        ('<p style="color: red">', [1]),
+        ('<DIV STYLE="x">', [1]),
+        ('<p\n  class="a"\n  style = "x">', [1]),
+        ('<p>\n<span style="x">', [2]),
+        ('<p class="a" data-style="x">', []),
+        ('style="x" fora de uma tag', []),
+    ],
+)
+def test_padrao_do_atributo_style(trecho: str, linhas: list[int]) -> None:
+    """Acusa o ``style=`` dentro de uma tag, na linha em que a tag abre."""
+    assert _linhas_com(_ATRIBUTO_STYLE, trecho) == linhas
+
+
+@pytest.mark.parametrize(
+    ("trecho", "linhas"),
+    [
+        ("<style>", [1]),
+        ('<p>\n<STYLE media="print">', [2]),
+        ('<link rel="stylesheet" href="styles.css">', []),
+        ("<stylesheet>", []),
+    ],
+)
+def test_padrao_do_elemento_style(trecho: str, linhas: list[int]) -> None:
+    """Acusa o elemento ``<style>``, não a folha ligada por ``<link>``."""
+    assert _linhas_com(_ELEMENTO_STYLE, trecho) == linhas
+
+
+def test_leitor_anota_o_estilo_inline_e_as_classes_do_honeypot() -> None:
+    """O elemento vazio não entra na pilha, e o honeypot leva as classes em volta."""
+    leitor = _LeitorDeEstilo()
+    leitor.feed(
+        "<style>p {}</style>"
+        '<div class="a b"><img class="z" alt=""><br>'
+        '<p style="x"><input name="honeypot"></p></div>'
+    )
+
+    assert leitor.estilos_inline == ["style", "p"]
+    assert leitor.classes_do_honeypot == ["a", "b"]
+
+
+def test_leitor_sem_honeypot_fica_em_none() -> None:
+    """Sem o campo, o leitor não inventa classes."""
+    leitor = _LeitorDeEstilo()
+    leitor.feed('<form class="contact__honeypot"><input name="nome"></form>')
+
+    assert leitor.estilos_inline == []
+    assert leitor.classes_do_honeypot is None
+
+
 @pytest.mark.parametrize("caminho", _TEMPLATES, ids=_id)
 def test_template_sem_atributo_style(caminho: Path) -> None:
     """A CSP bloqueia o ``style=``: o estilo vai para o ``styles.css``."""

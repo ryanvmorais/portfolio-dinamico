@@ -25,6 +25,7 @@ ambiente controlado (`_carregar_settings`).
 import importlib.util
 import io
 import json
+import shutil
 import threading
 from pathlib import Path
 from types import ModuleType
@@ -35,19 +36,34 @@ import dotenv
 import pytest
 from django.core import mail
 from django.core.cache import cache, caches
+from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client
-from django.urls import reverse
+from django.db import connection
+from django.http import HttpRequest, HttpResponse
+from django.test import Client, RequestFactory
+from django.test.utils import CaptureQueriesContext
+from django.urls import clear_url_caches, reverse
 from PIL import Image
 
 from app_portfolio.cache import CacheArquivoAtomico
-from app_portfolio.middleware import PERMISSIONS_POLICY
-from app_portfolio.models import MensagemContato, Perfil, Projeto
+from app_portfolio.middleware import PermissionsPolicyMiddleware
+from app_portfolio.models import (
+    CategoriaHabilidade,
+    CategoriaProjeto,
+    Habilidade,
+    MensagemContato,
+    NivelHabilidade,
+    Perfil,
+    Projeto,
+    Tecnologia,
+)
 from app_portfolio.views import (
     MENSAGEM_DADOS_INVALIDOS,
     MENSAGEM_DEMONSTRACAO,
     MENSAGEM_ENVIADO,
+    MENSAGEM_FALHA_ENVIO,
+    MENSAGEM_LIMITE_ENVIO,
     TEXTO_LINK_DEMONSTRACAO,
 )
 
@@ -121,7 +137,7 @@ def media_root_tmp(settings, tmp_path):
     settings.MEDIA_ROOT = str(tmp_path)
 
 
-def _uploaded_png(nome: str = "teste.png") -> SimpleUploadedFile:
+def _uploaded_png(nome: str = "teste.png", modo: str = "RGB") -> SimpleUploadedFile:
     """
     Gera um PNG 1x1 válido em memória para testar upload de imagem.
 
@@ -129,14 +145,48 @@ def _uploaded_png(nome: str = "teste.png") -> SimpleUploadedFile:
 
     Args:
         nome (str, optional): Nome do arquivo simulado. Padrão: "teste.png".
+        modo (str, optional): Modo do Pillow; ``"RGBA"`` gera um pixel
+            semitransparente. Padrão: "RGB".
 
     Returns:
         SimpleUploadedFile: Arquivo pronto para atribuir a um ImageField.
     """
     buffer = io.BytesIO()
-    Image.new("RGB", (1, 1), color="red").save(buffer, format="PNG")
+    cor = (255, 0, 0, 128) if modo == "RGBA" else (255, 0, 0)
+    Image.new(modo, (1, 1), color=cor).save(buffer, format="PNG")
     buffer.seek(0)
     return SimpleUploadedFile(nome, buffer.read(), content_type="image/png")
+
+
+def _uploaded_webp(nome: str = "teste.webp") -> SimpleUploadedFile:
+    """
+    Gera um WebP 1x1 válido em memória, para o caso que não é reconvertido.
+
+    Args:
+        nome (str, optional): Nome do arquivo simulado. Padrão: "teste.webp".
+
+    Returns:
+        SimpleUploadedFile: Arquivo pronto para atribuir a um ImageField.
+    """
+    buffer = io.BytesIO()
+    Image.new("RGB", (1, 1), color="blue").save(buffer, format="WEBP")
+    return SimpleUploadedFile(nome, buffer.getvalue(), content_type="image/webp")
+
+
+def _formato_e_modo(arquivo: Any) -> tuple[str | None, str]:
+    """
+    Abre a imagem gravada num ImageField e devolve o formato real e o modo.
+
+    O nome terminar em ``.webp`` não prova a conversão: o conteúdo pode ser outro.
+
+    Args:
+        arquivo (Any): O ``ImageFieldFile`` do model salvo.
+
+    Returns:
+        tuple[str | None, str]: O formato que o Pillow leu e o modo de cor.
+    """
+    with arquivo.open("rb") as aberto, Image.open(aberto) as imagem:
+        return imagem.format, imagem.mode
 
 
 # Caminho do arquivo, não do módulo: a cópia avulsa é carregada direto do disco,
@@ -203,15 +253,70 @@ class TestPortfolioCore:
         Perfil.objects.create(nome="Dev Teste", cargo="Sênior")
         assert Perfil.objects.count() == 1
 
-    def test_home_query_count(self, client, django_assert_max_num_queries) -> None:
+    @staticmethod
+    def _semear_vitrine(projetos: int) -> None:
         """
-        Garante que a página inicial não ultrapasse 10 consultas ao banco.
+        Cria projetos e habilidades com tudo o que o template lê de outra tabela.
 
-        Um select_related/prefetch_related a menos na view faria o número
-        crescer com a quantidade de projetos (N+1).
+        Cada projeto tem categoria e duas tecnologias; cada categoria de habilidade
+        tem uma habilidade ligada a uma tecnologia. Com o banco vazio, um
+        ``select_related`` ou ``prefetch_related`` a menos não aparece na contagem.
+
+        Args:
+            projetos (int): Quantos projetos (e categorias de habilidade) criar,
+                além dos que já existem.
         """
-        with django_assert_max_num_queries(10):
-            client.get(reverse("home"))
+        inicio = Projeto.objects.count()
+        for indice in range(inicio, inicio + projetos):
+            categoria = CategoriaProjeto.objects.create(
+                nome=f"Categoria {indice}", slug=f"categoria-{indice}"
+            )
+            tecnologias = [
+                Tecnologia.objects.create(nome=f"Tecnologia {indice}-{lado}")
+                for lado in ("a", "b")
+            ]
+            projeto = Projeto.objects.create(
+                titulo=f"Projeto {indice}",
+                descricao="Descrição",
+                categoria_projeto=categoria,
+            )
+            projeto.tecnologias.set(tecnologias)
+            grupo = CategoriaHabilidade.objects.create(nome=f"Grupo {indice}")
+            Habilidade.objects.create(
+                categoria=grupo,
+                nome=f"Habilidade {indice}",
+                nivel=NivelHabilidade.DIA_A_DIA,
+                tecnologia=tecnologias[0],
+            )
+
+    @staticmethod
+    def _consultas_da_home(client) -> int:
+        """
+        Conta as consultas ao banco de um GET da home.
+
+        Args:
+            client (django.test.Client): Cliente de teste do Django.
+
+        Returns:
+            int: Quantas consultas a página fez.
+        """
+        with CaptureQueriesContext(connection) as consultas:
+            assert client.get(reverse("home")).status_code == 200
+        return len(consultas)
+
+    def test_home_query_count(self, client) -> None:
+        """
+        O número de consultas da home não cresce com os projetos (sem N+1).
+
+        Um select_related/prefetch_related a menos na view faria cada projeto, ou
+        cada habilidade, custar uma consulta a mais.
+        """
+        self._semear_vitrine(1)
+        com_um = self._consultas_da_home(client)
+        self._semear_vitrine(3)
+        assert Projeto.objects.count() == 4
+
+        assert (com_um, self._consultas_da_home(client)) == (6, 6)
 
     def test_estaticos_usam_o_storage_comprimido_do_whitenoise(self, settings) -> None:
         """O storage dos estáticos vem de STORAGES (o STATICFILES_STORAGE é ignorado)."""
@@ -231,27 +336,69 @@ class TestPortfolioCore:
             (partes[0], partes[1:])
             for partes in (d.split() for d in csp.split(";") if d.strip())
         )
-        assert diretivas["default-src"] == ["'self'"]
-        assert diretivas["script-src"] == ["'self'"]
-        assert diretivas["font-src"] == ["'self'"]
-        assert diretivas["style-src"] == ["'self'"]
-        assert diretivas["img-src"] == ["'self'", "data:", "https:"]
-        # As que não herdam o default-src, e o object-src fechado.
-        assert diretivas["base-uri"] == ["'none'"]
-        assert diretivas["form-action"] == ["'self'"]
-        assert diretivas["object-src"] == ["'none'"]
-        assert diretivas["frame-ancestors"] == ["'none'"]
+        # O dicionário inteiro: uma diretiva a mais (connect-src *) também é falha.
+        # base-uri, form-action e frame-ancestors não herdam o default-src.
+        assert diretivas == {
+            "default-src": ["'self'"],
+            "script-src": ["'self'"],
+            "font-src": ["'self'"],
+            "style-src": ["'self'"],
+            "img-src": ["'self'", "data:", "https:"],
+            "base-uri": ["'none'"],
+            "form-action": ["'self'"],
+            "object-src": ["'none'"],
+            "frame-ancestors": ["'none'"],
+        }
 
     def test_home_envia_permissions_policy(self, client) -> None:
         """A resposta nega os recursos do aparelho que o site não usa."""
         response = client.get(reverse("home"))
-        assert response["Permissions-Policy"] == PERMISSIONS_POLICY
-        assert "camera=()" in response["Permissions-Policy"]
+        # Escrito aqui, não importado do middleware: um recurso tirado da constante
+        # sairia do valor esperado junto.
+        assert response["Permissions-Policy"] == (
+            "accelerometer=(), camera=(), geolocation=(), gyroscope=(), "
+            "magnetometer=(), microphone=(), payment=(), usb=()"
+        )
+
+    def test_permissions_policy_mantem_o_valor_da_view(self) -> None:
+        """Uma view que já definiu o cabeçalho fica com o valor dela."""
+
+        def view(request: HttpRequest) -> HttpResponse:
+            resposta = HttpResponse()
+            resposta["Permissions-Policy"] = "camera=(self)"
+            return resposta
+
+        resposta = PermissionsPolicyMiddleware(view)(RequestFactory().get("/"))
+        assert resposta["Permissions-Policy"] == "camera=(self)"
+
+    def test_home_envia_os_cabecalhos_do_navegador(self, client) -> None:
+        """Página não enquadrável e tipo de conteúdo sem adivinhação."""
+        response = client.get(reverse("home"))
+        assert response["X-Frame-Options"] == "DENY"
+        assert response["X-Content-Type-Options"] == "nosniff"
 
 
 # ---------------------------------------------------------------------------
 # Configuração do modo demonstração e do e-mail (spec 005)
 # ---------------------------------------------------------------------------
+
+
+class TestConfiguracaoBasica:
+    def test_sem_secret_key_a_subida_falha(self, monkeypatch) -> None:
+        """Sem SECRET_KEY o settings levanta o erro, com o caminho do .env conferido."""
+        with pytest.raises(ValueError, match=r"SECRET_KEY não foi encontrada.*\.env"):
+            _carregar_settings(monkeypatch, SECRET_KEY="")
+
+    def test_debug_desligado_sem_a_chave(self, monkeypatch) -> None:
+        """Sem DEBUG no ambiente, o site sobe como produção (falha fechada)."""
+        assert _carregar_settings(monkeypatch).DEBUG is False
+
+    @pytest.mark.parametrize(("valor", "esperado"), [("True", True), ("1", False)])
+    def test_debug_so_liga_com_true(
+        self, monkeypatch, valor: str, esperado: bool
+    ) -> None:
+        """Só 'true' (sem diferenciar maiúsculas) liga o DEBUG."""
+        assert _carregar_settings(monkeypatch, DEBUG=valor).DEBUG is esperado
 
 
 class TestConfiguracaoModoDemonstracao:
@@ -278,7 +425,7 @@ class TestConfiguracaoModoDemonstracao:
             "default": {"BACKEND": "django.core.mail.backends.console.EmailBackend"}
         }
         assert modulo.ENDERECO_CONTATO == "contato@example.com"
-        assert "contato@example.com" in modulo.DEFAULT_FROM_EMAIL
+        assert modulo.DEFAULT_FROM_EMAIL == "Projeto Portfólio <contato@example.com>"
 
     def test_smtp_em_desenvolvimento_com_email_user(self, monkeypatch) -> None:
         """Com EMAIL_USER preenchido, o desenvolvimento usa o SMTP de verdade."""
@@ -298,6 +445,7 @@ class TestConfiguracaoModoDemonstracao:
             "password": "senha-de-app",
         }
         assert modulo.ENDERECO_CONTATO == "conta@example.com"
+        assert modulo.DEFAULT_FROM_EMAIL == "Projeto Portfólio <conta@example.com>"
 
     def test_smtp_em_producao_sem_email_user(self, monkeypatch) -> None:
         """Em produção, EMAIL_USER vazio segue no SMTP: o envio falha à vista."""
@@ -363,6 +511,16 @@ class TestConfiguracaoProducao:
         assert modulo.MEDIA_ROOT == pasta / "media"
         assert modulo.CACHES["default"]["LOCATION"] == pasta / "django_cache"
 
+    def test_https_e_hsts_em_producao(self, monkeypatch) -> None:
+        """Com DEBUG=False: redirect para HTTPS, cookies só em HTTPS e HSTS de um ano."""
+        modulo = _carregar_settings(monkeypatch, DEBUG="False")
+        assert modulo.SECURE_SSL_REDIRECT is True
+        assert modulo.SESSION_COOKIE_SECURE is True
+        assert modulo.CSRF_COOKIE_SECURE is True
+        assert modulo.SECURE_HSTS_SECONDS == 31536000
+        assert modulo.SECURE_HSTS_INCLUDE_SUBDOMAINS is True
+        assert modulo.SECURE_HSTS_PRELOAD is True
+
     def test_proxy_e_log_em_producao(self, monkeypatch) -> None:
         """Com DEBUG=False: cabeçalho do proxy lido e erros na saída de erro (RF-02, RF-07)."""
         modulo = _carregar_settings(monkeypatch, DEBUG="False")
@@ -377,8 +535,9 @@ class TestConfiguracaoProducao:
     def test_sem_proxy_nem_log_em_desenvolvimento(self, monkeypatch) -> None:
         """Com DEBUG=True, nada muda no runserver."""
         modulo = _carregar_settings(monkeypatch, DEBUG="True")
-        assert not hasattr(modulo, "SECURE_PROXY_SSL_HEADER")
-        assert not hasattr(modulo, "LOGGING")
+        # O controle positivo é o test_proxy_e_log_em_producao, com os mesmos nomes.
+        for nome in ("SECURE_PROXY_SSL_HEADER", "LOGGING", "SECURE_SSL_REDIRECT"):
+            assert not hasattr(modulo, nome), nome
 
 
 # ---------------------------------------------------------------------------
@@ -411,8 +570,23 @@ class TestCaminhoDoAdmin:
         assert modulo.ADMIN_URL_PATH == esperado
 
     def test_painel_responde_no_caminho_configurado(self, settings) -> None:
-        """A rota do painel vem do ADMIN_URL_PATH, sem caminho fixo no urls.py."""
-        assert reverse("admin:index") == "/" + settings.ADMIN_URL_PATH
+        """
+        A rota do painel vem do ADMIN_URL_PATH, sem caminho fixo no urls.py.
+
+        O caminho de teste difere do padrão ``admin/``: com o valor padrão, um
+        ``path("admin/", ...)`` fixo também passaria. O ``urls.py`` lê o setting na
+        importação, então o módulo é recarregado com o valor trocado e de novo no fim.
+        """
+        original = settings.ADMIN_URL_PATH
+        settings.ADMIN_URL_PATH = "painel-de-teste/"
+        rotas = importlib.reload(importlib.import_module("portfolio.urls"))
+        clear_url_caches()
+        try:
+            assert reverse("admin:index") == "/painel-de-teste/"
+        finally:
+            settings.ADMIN_URL_PATH = original
+            importlib.reload(rotas)
+            clear_url_caches()
 
 
 # Domínio público da demo nos testes de proxy. O navegador sempre manda o Host, e
@@ -510,9 +684,10 @@ class TestSegurancaContato:
         }
         client.post(url, data, follow=True)
 
-        msg = MensagemContato.objects.last()
-        assert msg is not None
-        assert "<script>" not in msg.mensagem  # O script deve ter sido removido
+        msg = MensagemContato.objects.get()
+        # O texto exato: escapar no lugar de tirar (&lt;script&gt;) também passaria
+        # num "<script> not in".
+        assert msg.mensagem == 'alert("xss")Olá'
 
     def test_rate_limit_blocking(self, client) -> None:
         """
@@ -528,11 +703,55 @@ class TestSegurancaContato:
             "honeypot": "",
         }
 
-        client.post(url, data, follow=True)  # Primeiro envio: Sucesso
-        response = client.post(url, data, follow=True)  # Segundo envio: Bloqueio
+        primeira = client.post(url, data, follow=True)  # Primeiro envio: Sucesso
+        segunda = client.post(url, data, follow=True)  # Segundo envio: Bloqueio
 
-        conteudo = response.content.decode("utf-8")
-        assert "recentemente" in conteudo or "aguarde" in conteudo
+        assert [a.message for a in primeira.context["messages"]] == [MENSAGEM_ENVIADO]
+        assert [a.message for a in segunda.context["messages"]] == [
+            MENSAGEM_LIMITE_ENVIO
+        ]
+        assert segunda.redirect_chain == [(reverse("home"), 302)]
+        # O bloqueio para antes de gravar e de enviar: só o primeiro chegou.
+        assert MensagemContato.objects.count() == 1
+        assert len(mail.outbox) == 1
+
+    def test_reserva_e_por_ip_e_dura_dez_minutos(self, client, monkeypatch) -> None:
+        """A vaga reservada leva o IP de quem enviou e vale 600 segundos."""
+        add_original = CacheArquivoAtomico.add
+        reservas: list[tuple[Any, Any, Any]] = []
+
+        def espiao(
+            self: CacheArquivoAtomico,
+            key: Any,
+            value: Any,
+            timeout: Any = DEFAULT_TIMEOUT,
+            version: Any = None,
+        ) -> bool:
+            reservas.append((key, value, timeout))
+            return add_original(self, key, value, timeout, version)
+
+        monkeypatch.setattr(CacheArquivoAtomico, "add", espiao)
+        cabecalhos = {"HTTP_X_REQUESTED_WITH": "XMLHttpRequest"}
+        dados = {
+            "nome": "U",
+            "email": "u@t.com",
+            "assunto": "O",
+            "mensagem": "M",
+            "honeypot": "",
+        }
+
+        primeiro = client.post(
+            reverse("home"), dados, REMOTE_ADDR="10.0.0.1", **cabecalhos
+        )
+        outro_ip = client.post(
+            reverse("home"), dados, REMOTE_ADDR="10.0.0.2", **cabecalhos
+        )
+
+        assert reservas == [
+            ("contact_limit_10.0.0.1", True, 600),
+            ("contact_limit_10.0.0.2", True, 600),
+        ]
+        assert (primeiro.status_code, outro_ip.status_code) == (200, 200)
 
     def test_contato_honeypot_bot_protection(self, client) -> None:
         """
@@ -552,20 +771,25 @@ class TestSegurancaContato:
         assert MensagemContato.objects.count() == 0  # Nada foi salvo
 
     def test_contato_envia_email_com_sucesso(self, client) -> None:
-        """Um envio válido deve gerar exatamente um e-mail na caixa de saída."""
+        """Um envio válido gera um e-mail, da conta para a própria conta, com os dados."""
         url = reverse("home")
         data = {
-            "nome": "U",
-            "email": "u@t.com",
-            "assunto": "O",
-            "mensagem": "M",
+            "nome": "Ana",
+            "email": "ana@example.com",
+            "assunto": "Orçamento",
+            "mensagem": "Olá",
             "honeypot": "",
         }
 
         client.post(url, data, follow=True)
 
-        assert len(mail.outbox) == 1
-        assert "O" in mail.outbox[0].subject
+        (email,) = mail.outbox
+        assert email.subject == "Novo Contato: Orçamento"
+        assert email.body == (
+            "Mensagem de: Ana\nE-mail: ana@example.com\n\nConteúdo:\nOlá"
+        )
+        assert email.from_email == "contato-teste@example.com"
+        assert email.to == ["contato-teste@example.com"]
 
     def test_contato_ajax_sucesso_retorna_json(self, client) -> None:
         """Requisição AJAX bem-sucedida retorna JSON (não redirect) com status 200."""
@@ -599,8 +823,11 @@ class TestSegurancaContato:
         response = client.post(url, data, **headers)
 
         assert response.status_code == 429
+        assert response.json() == {"status": "error", "message": MENSAGEM_LIMITE_ENVIO}
+        assert MensagemContato.objects.count() == 1
+        assert len(mail.outbox) == 1
 
-    def test_contato_erro_envio_email(self, client) -> None:
+    def test_contato_erro_envio_email(self, client, caplog) -> None:
         """Falha no SMTP não derruba a request; AJAX recebe 500 com JSON de erro."""
         url = reverse("home")
         data = {
@@ -618,7 +845,32 @@ class TestSegurancaContato:
             response = client.post(url, data, HTTP_X_REQUESTED_WITH="XMLHttpRequest")
 
         assert response.status_code == 500
-        assert response.json()["status"] == "error"
+        assert response.json() == {"status": "error", "message": MENSAGEM_FALHA_ENVIO}
+        # A mensagem já estava no banco, e a falha vai para o log com o traceback.
+        assert MensagemContato.objects.count() == 1
+        (registro,) = [r for r in caplog.records if r.name == "app_portfolio.views"]
+        assert registro.levelname == "ERROR"
+        assert registro.getMessage() == "Falha ao enviar e-mail de contato"
+        assert registro.exc_info is not None
+
+    def test_contato_erro_envio_email_sem_ajax_mostra_o_aviso(self, client) -> None:
+        """Sem JavaScript, a página volta com o aviso de falha, sem redirect."""
+        dados = {
+            "nome": "U",
+            "email": "u@t.com",
+            "assunto": "O",
+            "mensagem": "M",
+            "honeypot": "",
+        }
+        with patch(
+            "app_portfolio.views.send_mail", side_effect=Exception("SMTP indisponível")
+        ):
+            response = client.post(reverse("home"), dados)
+
+        assert response.status_code == 200
+        assert [a.message for a in response.context["messages"]] == [
+            MENSAGEM_FALHA_ENVIO
+        ]
 
     def test_contato_ajax_dados_invalidos_retorna_400(self, client) -> None:
         """Formulário inválido (e-mail malformado) via AJAX retorna HTTP 400."""
@@ -680,6 +932,25 @@ class TestCacheArquivoAtomico:
         assert cache_teste.add("contact_limit_ip", True, 0) is True
         assert cache_teste.add("contact_limit_ip", True, 600) is True
         assert cache_teste.add("contact_limit_ip", True, 600) is False
+
+    def test_add_recria_a_pasta_apagada(self, tmp_path: Path) -> None:
+        """A pasta do cache apagada depois da subida é recriada na reserva."""
+        pasta = tmp_path / "cache"
+        cache_teste = CacheArquivoAtomico(str(pasta), {})
+        shutil.rmtree(pasta, ignore_errors=True)
+        assert not pasta.exists()
+
+        assert cache_teste.add("contact_limit_ip", True, 600) is True
+        assert cache_teste.get("contact_limit_ip") is True
+
+    def test_add_respeita_a_versao(self, tmp_path: Path) -> None:
+        """A versão da chave chega ao add() herdado: outra versão é outra vaga."""
+        cache_teste = CacheArquivoAtomico(str(tmp_path), {})
+
+        assert cache_teste.add("contact_limit_ip", "v2", 600, version=2) is True
+        assert cache_teste.add("contact_limit_ip", "v1", 600) is True
+        assert cache_teste.get("contact_limit_ip", version=2) == "v2"
+        assert cache_teste.get("contact_limit_ip") == "v1"
 
 
 # ---------------------------------------------------------------------------
@@ -841,16 +1112,21 @@ class TestServirMidia:
         assert response.status_code == 200
         assert response["Content-Type"] == "image/webp"
         assert response["X-Content-Type-Options"] == "nosniff"
-        assert "max-age=86400" in response["Cache-Control"]
-        assert "public" in response["Cache-Control"]
+        diretivas = sorted(d.strip() for d in response["Cache-Control"].split(","))
+        assert diretivas == ["max-age=86400", "public"]
         assert b"".join(response.streaming_content) == b"RIFF0000WEBP"
 
     @pytest.mark.parametrize(
         "caminho",
-        ["/media/nao-existe.webp", "/media/projetos/", "/media/../settings.py"],
+        ["/media/nao-existe.webp", "/media/projetos/", "/media/../segredo.txt"],
     )
-    def test_inexistente_pasta_e_fuga_dao_404(self, client, caminho: str) -> None:
+    def test_inexistente_pasta_e_fuga_dao_404(
+        self, client, caminho: str, pasta_de_midia: Path
+    ) -> None:
         """Arquivo que falta, pasta e ../ respondem 404 com a página de erro."""
+        # O alvo do ../ existe, logo acima do MEDIA_ROOT: o 404 vem da recusa da
+        # fuga, não de o arquivo faltar.
+        (pasta_de_midia.parent / "segredo.txt").write_text("fora da mídia")
         response = client.get(caminho)
         assert response.status_code == 404
         assert "404.html" in [t.name for t in response.templates]
@@ -903,9 +1179,74 @@ class TestConverterParaWebp:
         projeto = Projeto.objects.create(
             titulo="Projeto Teste", descricao="Desc", imagem=_uploaded_png()
         )
-        assert projeto.imagem.name.endswith(".webp")
+        assert projeto.imagem.name == "projetos/teste.webp"
+        assert _formato_e_modo(projeto.imagem) == ("WEBP", "RGB")
+
+    def test_save_preserva_a_transparencia(self) -> None:
+        """PNG com canal alfa vira WebP com alfa (RGBA), não RGB com fundo preto."""
+        projeto = Projeto.objects.create(
+            titulo="Com alfa", descricao="Desc", imagem=_uploaded_png(modo="RGBA")
+        )
+        assert _formato_e_modo(projeto.imagem) == ("WEBP", "RGBA")
+
+    def test_save_nao_reconverte_webp(self) -> None:
+        """Um WebP enviado é gravado como veio, sem perder qualidade numa recompressão."""
+        enviado = _uploaded_webp()
+        projeto = Projeto.objects.create(
+            titulo="Já WebP", descricao="Desc", imagem=enviado
+        )
+        with projeto.imagem.open("rb") as gravado:
+            assert gravado.read() == enviado.open().read()
+
+    def test_save_do_perfil_converte_a_foto(self) -> None:
+        """A foto do Perfil passa pela mesma conversão do projeto."""
+        perfil = Perfil.objects.create(
+            nome="Ana", cargo="Dev", foto=_uploaded_png("foto.png")
+        )
+        assert perfil.foto.name.endswith(".webp")
+        assert _formato_e_modo(perfil.foto) == ("WEBP", "RGB")
 
     def test_save_sem_imagem_nao_falha(self) -> None:
         """Projeto sem imagem (campo opcional) salva normalmente, sem conversão."""
         projeto = Projeto.objects.create(titulo="Sem Imagem", descricao="Desc")
         assert not projeto.imagem
+
+
+# ---------------------------------------------------------------------------
+# Nome de cada registro no Admin
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_str_de_cada_model() -> None:
+    """O Admin lista cada registro pelo texto do ``__str__``."""
+    tecnologia = Tecnologia.objects.create(nome="Python")
+    categoria_projeto = CategoriaProjeto.objects.create(nome="Web", slug="web")
+    projeto = Projeto.objects.create(titulo="Portfólio", descricao="Desc")
+    perfil = Perfil.objects.create(nome="Ana", cargo="Dev")
+    grupo = CategoriaHabilidade.objects.create(nome="Back-end")
+    habilidade = Habilidade.objects.create(categoria=grupo, nome="Django")
+    mensagem = MensagemContato.objects.create(
+        nome="Bia", email="bia@example.com", assunto="Oi", mensagem="Olá"
+    )
+
+    assert [
+        str(registro)
+        for registro in (
+            tecnologia,
+            categoria_projeto,
+            projeto,
+            perfil,
+            grupo,
+            habilidade,
+            mensagem,
+        )
+    ] == [
+        "Python",
+        "Web",
+        "Portfólio",
+        "Ana",
+        "Back-end",
+        "Django (Back-end)",
+        "Bia - Oi",
+    ]
