@@ -32,19 +32,28 @@ def converter_para_webp(
     if not (image_field and hasattr(image_field, "file")):
         return None, None
 
-    img: Image.Image = Image.open(image_field)
+    try:
+        img: Image.Image = Image.open(image_field)
 
-    # Imagem já em WebP: não reconverte.
-    if img.format == "WEBP":
-        return None, None
+        # Imagem já em WebP: não reconverte.
+        if img.format == "WEBP":
+            return None, None
 
-    # Imagens com canal alpha (RGBA) ou indexadas por paleta (P) precisam ser
-    # convertidas para RGBA antes de salvar em WebP para preservar a
-    # transparência. Todos os outros modos vão direto para RGB.
-    if img.mode in ("RGBA", "P"):
-        img = img.convert("RGBA")
-    else:
-        img = img.convert("RGB")
+        # Imagens com canal alpha (RGBA) ou indexadas por paleta (P) precisam ser
+        # convertidas para RGBA antes de salvar em WebP para preservar a
+        # transparência. Todos os outros modos vão direto para RGB. O convert()
+        # lê a imagem inteira, então o arquivo pode ser fechado em seguida.
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGBA")
+        else:
+            img = img.convert("RGB")
+    finally:
+        # A imagem já gravada no storage foi aberta aqui só para a leitura: sem o
+        # close(), o arquivo ficaria aberto até a coleta de lixo. O envio que ainda
+        # não foi gravado fica aberto, porque o storage o lê depois (um WebP enviado
+        # é gravado como veio).
+        if image_field._committed:
+            image_field.close()
 
     output = BytesIO()
     img.save(output, format="WEBP", quality=quality)
