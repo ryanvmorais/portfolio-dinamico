@@ -53,6 +53,9 @@ e `Projeto` (campo `imagem`).
 - **Skip automático**: se a imagem já estiver em WebP, retorna `(None, None)`.
 - **Transparência**: RGBA/P convertidos para RGBA (preserva alpha); demais
   modos vão para RGB.
+- **Nome**: o novo nome é só o do arquivo, com `.webp`; a pasta vem do `upload_to`
+  quando o `FieldFile.save()` grava (o nome da imagem já gravada traz a pasta, e
+  repassá-lo inteiro a duplicaria).
 - **`save=False`**: usado em `image_field.save(novo_nome, conteudo,
   save=False)` para evitar recursão infinita (não chama o `save()` do model
   de novo).

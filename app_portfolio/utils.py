@@ -59,6 +59,8 @@ def converter_para_webp(
     img.save(output, format="WEBP", quality=quality)
     output.seek(0)
 
-    name = os.path.splitext(image_field.name)[0]
+    # Só o nome do arquivo: a imagem já gravada traz a pasta do upload_to no name, e o
+    # FieldFile.save() acrescenta a pasta de novo (projetos/projetos/foto.webp).
+    name = os.path.splitext(os.path.basename(image_field.name))[0]
     # Retorna o arquivo pronto para ser salvo
     return ContentFile(output.read()), f"{name}.webp"

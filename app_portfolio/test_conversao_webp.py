@@ -102,7 +102,7 @@ def test_imagem_ja_gravada_fecha_o_arquivo_na_conversao() -> None:
 
     assert avisos == []
     # A conversão rodou de fato: sem ela não haveria arquivo a fechar.
-    assert (projeto.imagem.name or "").endswith("/semeado.webp")
+    assert projeto.imagem.name == "projetos/semeado.webp"
 
 
 @pytest.mark.django_db
