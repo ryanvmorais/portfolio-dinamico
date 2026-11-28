@@ -59,11 +59,17 @@ e `Projeto` (campo `imagem`).
 - **`save=False`**: usado em `image_field.save(novo_nome, conteudo,
   save=False)` para evitar recursão infinita (não chama o `save()` do model
   de novo).
+- **Original**: quando a imagem convertida já estava gravada (`imagem_ja_gravada()`,
+  o caso de um `FieldFile.save()` antes do `save()`), o arquivo original sai do
+  storage depois do `super().save()`. Apagar antes deixaria o registro apontando
+  para um arquivo inexistente se a gravação no banco falhasse. O upload do Admin
+  não grava o original: só o WebP chega ao storage.
 
 Ao adicionar um novo model com `ImageField`, siga o mesmo padrão: sobrescreva
-`save()`, chame `converter_para_webp()`, cheque `if novo_conteudo and
-novo_nome:` (os dois juntos: o `mypy` não infere que são não-`None` juntos a
-partir de checar só um) e use `save=False`.
+`save()`, guarde o nome do original já gravado (`imagem_ja_gravada()`), chame
+`converter_para_webp()`, cheque `if novo_conteudo and novo_nome:` (os dois juntos:
+o `mypy` não infere que são não-`None` juntos a partir de checar só um), use
+`save=False` e apague o original depois do `super().save()`.
 
 ## Formulário de contato (em `views.py`)
 

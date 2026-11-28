@@ -12,7 +12,7 @@ from typing import Any
 from django.core.validators import FileExtensionValidator, MaxLengthValidator
 from django.db import models
 
-from .utils import converter_para_webp
+from .utils import converter_para_webp, imagem_ja_gravada
 
 # ---------------------------------------------------------------------------
 # Tecnologias e categorias de projeto
@@ -167,13 +167,19 @@ class Projeto(models.Model):
             *args (Any): Argumentos posicionais repassados ao ``super().save()``.
             **kwargs (Any): Argumentos nomeados repassados ao ``super().save()``.
         """
-        # Chamada da função modularizada em utils.py
+        # A imagem já gravada (um FieldFile.save() antes deste save()) é trocada pelo
+        # WebP: o original sai do storage só depois do registro gravado, para o banco
+        # nunca apontar para um arquivo apagado.
+        original = (self.imagem.name or "") if imagem_ja_gravada(self.imagem) else ""
         novo_conteudo, novo_nome = converter_para_webp(self.imagem)
 
         if novo_conteudo and novo_nome:
             self.imagem.save(novo_nome, novo_conteudo, save=False)
 
         super().save(*args, **kwargs)
+
+        if novo_conteudo and original:
+            self.imagem.storage.delete(original)
 
 
 # ---------------------------------------------------------------------------
@@ -239,12 +245,17 @@ class Perfil(models.Model):
             *args (Any): Argumentos posicionais repassados ao ``super().save()``.
             **kwargs (Any): Argumentos nomeados repassados ao ``super().save()``.
         """
+        # O original já gravado sai depois do registro gravado (ver Projeto.save).
+        original = (self.foto.name or "") if imagem_ja_gravada(self.foto) else ""
         novo_conteudo, novo_nome = converter_para_webp(self.foto)
 
         if novo_conteudo and novo_nome:
             self.foto.save(novo_nome, novo_conteudo, save=False)
 
         super().save(*args, **kwargs)
+
+        if novo_conteudo and original:
+            self.foto.storage.delete(original)
 
 
 # ---------------------------------------------------------------------------

@@ -39,7 +39,7 @@ from django.core.cache import cache, caches
 from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import connection
+from django.db import DatabaseError, connection, models
 from django.http import HttpRequest, HttpResponse
 from django.test import Client, RequestFactory
 from django.test.utils import CaptureQueriesContext
@@ -58,6 +58,7 @@ from app_portfolio.models import (
     Projeto,
     Tecnologia,
 )
+from app_portfolio.utils import imagem_ja_gravada
 from app_portfolio.views import (
     MENSAGEM_DADOS_INVALIDOS,
     MENSAGEM_DEMONSTRACAO,
@@ -187,6 +188,34 @@ def _formato_e_modo(arquivo: Any) -> tuple[str | None, str]:
     """
     with arquivo.open("rb") as aberto, Image.open(aberto) as imagem:
         return imagem.format, imagem.mode
+
+
+def _dados_minimos(modelo: Any) -> dict[str, str]:
+    """
+    Campos obrigatórios de um Projeto ou de um Perfil.
+
+    Args:
+        modelo (Any): ``Projeto`` ou ``Perfil``.
+
+    Returns:
+        dict[str, str]: Os campos para criar o registro.
+    """
+    if modelo is Projeto:
+        return {"titulo": "Semeado", "descricao": "Desc"}
+    return {"nome": "Ana", "cargo": "Dev"}
+
+
+def _arquivos_em(pasta: Path) -> list[str]:
+    """
+    Lista os arquivos de uma pasta do storage, em ordem.
+
+    Args:
+        pasta (Path): A pasta dentro do ``MEDIA_ROOT``.
+
+    Returns:
+        list[str]: Os nomes dos arquivos; vazia se a pasta não existe.
+    """
+    return sorted(p.name for p in pasta.iterdir()) if pasta.is_dir() else []
 
 
 # Caminho do arquivo, não do módulo: a cópia avulsa é carregada direto do disco,
@@ -1234,10 +1263,73 @@ class TestConverterParaWebp:
         assert getattr(registro, campo).name == f"{pasta}/semeado.webp"
         assert _formato_e_modo(getattr(registro, campo)) == ("WEBP", "RGB")
 
+    @pytest.mark.parametrize(
+        ("modelo", "campo", "pasta"),
+        [(Projeto, "imagem", "projetos"), (Perfil, "foto", "perfil")],
+    )
+    def test_imagem_ja_gravada_nao_deixa_o_original(
+        self, modelo: Any, campo: str, pasta: str, settings
+    ) -> None:
+        """Convertida a imagem já gravada, só o WebP fica na pasta do storage."""
+        registro = modelo(**_dados_minimos(modelo))
+        getattr(registro, campo).save("semeado.png", _uploaded_png("semeado.png"))
+
+        assert _arquivos_em(Path(settings.MEDIA_ROOT) / pasta) == ["semeado.webp"]
+
+    def test_webp_salvo_de_novo_nao_apaga_nada(self, settings) -> None:
+        """Controle: sem conversão, salvar de novo deixa a foto onde estava."""
+        perfil = Perfil.objects.create(nome="Ana", cargo="Dev", foto=_uploaded_webp())
+        perfil.refresh_from_db()
+
+        perfil.save()
+
+        assert perfil.foto.name == "perfil/teste.webp"
+        assert _arquivos_em(Path(settings.MEDIA_ROOT) / "perfil") == ["teste.webp"]
+
+    def test_falha_ao_gravar_no_banco_mantem_o_original(
+        self, settings, monkeypatch
+    ) -> None:
+        """
+        O original só sai depois do registro gravado no banco.
+
+        Se a gravação falha, o banco segue apontando para o original: apagá-lo antes
+        deixaria o registro com uma imagem que não existe mais.
+        """
+        projeto = Projeto.objects.create(titulo="Semeado", descricao="Desc")
+        Projeto.objects.filter(pk=projeto.pk).update(imagem="projetos/antiga.png")
+        pasta = Path(settings.MEDIA_ROOT) / "projetos"
+        pasta.mkdir(parents=True)
+        (pasta / "antiga.png").write_bytes(_uploaded_png().read())
+        projeto.refresh_from_db()
+
+        def falhar(*args: Any, **kwargs: Any) -> None:
+            """Simula a falha na gravação do registro."""
+            raise DatabaseError("banco indisponível")
+
+        monkeypatch.setattr(models.Model, "save", falhar)
+        with pytest.raises(DatabaseError, match="banco indisponível"):
+            projeto.save()
+
+        # O WebP novo sobra (o storage já o gravou); o original fica no lugar.
+        assert "antiga.png" in _arquivos_em(pasta)
+
     def test_save_sem_imagem_nao_falha(self) -> None:
         """Projeto sem imagem (campo opcional) salva normalmente, sem conversão."""
         projeto = Projeto.objects.create(titulo="Sem Imagem", descricao="Desc")
         assert not projeto.imagem
+
+    def test_imagem_ja_gravada_so_com_arquivo_no_storage(self) -> None:
+        """Campo vazio e envio ainda não gravado não contam; imagem gravada conta."""
+        vazio = Projeto(titulo="Vazio", descricao="Desc")
+        enviado = Projeto(titulo="Enviado", descricao="Desc", imagem=_uploaded_png())
+        gravado = Projeto.objects.create(
+            titulo="Gravado", descricao="Desc", imagem=_uploaded_png()
+        )
+        gravado.refresh_from_db()
+
+        assert [
+            imagem_ja_gravada(registro.imagem) for registro in (vazio, enviado, gravado)
+        ] == [False, False, True]
 
 
 # ---------------------------------------------------------------------------

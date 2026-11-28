@@ -170,7 +170,7 @@ do POST do contato (`views.py`): `docs/referencia/arquitetura.md`: **leia antes 
 `models.py`, `utils.py`, `marca.py` ou na view `home`**. Requisitos e ADRs: `specs/001-vitrine-portfolio/`,
 `specs/002-formulario-contato/` e `specs/008-redesenho-da-home/`.
 
-- ⚠️ `ImageField` novo: sobrescreva `save()`, chame `converter_para_webp()`, cheque `if novo_conteudo and novo_nome:` e grave com `save=False` (sem isso, recursão infinita).
+- ⚠️ `ImageField` novo: sobrescreva `save()`, chame `converter_para_webp()`, cheque `if novo_conteudo and novo_nome:` e grave com `save=False` (sem isso, recursão infinita); o original já gravado (`imagem_ja_gravada()`) sai do storage só depois do `super().save()`.
 - ⚠️ Ordem do POST: honeypot → validação → modo demonstração → rate limit (`cache.add`, atômico pela trava do `CacheArquivoAtomico`) → sanitização → gravação → e-mail.
 - ⚠️ Falha do `send_mail()` é logada e nunca propaga: a mensagem já está no banco.
 - ⚠️ AJAX e HTML dizem a mesma frase: use as constantes `MENSAGEM_*` do `views.py`, nunca texto solto.
