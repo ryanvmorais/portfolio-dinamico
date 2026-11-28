@@ -1208,6 +1208,32 @@ class TestConverterParaWebp:
         assert perfil.foto.name.endswith(".webp")
         assert _formato_e_modo(perfil.foto) == ("WEBP", "RGB")
 
+    @pytest.mark.parametrize(
+        ("modelo", "campo", "pasta"),
+        [(Projeto, "imagem", "projetos"), (Perfil, "foto", "perfil")],
+    )
+    def test_imagem_ja_gravada_fica_na_pasta_do_upload_to(
+        self, modelo: Any, campo: str, pasta: str
+    ) -> None:
+        """
+        A imagem já gravada não ganha a pasta do ``upload_to`` duas vezes.
+
+        O nome da imagem gravada por ``FieldFile.save()`` já traz o ``upload_to``; a
+        conversão o passa de novo ao storage, que acrescenta a pasta outra vez se o nome
+        não for só o do arquivo.
+        """
+        dados = (
+            {"titulo": "Semeado", "descricao": "Desc"}
+            if modelo is Projeto
+            else {"nome": "Ana", "cargo": "Dev"}
+        )
+        registro = modelo(**dados)
+        arquivo = getattr(registro, campo)
+        arquivo.save("semeado.png", _uploaded_png("semeado.png"))
+
+        assert getattr(registro, campo).name == f"{pasta}/semeado.webp"
+        assert _formato_e_modo(getattr(registro, campo)) == ("WEBP", "RGB")
+
     def test_save_sem_imagem_nao_falha(self) -> None:
         """Projeto sem imagem (campo opcional) salva normalmente, sem conversão."""
         projeto = Projeto.objects.create(titulo="Sem Imagem", descricao="Desc")
