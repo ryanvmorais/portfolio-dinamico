@@ -23,9 +23,10 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from PIL import Image
+from PIL import Image, ImageChops
 
 from app_portfolio.marca import (
+    COR_FUNDO,
     calcular_iniciais,
     gerar_icone_png,
     montar_favicon_svg,
@@ -182,9 +183,21 @@ def test_sem_campo_preenchido_nao_ha_estudo_de_caso() -> None:
     assert _projeto(problema="   ").tem_estudo_de_caso is False
 
 
-def test_um_campo_preenchido_basta() -> None:
-    """Qualquer um dos quatro campos com texto liga o estudo de caso."""
-    assert _projeto(resultado="Usado por 3 lojas.").tem_estudo_de_caso is True
+# Os quatro campos do estudo de caso e o rótulo de cada um no cartão, na ordem
+# do models.py e do home.html: um caso por campo (um campo fora da lista do
+# tem_estudo_de_caso ou do template não pode passar).
+CAMPOS_DO_CASO = [
+    ("problema", "Problema"),
+    ("papel", "Meu papel"),
+    ("decisao_tecnica", "Decisão técnica"),
+    ("resultado", "Resultado"),
+]
+
+
+@pytest.mark.parametrize(("campo", "rotulo"), CAMPOS_DO_CASO)
+def test_um_campo_preenchido_basta(campo: str, rotulo: str) -> None:
+    """Cada um dos quatro campos, sozinho, liga o estudo de caso."""
+    assert _projeto(**{campo: "Usado por 3 lojas."}).tem_estudo_de_caso is True
 
 
 def test_quatro_campos_preenchidos() -> None:
@@ -204,6 +217,7 @@ def test_quatro_campos_preenchidos() -> None:
         ("Érica de Souza", "ÉS"),
         ("ana maria silva", "AS"),
         ("Madonna", "M"),
+        ("madonna", "M"),
         ("João 2º Lima", "JL"),
         ("  Ana   Dev  ", "AD"),
         ("", "SN"),
@@ -223,6 +237,12 @@ def test_favicon_svg_pequeno_e_com_as_iniciais() -> None:
     assert svg.startswith("<svg") and ">ÉS</text>" in svg
 
 
+@pytest.mark.parametrize(("iniciais", "corpo"), [("ÉS", "15"), ("M", "19")])
+def test_favicon_svg_diminui_o_corpo_com_duas_letras(iniciais: str, corpo: str) -> None:
+    """Duas letras saem no corpo 15, para caber no quadrado; uma letra, no 19."""
+    assert f'font-size="{corpo}"' in montar_favicon_svg(iniciais)
+
+
 def test_favicon_svg_escapa_o_texto() -> None:
     """Um caractere de marcação nunca entra cru no SVG (defesa em profundidade)."""
     svg = montar_favicon_svg("<&")
@@ -236,6 +256,32 @@ def test_icone_png_opaco_de_180() -> None:
         assert imagem.format == "PNG"
         assert imagem.size == (180, 180)
         assert imagem.mode == "RGB"
+
+
+def _altura_do_desenho(png: bytes) -> int:
+    """
+    Mede a altura do que foi desenhado por dentro da moldura do ícone.
+
+    Args:
+        png (bytes): O ícone gerado.
+
+    Returns:
+        int: Altura, em pixels, da caixa que contém tudo o que difere do fundo.
+    """
+    with Image.open(BytesIO(png)) as imagem:
+        # A moldura vai de 18 a 24 px de cada borda: o recorte fica por dentro dela.
+        miolo = imagem.convert("RGB").crop((30, 30, 150, 150))
+    caixa = ImageChops.difference(miolo, Image.new("RGB", miolo.size, COR_FUNDO))
+    limites = caixa.getbbox()
+    assert limites, "nada desenhado dentro da moldura"
+    return limites[3] - limites[1]
+
+
+def test_icone_png_diminui_a_letra_com_duas_iniciais() -> None:
+    """A mesma letra sai maior sozinha (corpo 80) do que em dupla (corpo 64)."""
+    assert _altura_do_desenho(gerar_icone_png("M")) > _altura_do_desenho(
+        gerar_icone_png("MM")
+    )
 
 
 def test_icone_png_memoizado() -> None:
@@ -256,17 +302,20 @@ class TestRotasDaMarca:
         resposta = client.get("/favicon.svg")
         assert resposta.status_code == 200
         assert resposta["Content-Type"] == "image/svg+xml"
-        assert "max-age=86400" in resposta["Cache-Control"]
-        assert "public" in resposta["Cache-Control"]
+        # Valor exato: um "in" aceitaria max-age=864000 (dez dias).
+        assert resposta["Cache-Control"] == "public, max-age=86400"
         assert ">AD</text>" in resposta.content.decode()
 
     def test_icone_png_com_perfil(self, client) -> None:
-        """Com perfil, 200 em PNG, com cache público de um dia."""
+        """Com perfil, 200 em PNG com as iniciais dele, com cache público de um dia."""
         Perfil.objects.create(nome="Ana Dev", cargo="Dev")
         resposta = client.get("/apple-touch-icon.png")
         assert resposta.status_code == 200
         assert resposta["Content-Type"] == "image/png"
-        assert "max-age=86400" in resposta["Cache-Control"]
+        assert resposta["Cache-Control"] == "public, max-age=86400"
+        # O desenho é o das iniciais do perfil, não o do nome padrão.
+        assert resposta.content == gerar_icone_png("AD")
+        assert resposta.content != gerar_icone_png("SN")
 
     @pytest.mark.parametrize(
         ("rota", "reserva"),
@@ -284,9 +333,17 @@ class TestRotasDaMarca:
         assert resposta["Location"] == reserva
         assert "max-age" not in resposta.get("Cache-Control", "")
 
-    def test_rota_recusa_post(self, client) -> None:
-        """Só GET e HEAD: o ícone não aceita escrita."""
-        assert client.post("/favicon.svg").status_code == 405
+    @pytest.mark.parametrize("rota", ["/favicon.svg", "/apple-touch-icon.png"])
+    def test_rota_recusa_post(self, client, rota: str) -> None:
+        """Só GET e HEAD: nenhum dos dois ícones aceita escrita."""
+        Perfil.objects.create(nome="Ana Dev", cargo="Dev")
+        assert client.post(rota).status_code == 405
+
+    @pytest.mark.parametrize("rota", ["/favicon.svg", "/apple-touch-icon.png"])
+    def test_rota_aceita_head(self, client, rota: str) -> None:
+        """O HEAD responde 200, como o GET (o navegador pergunta antes de baixar)."""
+        Perfil.objects.create(nome="Ana Dev", cargo="Dev")
+        assert client.head(rota).status_code == 200
 
     def test_head_declara_o_svg_so_com_perfil(self, client) -> None:
         """Sem perfil, o <head> fica só com o favicon.webp de reserva."""
@@ -324,9 +381,14 @@ class TestHero:
         hero = _hero(_home(client))
         assert '<h1 id="hero-title" class="hero__title">Ana Dev</h1>' in hero
         assert '<p class="hero__role">Desenvolvedora</p>' in hero
-        assert "Construo APIs." in hero
+        assert '<p class="hero__description">Construo APIs.</p>' in hero
         for resto in ("Olá, eu sou", "hero__code-block", "developer.js", "Explorar"):
             assert resto not in hero
+
+    def test_sem_bio_curta_nao_ha_paragrafo_vazio(self, client) -> None:
+        """Sem a bio curta, o hero não leva um <p class="hero__description"> vazio."""
+        _perfil()
+        assert "hero__description" not in _hero(_home(client))
 
     def test_template_sem_texto_fixo_no_hero(self) -> None:
         """Nenhum cargo, tecnologia ou frase de apresentação escritos no home.html."""
@@ -377,9 +439,10 @@ class TestHero:
         hero = _hero(html)
         for fora in ("icone-link", "github.com/ana", "linkedin.com/in/ana", "cv"):
             assert fora not in hero
-        # Contato e rodapé seguem com GitHub e LinkedIn; Sobre, com o currículo.
-        assert html.count('href="https://github.com/ana"') >= 2
-        assert html.count('href="https://www.linkedin.com/in/ana"') >= 2
+        # Menu do celular, contato e rodapé seguem com GitHub e LinkedIn; Sobre,
+        # com o currículo. Contagem exata: um ">= 2" aceitava perder um dos três.
+        assert html.count('href="https://github.com/ana"') == 3
+        assert html.count('href="https://www.linkedin.com/in/ana"') == 3
         assert re.search(r'href="/media/curriculo/cv[^"]*"[^>]*download', html)
 
     def test_sem_links_nao_ha_href_none(self, client) -> None:
@@ -410,6 +473,14 @@ class TestHero:
         numeros = _trecho(_home(client), 'class="hero__numeros"', "</ul>")
         assert "1+</strong> ano de experiência" in numeros
         assert "1</strong> projeto publicado<" in numeros
+
+    def test_so_os_anos_sem_projetos(self, client) -> None:
+        """Com anos e nenhum projeto, a linha mostra só os anos (sem "0 projetos")."""
+        _perfil(anos_experiencia=5)
+        numeros = _trecho(_home(client), 'class="hero__numeros"', "</ul>")
+        assert "5+</strong> anos de experiência" in numeros
+        assert numeros.count("<li>") == 1
+        assert "projeto" not in numeros
 
     def test_so_o_numero_que_existe(self, client) -> None:
         """Zero anos some; os projetos ficam."""
@@ -524,6 +595,16 @@ class TestCartaoDeProjeto:
         assert "Ver online" in acoes
         assert "Código" not in acoes
 
+    def test_so_o_codigo(self, client) -> None:
+        """Com só o repositório, só o link do código aparece, sem href="None"."""
+        Projeto.objects.create(
+            titulo="Loja", descricao="d", link_github="https://github.com/a/loja"
+        )
+        acoes = _trecho(_home(client), 'class="project-card__acoes"', "</div>")
+        assert "Código" in acoes
+        assert "Ver online" not in acoes
+        assert 'href="None"' not in acoes
+
     def test_sem_links_nao_ha_linha_de_acoes(self, client) -> None:
         """Sem nenhum endereço, o cartão não tem linha de ações."""
         Projeto.objects.create(titulo="Loja", descricao="d")
@@ -542,6 +623,15 @@ class TestCartaoDeProjeto:
         assert "<dt>Problema</dt>" in caso and "Vendas no papel." in caso
         assert "<dt>Resultado</dt>" in caso
         assert "Meu papel" not in caso and "Decisão técnica" not in caso
+
+    @pytest.mark.parametrize(("campo", "rotulo"), CAMPOS_DO_CASO)
+    def test_cada_campo_sozinho_mostra_so_o_seu_rotulo(
+        self, client, campo: str, rotulo: str
+    ) -> None:
+        """Um campo preenchido abre o "Como foi feito" só com o rótulo dele."""
+        Projeto.objects.create(titulo="Loja", descricao="d", **{campo: "Texto."})
+        caso = _trecho(_home(client), "<details", "</details>")
+        assert re.findall(r"<dt>([^<]+)</dt>", caso) == [rotulo]
 
     def test_sem_estudo_de_caso_nao_ha_details(self, client) -> None:
         """Os quatro campos vazios: o cartão não tem "Como foi feito"."""
@@ -586,6 +676,11 @@ class TestChipsDeHabilidade:
         """
         Cria uma categoria com três habilidades em dois níveis.
 
+        A habilidade "Django e DRF" tem nome diferente da tecnologia ligada
+        ("Django"): o chip filtra pela tecnologia, e um nome igual nos dois não
+        mostraria qual deles o template lê. Python é cadastrada antes de Django,
+        o contrário da ordem alfabética, para a ordem do cadastro ficar visível.
+
         Returns:
             dict[str, Tecnologia]: As tecnologias criadas, pelo nome.
         """
@@ -598,7 +693,9 @@ class TestChipsDeHabilidade:
 
         categoria = CategoriaHabilidade.objects.create(nome="Back-end")
         Habilidade.objects.create(categoria=categoria, nome="Python", tecnologia=python)
-        Habilidade.objects.create(categoria=categoria, nome="Django", tecnologia=django)
+        Habilidade.objects.create(
+            categoria=categoria, nome="Django e DRF", tecnologia=django
+        )
         Habilidade.objects.create(
             categoria=categoria, nome="GraphQL", nivel=NivelHabilidade.ESTUDANDO
         )
@@ -617,11 +714,18 @@ class TestChipsDeHabilidade:
         django = habilidades["django"]
         assert re.search(
             rf'<button type="button" class="chip" data-tecnologia="{django.pk}" '
-            r'data-nome="Django" aria-pressed="false">\s*<span>Django '
+            r'data-nome="Django" aria-pressed="false">\s*<span>Django e DRF '
             r'<span class="chip__contagem">· 2 projetos</span></span>',
             skills,
         )
         assert "· 1 projeto</span>" in skills
+
+    def test_habilidades_do_nivel_na_ordem_do_cadastro(
+        self, client, habilidades
+    ) -> None:
+        """No mesmo nível, a primeira cadastrada vem antes (não a ordem alfabética)."""
+        skills = _trecho(_home(client), 'id="skills"', "</section>")
+        assert skills.index('data-nome="Python"') < skills.index('data-nome="Django"')
 
     def test_chip_sem_projeto_nao_e_interativo(self, client, habilidades) -> None:
         """Sem tecnologia ligada, o chip é texto: <span>, sem contagem."""
@@ -660,8 +764,32 @@ class TestRodapeELogo:
         )
         rodape = _rodape(_home(client))
         assert '<p class="footer__description">Construo APIs.</p>' in rodape
-        assert re.search(r'href="https://github\.com/ana"[^>]*target="_blank"', rodape)
-        assert 'href="https://www.linkedin.com/in/ana"' in rodape
+        for endereco in ("https://github.com/ana", "https://www.linkedin.com/in/ana"):
+            assert re.search(
+                rf'href="{re.escape(endereco)}"[^>]*target="_blank" '
+                r'rel="noopener noreferrer"',
+                rodape,
+            ), endereco
+
+    @pytest.mark.parametrize(
+        ("campo", "fica", "some"),
+        [
+            ("link_github", "GitHub", "LinkedIn"),
+            ("link_linkedin", "LinkedIn", "GitHub"),
+        ],
+    )
+    def test_rodape_com_uma_rede_so(
+        self, client, campo: str, fica: str, some: str
+    ) -> None:
+        """Uma rede basta para o bloco; a outra não vira link vazio nem href="None"."""
+        _perfil(**{campo: "https://example.com/ana"})
+        rodape = _rodape(_home(client))
+        assert "footer__social" in rodape
+        assert re.findall(r'class="social__link"[^>]*aria-label="(\w+)"', rodape) == [
+            fica
+        ]
+        assert some not in rodape
+        assert 'href="None"' not in rodape
 
     def test_rodape_sem_bio_nem_redes(self, client) -> None:
         """Sem bio e sem os dois links, somem a frase e o bloco de redes."""
@@ -719,6 +847,8 @@ def test_home_200_sem_perfil(client) -> None:
     html = _home(client)
     assert '<h1 id="hero-title" class="hero__title">Seu Nome</h1>' in html
     assert 'data-iniciais="SN"' in html
+    # Sem perfil não há cargo: o hero não leva um parágrafo vazio no lugar.
+    assert "hero__role" not in html
 
 
 # ---------------------------------------------------------------------------
@@ -751,8 +881,10 @@ def test_migracao_converte_os_dados_e_volta() -> None:
     try:
         antigos = _migrar(ANTES)
         tecnologia = antigos.get_model(APP, "Tecnologia")
-        python = tecnologia.objects.create(nome="Python", ordem=1)
+        # A homônima de ordem maior é cadastrada antes: a ordem do cadastro (pk)
+        # e a do campo ordem discordam, e só a ordem decide.
         tecnologia.objects.create(nome="python", ordem=5)
+        python = tecnologia.objects.create(nome="Python", ordem=1)
         categoria = antigos.get_model(APP, "CategoriaHabilidade").objects.create(
             nome="Back-end"
         )

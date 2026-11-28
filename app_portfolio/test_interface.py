@@ -449,6 +449,29 @@ class TestMenuComRedesECurriculo:
         assert 'href="None"' not in bloco
         assert f'id="{grupo_fica}"' in bloco
 
+    @pytest.mark.parametrize(
+        ("fica", "rotulo", "grupo"),
+        [
+            ("link_github", "GitHub", "nav-grupo-redes"),
+            ("link_linkedin", "LinkedIn", "nav-grupo-redes"),
+            ("curriculo", "Download CV", "nav-grupo-curriculo"),
+        ],
+    )
+    def test_um_campo_so_basta_para_o_bloco(
+        self, client, fica: str, rotulo: str, grupo: str
+    ) -> None:
+        """Cada um dos três campos, sozinho, já mostra o bloco com o link dele."""
+        vazios = {
+            campo: ""
+            for campo in ("link_github", "link_linkedin", "curriculo")
+            if campo != fica
+        }
+        _perfil_completo(**vazios)
+        bloco = _extras(_home(client))
+        assert f'id="{grupo}"' in bloco
+        assert rotulo in bloco
+        assert len(re.findall(r'class="nav__extra"', bloco)) == 1
+
     def test_grupo_sem_link_some(self, client) -> None:
         """Sem GitHub e LinkedIn some "Redes Sociais"; sem currículo some "Currículo"."""
         _perfil_completo(link_github="", link_linkedin="")
@@ -806,9 +829,11 @@ class TestFiltrosECampos:
 class TestContatoERodape:
     def test_texto_do_link_sai_do_endereco_do_perfil(self, client) -> None:
         """O cartão mostra o endereço do perfil, não "/in/seu_usuario"."""
+        # Os dois endereços passam por "https://" + "www." e "http://" + "www.":
+        # cada corte do template tem um caso que depende dele.
         _perfil(
             link_linkedin="https://www.linkedin.com/in/ana",
-            link_github="https://github.com/ana",
+            link_github="http://www.github.com/ana",
         )
         html = _home(client)
         assert ">linkedin.com/in/ana</a>" in html
@@ -816,25 +841,33 @@ class TestContatoERodape:
         assert "seu_usuario" not in html
 
     def test_links_externos_do_contato_tem_noopener(self, client) -> None:
-        """Os dois links do contato com target=_blank levam rel=noopener."""
+        """Os dois links do contato abrem em nova aba e levam rel=noopener."""
         _perfil(
             link_linkedin="https://www.linkedin.com/in/a",
             link_github="https://github.com/a",
         )
         html = _home(client)
-        for tag in re.findall(r'<a [^>]*class="contact__card-link"[^>]*>', html):
-            if 'target="_blank"' in tag:
-                assert 'rel="noopener"' in tag
+        inicio = html.index('id="contact"')
+        contato = html[inicio : html.index("</section>", inicio)]
+        # A lista tem de ter os dois: um laço sobre uma lista vazia não confere nada.
+        externos = re.findall(r'<a [^>]*target="_blank"[^>]*>', contato)
+        assert len(externos) == 2
+        for tag in externos:
+            assert 'rel="noopener"' in tag
 
     def test_cartao_do_contato_some_sem_o_link(self, client) -> None:
-        """Perfil sem LinkedIn não mostra o cartão do LinkedIn."""
+        """Perfil sem LinkedIn não mostra o cartão do LinkedIn; com ele, mostra."""
         _perfil()
         assert 'contact__card-title">LinkedIn' not in _home(client)
+        Perfil.objects.update(link_linkedin="https://www.linkedin.com/in/ana")
+        assert 'contact__card-title">LinkedIn' in _home(client)
 
     def test_logo_do_rodape_leva_ao_topo(self, client) -> None:
         """O logo do rodapé aponta para #home, não para href="#"."""
         _perfil()
-        assert 'href="#"' not in _home(client)
+        html = _home(client)
+        assert '<a href="#home" class="footer__logo">' in html
+        assert 'href="#"' not in html
 
 
 # ---------------------------------------------------------------------------
