@@ -105,6 +105,7 @@ app_portfolio/        # A única aplicação
   marca.py             # Marca gerada das iniciais do Perfil: monograma, favicon SVG e ícone de tela inicial PNG (spec 008)
   descoberta.py        # Metadados do <head> (montar_metadados) e as views de robots.txt, sitemap.xml e security.txt (spec 007)
   tests.py             # Suíte de testes (pytest): modelos, view e segurança do contato, ver "Qualidade" abaixo
+  test_conversao_webp.py # A conversão para WebP fecha o arquivo da imagem já gravada
   test_interface.py    # Testes das correções da auditoria de interface (spec 004): HTML, view, páginas de erro, CSS e JS lidos como texto
   test_semear_dados_demo.py # Testes do comando de demonstração e do Lighthouse CI
   test_descoberta.py   # URL_PUBLICA, metadados do <head>, imagens do cartão e os arquivos de descoberta, inclusive o prazo do Expires
