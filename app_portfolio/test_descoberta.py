@@ -340,8 +340,12 @@ class TestRobotsTxt:
     def test_aponta_o_sitemap_com_url_publica(self, client, settings) -> None:
         """A linha Sitemap: leva o endereço absoluto, da configuração."""
         settings.URL_PUBLICA = URL
-        texto = client.get("/robots.txt").content.decode()
-        assert texto.splitlines()[-1] == f"Sitemap: {URL}/sitemap.xml"
+        resposta = client.get("/robots.txt")
+        assert resposta.content.decode() == (
+            f"User-agent: *\nAllow: /\n\nSitemap: {URL}/sitemap.xml\n"
+        )
+        diretivas = sorted(d.strip() for d in resposta["Cache-Control"].split(","))
+        assert diretivas == ["max-age=86400", "public"]
 
     def test_nao_revela_o_caminho_do_admin(self, client, settings) -> None:
         """Um Disallow com o ADMIN_URL entregaria o caminho escondido."""
@@ -383,7 +387,14 @@ class TestSitemapXml:
         settings.URL_PUBLICA = URL
         settings.ALLOWED_HOSTS = ["forjado.example"]
         resposta = client.get("/sitemap.xml", HTTP_HOST="forjado.example")
+        # O sitemap foi montado (200): um 404 também não teria o host.
+        assert resposta.status_code == 200
         assert b"forjado" not in resposta.content
+
+    def test_so_get_e_head(self, client, settings) -> None:
+        """POST recebe 405, como no robots.txt."""
+        settings.URL_PUBLICA = URL
+        assert client.post("/sitemap.xml").status_code == 405
 
 
 # ---------------------------------------------------------------------------
@@ -436,6 +447,11 @@ class TestSecurityTxt:
         settings.MODO_DEMONSTRACAO = True
         campos = _campos(client.get("/.well-known/security.txt").content.decode())
         assert "Canonical" not in campos and "Contact" in campos
+
+    def test_so_get_e_head(self, client, settings) -> None:
+        """POST recebe 405, como no robots.txt."""
+        settings.MODO_DEMONSTRACAO = True
+        assert client.post("/.well-known/security.txt").status_code == 405
 
     def test_expires_nem_perto_de_vencer_nem_longe_demais(self) -> None:
         """Vermelho 30 dias antes do vencimento: hora de renovar a data (ADR-07)."""

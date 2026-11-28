@@ -60,6 +60,23 @@ def test_ha_templates_para_conferir() -> None:
     assert _TEMPLATES
 
 
+# O padrão é conferido contra casos escritos aqui: um padrão que nunca casa também
+# deixaria todo template passar.
+@pytest.mark.parametrize(
+    ("trecho", "quebrado"),
+    [
+        ("{# nota que\ncontinua #}", True),
+        ("{# a #}{# b que\nquebra #}", True),
+        ("{# nota #}\n", False),
+        ("{# nota #} texto depois\n", False),
+        ("{% comment %}\nvárias linhas\n{% endcomment %}", False),
+    ],
+)
+def test_padrao_do_comentario_quebrado(trecho: str, quebrado: bool) -> None:
+    """Acusa o ``{#`` sem o ``#}`` na mesma linha; o comentário fechado não casa."""
+    assert bool(_COMENTARIO_QUEBRADO.search(trecho)) is quebrado
+
+
 @pytest.mark.parametrize("caminho", _TEMPLATES, ids=_id)
 def test_template_nao_usa_comentario_html(caminho: Path) -> None:
     """Comentário para quem mantém o código fica fora do HTML entregue."""

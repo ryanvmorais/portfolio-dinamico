@@ -701,13 +701,13 @@ def test_foto_padrao_do_perfil_existe(client) -> None:
 class TestImagensPadrao:
     def test_foto_padrao_tem_a_proporcao_da_tela(self) -> None:
         """A foto de reserva é 4:5, a proporção do .about__image (antes: 928 x 1152)."""
-        imagem = Image.open(RAIZ / "static/icons/default_perfil.webp")
-        assert imagem.width * 5 == imagem.height * 4
+        with Image.open(RAIZ / "static/icons/default_perfil.webp") as imagem:
+            assert imagem.width * 5 == imagem.height * 4
 
     def test_capa_padrao_tem_a_proporcao_do_cartao(self) -> None:
         """A capa de reserva é 16:10, a do .project-card__image (antes: 1408 x 768)."""
-        imagem = Image.open(RAIZ / "static/icons/default_projeto.webp")
-        assert imagem.width * 10 == imagem.height * 16
+        with Image.open(RAIZ / "static/icons/default_projeto.webp") as imagem:
+            assert imagem.width * 10 == imagem.height * 16
 
     def test_imagens_padrao_sao_leves(self) -> None:
         """As duas pesam menos de 150 KiB (a capa tinha 622 KiB, com texto desenhado)."""
@@ -1040,7 +1040,8 @@ class TestCompartilhamentoEIcone:
         """O ícone da aba é quadrado e pesa menos de 20 KiB (antes: 1024 x 1024, 516 KiB)."""
         arquivo = RAIZ / "static/icons/favicon.webp"
         assert arquivo.stat().st_size < 20 * 1024
-        assert Image.open(arquivo).width == Image.open(arquivo).height <= 512
+        with Image.open(arquivo) as imagem:
+            assert imagem.width == imagem.height <= 512
 
 
 def _webp_minimo() -> bytes:

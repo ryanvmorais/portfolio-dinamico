@@ -9,8 +9,8 @@ blocos de comando, os links de troca entre os dois arquivos e os arquivos do
 repositório para onde os links do inglês apontam.
 
 Estratégia de isolamento: só os dois READMEs e a existência dos arquivos que eles
-linkam são lidos, nada é mockado; numa árvore sem os dois arquivos, os testes são
-pulados.
+linkam são lidos, nada é mockado. Os dois são versionados: sem um deles, o primeiro
+teste falha com o nome do que falta (um ``skip`` deixaria passar uma renomeação).
 """
 
 import re
@@ -24,7 +24,7 @@ import pytest
 
 # A raiz do repositório, um nível acima da pasta do app.
 _RAIZ = Path(__file__).resolve().parents[1]
-# Os dois arquivos comparados; sem um deles na árvore, os testes são pulados.
+# Os dois arquivos comparados.
 _PORTUGUES = _RAIZ / "README.md"
 _INGLES = _RAIZ / "README.en.md"
 
@@ -36,12 +36,6 @@ _TITULO = re.compile(r"^(#{1,6}) ")
 
 # Selo do topo: ``![texto](URL)`` ou ``[![texto](URL)](link)``.
 _SELO = re.compile(r"!\[[^\]]*\]\((https://img\.shields\.io/[^)]+|[^)]+badge\.svg)\)")
-
-# Todos os testes precisam dos dois arquivos, então a marca é compartilhada.
-_precisa_dos_dois = pytest.mark.skipif(
-    not (_PORTUGUES.is_file() and _INGLES.is_file()),
-    reason="os dois READMEs não estão nesta árvore",
-)
 
 
 # ---------------------------------------------------------------------------
@@ -135,19 +129,22 @@ def _blocos_de_codigo(caminho: Path) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
-@_precisa_dos_dois
+@pytest.mark.parametrize("caminho", [_PORTUGUES, _INGLES], ids=lambda c: c.name)
+def test_os_dois_readmes_existem(caminho: Path) -> None:
+    """Os testes abaixo comparam os dois: sem um deles, a falha diz qual falta."""
+    assert caminho.is_file(), f"{caminho.name} não está na raiz do repositório"
+
+
 def test_os_dois_readmes_tem_os_mesmos_titulos_na_mesma_ordem() -> None:
     assert _niveis(_INGLES) == _niveis(_PORTUGUES)
 
 
-@_precisa_dos_dois
 def test_os_dois_readmes_tem_as_mesmas_tecnologias() -> None:
     assert _linhas_da_tabela(_INGLES, "Tool") == _linhas_da_tabela(
         _PORTUGUES, "Ferramenta"
     )
 
 
-@_precisa_dos_dois
 def test_os_dois_readmes_tem_os_mesmos_selos() -> None:
     # O rótulo do selo fica em inglês nos dois arquivos, então a lista é idêntica.
     texto_en = _INGLES.read_text(encoding="utf-8")
@@ -157,12 +154,10 @@ def test_os_dois_readmes_tem_os_mesmos_selos() -> None:
     assert _SELO.findall(texto_pt)
 
 
-@_precisa_dos_dois
 def test_os_dois_readmes_tem_os_mesmos_blocos_de_codigo() -> None:
     assert _blocos_de_codigo(_INGLES) == _blocos_de_codigo(_PORTUGUES)
 
 
-@_precisa_dos_dois
 def test_cada_readme_linka_o_outro_nas_primeiras_linhas() -> None:
     ingles = "\n".join(_fora_dos_blocos(_INGLES)[:5])
     portugues = "\n".join(_fora_dos_blocos(_PORTUGUES)[:5])
@@ -171,7 +166,6 @@ def test_cada_readme_linka_o_outro_nas_primeiras_linhas() -> None:
     assert "(README.en.md)" in portugues
 
 
-@_precisa_dos_dois
 def test_os_links_do_readme_em_ingles_apontam_para_arquivos_do_repositorio() -> None:
     """Todo link relativo do README em inglês nomeia um arquivo que existe."""
     texto = _INGLES.read_text(encoding="utf-8")
@@ -187,7 +181,6 @@ def test_os_links_do_readme_em_ingles_apontam_para_arquivos_do_repositorio() -> 
     assert ausentes == []
 
 
-@_precisa_dos_dois
 def test_as_ancoras_do_readme_em_ingles_existem_como_titulos() -> None:
     """Toda âncora ``#...`` do README em inglês corresponde a um título dele."""
     # A âncora do GitHub é o título em minúsculas, com hífen no lugar do espaço

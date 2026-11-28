@@ -7,7 +7,10 @@ projeto sem apontar para skills pessoais, que quem clona não tem. Os testes var
 arquivos versionados e apontam o arquivo e a linha de cada violação.
 
 Estratégia de isolamento: só a lista de arquivos do ``git ls-files`` e o texto deles são
-lidos, nada é mockado; fora de uma árvore git, os testes são pulados.
+lidos, nada é mockado. Os testes de varredura são pulados só sem a pasta ``.git``
+(uma cópia exportada); dentro de um clone, o ``git`` que falha derruba o teste,
+porque a lista vazia passaria sem ler nada. Os padrões são conferidos contra casos
+escritos aqui: um padrão que nunca casa também acharia zero violações.
 """
 
 import re
@@ -37,7 +40,7 @@ _NOME = re.compile(r"\bRyan\b")
 _SKILL_PESSOAL = re.compile(
     r"(?<![\w./-])/(idioma|spec|estilo-arquivos|fechar-sessao|atualizar-docs"
     r"|atualizar-dependencias|revisar-dependabot|nova-interface|stack|novo-projeto"
-    r"|preparar-release|atualizar-ferramentas|qualidade-python|limpar-branches"
+    r"|preparar-release|atualizar-ferramentas|qualidade|limpar-branches"
     r"|enxugar-memoria|auditoria-[a-z]+)\b"
 )
 
@@ -52,18 +55,17 @@ def _arquivos_versionados() -> list[str]:
     Lista os arquivos versionados pelo git.
 
     Returns:
-        list[str]: Os caminhos relativos à raiz, com barras ``/``; vazia se a raiz não
-            for um repositório git ou se o git não estiver instalado.
+        list[str]: Os caminhos relativos à raiz, com barras ``/``.
+
+    Raises:
+        subprocess.CalledProcessError: Se o ``git ls-files`` falhar.
     """
-    try:
-        saida = subprocess.run(
-            ["git", "ls-files", "-z"],
-            cwd=_RAIZ,
-            capture_output=True,
-            check=True,
-        ).stdout
-    except (OSError, subprocess.CalledProcessError):
-        return []
+    saida = subprocess.run(
+        ["git", "ls-files", "-z"],
+        cwd=_RAIZ,
+        capture_output=True,
+        check=True,
+    ).stdout
     return [c for c in saida.decode("utf-8").split("\0") if c]
 
 
@@ -115,11 +117,70 @@ def _violacoes(
 
 @pytest.fixture(scope="module")
 def versionados() -> list[str]:
-    """Os arquivos do git; pula o teste fora de uma árvore git."""
+    """Os arquivos do git; pula o teste só numa cópia sem a pasta ``.git``."""
+    if not (_RAIZ / ".git").exists():
+        pytest.skip("a raiz não é um clone git (sem a pasta .git)")
     arquivos = _arquivos_versionados()
-    if not arquivos:
-        pytest.skip("a raiz não é um repositório git")
+    assert arquivos, "o git ls-files não listou nenhum arquivo"
     return arquivos
+
+
+# Cada caso é escrito aqui, na ordem e na grafia do padrão: importar a lista do padrão
+# tiraria a palavra do padrão e do teste juntos.
+@pytest.mark.parametrize(
+    ("linha", "casa"),
+    [
+        ("Feito por Ryan Morais.", True),
+        ("Revisado pelo Ryan.", True),
+        ("https://github.com/ryanvmorais/portfolio-dinamico", False),
+        ("contato@ryanmorais.com.br", False),
+        ("Ryanzinho", False),
+    ],
+)
+def test_padrao_do_nome(linha: str, casa: bool) -> None:
+    """O nome casa como palavra inteira; o perfil e o domínio ficam de fora."""
+    assert bool(_NOME.search(linha)) is casa
+
+
+@pytest.mark.parametrize(
+    "comando",
+    [
+        "/idioma",
+        "/spec",
+        "/estilo-arquivos",
+        "/fechar-sessao",
+        "/atualizar-docs",
+        "/atualizar-dependencias",
+        "/revisar-dependabot",
+        "/nova-interface",
+        "/stack",
+        "/novo-projeto",
+        "/preparar-release",
+        "/atualizar-ferramentas",
+        "/qualidade",
+        "/limpar-branches",
+        "/enxugar-memoria",
+        "/auditoria-testes",
+    ],
+)
+def test_padrao_acusa_cada_skill_pessoal(comando: str) -> None:
+    """Cada skill da lista é acusada quando citada como comando no meio de uma frase."""
+    assert _SKILL_PESSOAL.search(f"Rode {comando} antes do commit.")
+
+
+@pytest.mark.parametrize(
+    "linha",
+    [
+        "O mapa fica em docs/stack.md.",
+        "As specs ficam em /specs/.",
+        "Veja https://exemplo.com/spec para o formato.",
+        "Rode /auditoria antes.",
+        "Rode /qualidades antes.",
+    ],
+)
+def test_padrao_deixa_passar_o_que_nao_e_comando(linha: str) -> None:
+    """Caminho com a barra colada, palavra mais longa e skill sem o tema não casam."""
+    assert not _SKILL_PESSOAL.search(linha)
 
 
 def test_nome_do_mantenedor_fora_dos_arquivos(versionados: list[str]) -> None:

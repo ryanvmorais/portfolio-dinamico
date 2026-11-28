@@ -114,6 +114,7 @@ app_portfolio/        # A única aplicação
   test_comentarios_templates.py # Guarda a regra dos comentários dos templates ({# #}, nunca <!-- -->)
   test_estilo_inline.py # Barra style= e <style> nos templates (a CSP não aceita estilo inline) e confere o honeypot escondido pela classe
   test_impessoalidade.py # Falha se o nome do mantenedor aparecer em arquivo versionado ou se este arquivo citar skill pessoal
+  conftest.py          # Fixtures de toda a suíte: STATIC_ROOT numa pasta vazia (com avisos virando falha, o WhiteNoise derrubaria cada pedido)
   management/commands/semear_dados_demo.py # Dados fictícios (Lighthouse CI e dev)
   migrations/
 templates/            # Templates HTML na raiz do projeto (não dentro de app_portfolio)
@@ -247,6 +248,9 @@ Os testes ficam em arquivos ao lado do código, não numa pasta `tests/` (uma
 única view e um punhado de models não justificam a divisão por módulo); o que
 cada arquivo cobre está na árvore de "Estrutura do projeto". O `test_interface.py`
 tem fixtures de isolamento próprias e um override no mypy.
+
+- ⚠️ O pytest roda com `strict = true` e `filterwarnings = ["error"]` (tabela `[tool.pytest]`): todo aviso vira falha, inclusive o `ResourceWarning` de arquivo ou imagem aberta sem `with`. Exceção só pontual, com o motivo comentado no `pyproject.toml`.
+- ⚠️ Teste de padrão (regex, vocabulário, leitor de HTML) que pede zero ocorrências leva casos que o padrão acusa e quase-acertos no próprio arquivo: um padrão que nunca casa também acha zero.
 
 > ⚠️ **Não regredir (README bilíngue):** `README.md` (português) e `README.en.md`
 > mudam no mesmo PR, com as mesmas seções na mesma ordem; o `test_readme_en.py`
