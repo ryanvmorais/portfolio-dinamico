@@ -6,6 +6,23 @@ from django.core.files.base import ContentFile
 from PIL import Image
 
 
+def imagem_ja_gravada(image_field: Any) -> bool:
+    """
+    Diz se o arquivo do campo já está gravado no storage.
+
+    O Django marca o ``FieldFile`` com ``_committed`` depois de gravá-lo; o envio que
+    ainda vai ser gravado (o upload do Admin) fica sem a marca até o ``save()``. Não
+    há API pública para isso, então a leitura fica só aqui.
+
+    Args:
+        image_field (Any): O ``FieldFile`` do campo de imagem.
+
+    Returns:
+        bool: ``True`` se o campo tem arquivo e ele já está no storage.
+    """
+    return bool(image_field) and bool(getattr(image_field, "_committed", False))
+
+
 def converter_para_webp(
     image_field: Any, quality: int = 80
 ) -> tuple[ContentFile, str] | tuple[None, None]:
@@ -52,7 +69,7 @@ def converter_para_webp(
         # close(), o arquivo ficaria aberto até a coleta de lixo. O envio que ainda
         # não foi gravado fica aberto, porque o storage o lê depois (um WebP enviado
         # é gravado como veio).
-        if image_field._committed:
+        if imagem_ja_gravada(image_field):
             image_field.close()
 
     output = BytesIO()
