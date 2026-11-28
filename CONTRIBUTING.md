@@ -22,4 +22,4 @@ Este repositório não é apenas um site pessoal, mas um laboratório de boas pr
 - **PEP 8:** O código Python deve seguir rigorosamente os padrões de estilo (aplicado automaticamente por `ruff`/`black` — ver README).
 - **Segurança:** Nunca envie código que exponha credenciais ou desative proteções de `SSL/CSP` sem justificativa técnica.
 - **Nomenclatura:** Mantenha a coerência semântica já estabelecida no projeto.
-- **Testes:** toda mudança de comportamento (nova regra, correção de bug) vem acompanhada de um teste que a cubra — sem isso, o PR não é aceito.
+- **Testes:** toda mudança de comportamento (nova regra, correção de bug) vem acompanhada de um teste que a cubra — sem isso, o PR não é aceito. Antes do commit, quebre de propósito a linha que o teste novo guarda (inverta a condição, troque o valor) e confirme que ele fica vermelho; numa correção de bug, o teste falha na `main`. A descrição do PR diz o que foi quebrado e o resultado.
